@@ -1,0 +1,88 @@
+a.tiktok-action-download-button,
+a.tiktok-download-button
+{
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0;
+    transition: background-color 0.5s, color 0.5s, opacity 1s;
+}
+
+a.tiktok-browser-download-button
+{
+    padding: 4px 8px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    text-align: center;
+    display: block;
+}
+
+a.tiktok-action-download-button
+{
+    color: #000;
+    text-align: center;
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    background-color: #f1f1f2;
+    border-radius: 100%;
+    font-size: 1.5em;
+    transform: rotate(90deg);
+
+    padding: 0;
+    position: relative;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-align-items: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    cursor: pointer;
+    -webkit-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+}
+
+a.tiktok-action-download-button > span
+{
+    position: absolute;
+    top: 1px;
+    right: 11px;
+    font-size: 26px;
+}
+
+a.tiktok-download-button
+{
+	position: absolute;
+	z-index: 1;
+	top: 4px;
+	right: 4px;
+	background-color: rgba(19, 19, 19, 0.2);
+	padding: 3px 4px 0px 5px;
+	border-radius: 4px;
+	color: rgb(255, 255, 255, 0.75);
+	transform: rotate(90deg);
+}
+
+a.tiktok-browser-download-button:hover
+{
+    background-color: #e7e7e8;
+    color: #fe4569!important;
+	text-decoration: none;
+}
+
+a.tiktok-download-button:hover
+{
+	background-color: rgba(19, 19, 19, 0.5);
+	color: rgb(255, 255, 255, 1);
+	text-decoration: none;
+}
+
+a.tiktok-action-download-button:hover
+{
+    background-color: #e7e7e8;
+    color: #fe4569;
+    text-decoration: none;
+}

@@ -1,0 +1,18 @@
+{
+	"name": "TikTok Download Buttons",
+	"description": "Adds download buttons to TikTok videos",
+	"author": "emy",
+	"manifest_version": 2,
+	"version": "1.0.0",
+	"homepage_url": "https://five.sh/",
+	"icons": {
+		"128": "128.png"
+	},
+	"content_scripts": [{
+		"matches": ["https://tiktok.com/*", "https://www.tiktok.com/*"],
+		"js": ["main.js"],
+		"css": ["main.css"],
+		"run_at": "document_end"
+	}],
+	"permissions": ["activeTab", "<all_urls>"]
+}
