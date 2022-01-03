@@ -1,2 +1,3 @@
-# tiktok-download-buttons
-Adds download buttons to the web version of TikTok
+<h1 align="center">TikTok Download Buttons</h1>
+
+An addon that adds download buttons to the web version of TikTok
