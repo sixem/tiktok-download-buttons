@@ -4,7 +4,7 @@
 	"author": "emy",
 	"manifest_version": 2,
 	"version": "1.0.0",
-	"homepage_url": "https://five.sh/",
+	"homepage_url": "https://github.com/sixem/tiktok-download-buttons",
 	"icons": {
 		"128": "128.png"
 	},
