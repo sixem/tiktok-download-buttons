@@ -24,8 +24,6 @@
 		{
 			ttdb_data.interval.counter = count
 		}
-	
-		console.log('ttdb_setInterval', count);
 	};
 
 	/**
@@ -37,9 +35,20 @@
 	 * Different item modes
 	 */
 	ttdb_data.MODE = {
-		BIG: '0',
+		FEED: '0',
 		GRID: '1',
 		BROWSER: '2'
+	};
+
+	/**
+	 * Different environments
+	 * 
+	 * `APP` is the main environment (most regions)
+	 * `__NEXT` has a different HTML structure (region=US)
+	 */
+	 ttdb_data.ENV = {
+		APP: Symbol(true),
+		__NEXT: Symbol(true),
 	};
 
 	/**
@@ -85,38 +94,107 @@
 			});
 		});
 	};
-	
+
 	/**
-	 * Sets the CSS style of an element
-	 * 
-	 * @param {HTMLElement} element 
-	 * @param {object} values 
+	 * DOM manipulation functions
 	 */
-	const ttdb_setStyle = (element, values) =>
-	{
-		let keys = Object.keys(values);
-	
-		(keys).forEach((key) =>
+	const ttdb_DOM = {
+		/**
+		 * Creates a basic polygon svg element
+		 * 
+		 * @param {object} values 
+		 */
+		createPolygonSvg: (values) =>
 		{
-			element.style[key] = values[key];
-		});
-	};
+			let w3Url = 'http://www.w3.org/2000/svg';
+			let [width, height] = values.dimensions;
+
+			let elementSvg = document.createElementNS(w3Url, 'svg');
+			let elementPolygon = document.createElementNS(w3Url, 'polygon');
 	
-	/**
-	 * Base function for creating button elements
-	 */
-	const ttdb_newButton = (values) =>
-	{
-		let [contentMode, content] = values.content || ['textContent', 'Download'];
-		let container = document.createElement('a');
-		let span = document.createElement('span');
+			ttdb_DOM.setAttributes(elementSvg, {
+				width, height,
+				viewBox: `0 0 ${width} ${height}`
+			});
 	
-		span[contentMode] = content;
+			elementPolygon.setAttribute('points', values.points.join(' '));
+			elementSvg.appendChild(elementPolygon);
 	
-		container.appendChild(span);
-		container.setAttribute('class', values.class || '');
+			return elementSvg;
+		},
+		/**
+		 * Sets the CSS style of an element
+		 * 
+		 * @param {HTMLElement} element 
+		 * @param {object} values 
+		 */
+		setStyle: (element, values) =>
+		{
+			let keys = Object.keys(values);
 	
-		return container;
+			(keys).forEach((key) =>
+			{
+				element.style[key] = values[key];
+			});
+		},
+		/**
+		 * Sets the attributes of an element
+		 * 
+		 * @param {HTMLElement} element 
+		 * @param {object} attributes 
+		 */
+		setAttributes: (element, attributes) =>
+		{
+			Object.keys(attributes).forEach((key) =>
+			{
+				element.setAttribute(key, attributes[key]);
+			});
+	
+			return element;
+		},
+		/**
+		 * Creates a multi-selector out of an object
+		 * 
+		 * @param {object} values 
+		 */
+		multiSelector: (values) =>
+		{
+			let selectors = [];
+
+			Object.keys(values).forEach((key) =>
+			{
+				selectors.push(values[key]);
+			});
+	
+			return selectors.join(', ');
+		},
+		/**
+		 * Base function for creating button elements
+		 * 
+		 * @param {object} values
+		 */
+		createButton: (values) =>
+		{
+			let container = document.createElement('a');
+			let inner = document.createElement(values.innerType ? values.innerType : 'span');
+	
+			if(values.content)
+			{
+				let [contentMode, content] = values.content || ['textContent', 'Download'];
+	
+				if(content instanceof Element)
+				{
+					inner[contentMode](content);
+				} else {
+					inner[contentMode] = content;
+				}
+			}
+		
+			container.appendChild(inner);
+			container.setAttribute('class', values.class || '');
+		
+			return container;
+		}
 	};
 	
 	/**
@@ -124,31 +202,40 @@
 	 */
 	const ttdb_createButton = {
 		/** Browser items (full-view items) */
-		browser: () =>
+		BROWSER: () =>
 		{
-			let button = ttdb_newButton({
+			let button = ttdb_DOM.createButton({
 				content: ['textContent', 'Download'],
 				class: 'ttdb__button_browser'
 			});
 	
 			/** Set directly, as this makes it more compatible with dark mode addons */
-			ttdb_setStyle(button, {
+			ttdb_DOM.setStyle(button, {
 				'background-color': '#f1f1f2',
 				'color': '#000'
 			});
 	
 			return button;
 		},
-		/** Big items (feed items) */
-		big: () =>
+		/** Feed items */
+		FEED: () =>
 		{
-			let button = ttdb_newButton({
-				content: ['innerHTML', '&#10132;'],
-				class: 'ttdb__button_action'
+			let button = ttdb_DOM.createButton({
+				content: ['appendChild', ttdb_DOM.createPolygonSvg({
+					dimensions: [24, 24],
+					points: [
+						'13', '17.586', '13', '4', '11', '4',
+						'11', '17.586', '4.707', '11.293', '3.293',
+						'12.707', '12', '21.414', '20.707', '12.707',
+						'19.293', '11.293', '13', '17.586'
+					]
+				})],
+				innerType: 'div',
+				class: 'ttdb__button_feed'
 			});
 	
 			/** Set directly, as this makes it more compatible with dark mode addons */
-			ttdb_setStyle(button, {
+			ttdb_DOM.setStyle(button, {
 				'background-color': '#f1f1f2',
 				'color': '#000'
 			});
@@ -156,11 +243,11 @@
 			return button;
 		},
 		/** Grid items (videos/liked items) */
-		overlay: () =>
+		GRID: () =>
 		{
-			let button = ttdb_newButton({
-				content: ['innerHTML', '&#10132;'],
-				class: 'ttdb__button_overlay'
+			let button = ttdb_DOM.createButton({
+				content: false,
+				class: 'ttdb__button_grid'
 			});
 	
 			return button;
@@ -168,26 +255,44 @@
 	};
 	
 	/**
-	 * Attempts to extract the description/tags to use as an ID
+	 * Attempts to extract the description/tags to use as an ID (for when no number ID is available)
+	 * 
+	 * @param {HTMLElement} container 
+	 * @param {string} env 
 	 */
-	const ttdb_extractDescriptionId = (container) =>
+	const ttdb_extractDescriptionId = (container, env = ttdb_data.ENV.APP) =>
 	{
-		let descriptionElement = container.querySelector('span[class*="-SpanText "][class^="tiktok-"]');
-		let identifier  = null;
-	
-		if(descriptionElement)
+		let identifier = null;
+		let extracted = null;
+
+		if(env === ttdb_data.ENV.APP)
 		{
-			let descriptionContainer = descriptionElement.parentElement;
+			let descriptionElement = container.querySelector('span[class*="-SpanText "][class^="tiktok-"]');
 	
-			/** We'll use the description/tags as the ID */
-			let extracted = descriptionContainer.textContent.replace(/[/\\?%*:|"<>]/g, '-').toLowerCase().trim();
-	
+			if(descriptionElement)
+			{
+				extracted = descriptionElement.parentElement.textContent;
+			}
+		} else if(env === ttdb_data.ENV.__NEXT)
+		{
+			let metaTitle = container.querySelector('div[class*="video-meta-caption"]');
+
+			if(metaTitle)
+			{
+				extracted = metaTitle.textContent;
+			}
+		}
+		
+		if(extracted)
+		{
+			extracted = extracted.replace(/[/\\?%*:|"<>]/g, '-').toLowerCase().trim();
+		
 			if(extracted && extracted.length > 0)
 			{
 				identifier = extracted;
 			}
 		}
-	
+
 		return identifier;
 	};
 	
@@ -203,16 +308,19 @@
 			user: null,
 			url: null
 		};
-	
+
 		let videoElement = container.querySelector('video');
 	
 		if(videoElement)
 		{
-			/** Bigger items */
-			if(data.mode === ttdb_data.MODE.BIG)
+			/** Feed items */
+			if(data.mode === ttdb_data.MODE.FEED)
 			{
 				/** Get username */
-				let itemUser = data.container.querySelector('a > [class*="AuthorTitle "][class^="tiktok-"]');
+				let itemUser = data.container.querySelector(ttdb_DOM.multiSelector({
+					app: 'a > [class*="AuthorTitle "][class^="tiktok-"]',
+					__next: 'h3.author-uniqueId'
+				}));
 	
 				if(itemUser)
 				{
@@ -233,7 +341,7 @@
 				}
 	
 				/** Get alternative id (no ID available here) */
-				let descriptionIdentifier = ttdb_extractDescriptionId(data.container);
+				let descriptionIdentifier = ttdb_extractDescriptionId(data.container, data.env);
 				videoData.id = descriptionIdentifier ? descriptionIdentifier : Date.now() /** Fallback */;
 			/** Grid items */
 			} else if(data.mode === ttdb_data.MODE.GRID)
@@ -261,17 +369,30 @@
 			{
 				if(!videoData.id || !videoData.user)
 				{
-					/** Get username */
-					let itemUser = data.container.querySelector('div[class*="-DivInfoContainer "] a[href*="/@"]');
-					videoData.user = itemUser ? itemUser.getAttribute('href').split('/@')[1] : 'tiktok_video' /** Fallback */;
+					let itemUser = null;
 
-					if(itemUser && videoData.user.includes('?'))
+					/** Get username */
+					if(data.env === ttdb_data.ENV.APP)
 					{
-						videoData.user = videoData.user.split('?')[0];
+						itemUser = data.container.querySelector('div[class*="-DivInfoContainer "] a[href*="/@"]');
+						videoData.user = itemUser ? itemUser.getAttribute('href').split('/@')[1] : 'tiktok_video' /** Fallback */;
+
+						if(itemUser && videoData.user.includes('?'))
+						{
+							videoData.user = videoData.user.split('?')[0];
+						}
+					} else if(data.env === ttdb_data.ENV.__NEXT)
+					{
+						itemUser = data.container.querySelector('div.user-info a > h2.user-username');
+
+						if(itemUser)
+						{
+							videoData.user = itemUser.textContent.trim();
+						}
 					}
-	
+
 					/** Get alternative id (no ID available here) */
-					let descriptionIdentifier = ttdb_extractDescriptionId(data.container);
+					let descriptionIdentifier = ttdb_extractDescriptionId(data.container, data.env);
 					videoData.id = descriptionIdentifier ? descriptionIdentifier : Date.now() /** Fallback */;
 				}
 			}
@@ -288,12 +409,15 @@
 	 */
 	const ttdb_getVideoItems = () =>
 	{
-		let selectors = [
-			'div[class*="-DivItemContainer "][class^="tiktok-"]:not([is-downloadable]):not([class*="-kdocy-"])',
-			'div[class*="-DivBrowserModeContainer "][class^="tiktok-"]:not([is-downloadable])'
-		];
+		let selectors = ttdb_DOM.multiSelector({
+			appItemContainer: 'div[class*="-DivItemContainer "][class^="tiktok-"]:not([is-downloadable]):not([class*="-kdocy-"])',
+			appBrowserMode: 'div[class*="-DivBrowserModeContainer "][class^="tiktok-"]:not([is-downloadable])',
+			__nextGrid: 'div.video-feed div.video-feed-item:not([is-downloadable])',
+			__nextBig: 'div.video-feed-container div.feed-item-content:not([is-downloadable])',
+			__nextBrowser: 'div.tt-feed div.video-card-big.browse-mode:not([is-downloadable])'
+		});
 	
-		return document.querySelectorAll(selectors.join(', '));
+		return document.querySelectorAll(selectors);
 	};
 
 	const ttdb_hookDownload = (button, videoData) =>
@@ -314,7 +438,7 @@
 		});
 	
 		/** Download data has been set, make element interactable again */
-		ttdb_setStyle(button, {
+		ttdb_DOM.setStyle(button, {
 			'cursor': 'pointer',
 			'pointer-events': 'auto'
 		});
@@ -323,19 +447,40 @@
 	}
 
 	const ttdb_setupItem = {
-		/** Set up big item */
-		big: (item, data) =>
+		/** Set up feed item */
+		feed: (item, data) =>
 		{
-			let button = ttdb_createButton.big();
-			let videoPreview = item.querySelector('div[class*="-DivContainer "][class^="tiktok-"] > img');
-			let actionContainer = item.querySelector('div[class*="-DivActionItemContainer "][class^="tiktok-"]');
-			
+			let videoPreview = null;
+
+			if(data.env === ttdb_data.ENV.APP)
+			{
+				videoPreview = item.querySelector('div[class*="-DivContainer "][class^="tiktok-"] > img');
+			} else if(data.env === ttdb_data.ENV.__NEXT)
+			{
+				videoPreview = item.querySelector('div[class*="video-card"] > span[class$="mask"]');
+			}
+
+
 			if(videoPreview)
 			{
+				let button = ttdb_createButton.FEED();
+				let actionContainer = null;
+				
+				if(data.env === ttdb_data.ENV.APP)
+				{
+					actionContainer = item.querySelector('div[class*="-DivActionItemContainer "][class^="tiktok-"]');
+				} else if(data.env === ttdb_data.ENV.__NEXT)
+				{
+					actionContainer = item.querySelector('div[class*="-action-bar"].vertical');
+				}
+
+				if(!actionContainer)
+				{
+					return false;
+				}
+
 				item.setAttribute('is-downloadable', 'true');
-		
 				actionContainer.prepend(button);
-		
 				let container = videoPreview.parentElement;
 		
 				let callback = (mutationsList, observer) =>
@@ -376,7 +521,9 @@
 		/** Set up grid item */
 		grid: (item, data) =>
 		{
-			let button = ttdb_createButton.overlay();
+			item.setAttribute('is-downloadable', 'true');
+
+			let button = ttdb_createButton.GRID();
 	
 			item.addEventListener('mouseenter', (e) =>
 			{
@@ -392,12 +539,11 @@
 				}
 			});
 		
-			ttdb_setStyle(item, {
+			ttdb_DOM.setStyle(item, {
 				'position': 'relative'
 			});
 		
 			item.appendChild(button);
-			item.setAttribute('is-downloadable', 'true');
 		
 			setTimeout(() =>
 			{
@@ -407,34 +553,35 @@
 		/** Set up browser item */
 		browser: (item, data) =>
 		{
-			let button = ttdb_createButton.browser();
-			let videoData = ttdb_getVideoData(item, data);
 			let linkContainer = item.querySelector('div[class*="-DivCopyLinkContainer "][class^="tiktok-"]');
 		
 			if(linkContainer)
 			{
+				let button = ttdb_createButton.BROWSER();
+				let videoData = ttdb_getVideoData(item, data);
+
 				linkContainer.before(button);
 		
 				if(linkContainer.parentElement && linkContainer.parentElement.children.length > 0)
 				{
 					let interactButtons = linkContainer.parentElement.children[0];
 		
-					ttdb_setStyle(interactButtons, {
+					ttdb_DOM.setStyle(interactButtons, {
 						'margin-bottom': '10px'
 					});
 		
 					if(interactButtons.children[0])
 					{
-						ttdb_setStyle(button, {
+						ttdb_DOM.setStyle(button, {
 							'width': `${interactButtons.children[0].offsetWidth}px`
 						});
 					}
 				}
 		
 				ttdb_hookDownload(button, videoData);
+
+				item.setAttribute('is-downloadable', 'true');
 			}
-		
-			item.setAttribute('is-downloadable', 'true');
 		}
 	};
 	
@@ -447,35 +594,57 @@
 	
 		(ttdb_getVideoItems()).forEach((item) =>
 		{
+			let currentMode = null;
+			let currentEnvironment = null;
+
 			let modeElement = item.querySelector('div[mode]');
-	
+
 			if(modeElement)
 			{
-				/**
-				 * We need a way to differentiate between the different items
-				 * The elements have a `mode` attribute, so we'll use that
-				 * 
-				 * 0 = Big items (For you page etc.)
-				 * 1 = Grid items (Liked videos etc.)
-				 * 2 = Opened items - full-view videos (Browser mode)
-				 */
-				let mode = modeElement.getAttribute('mode');
-	
+				currentMode = modeElement.getAttribute('mode');
+
+				currentEnvironment = ttdb_data.ENV.APP;
+			} else {
+				let classList = item.classList;
+
+				if(classList.contains('video-feed-item') || classList.contains('three-column-item'))
+				{
+					currentMode = ttdb_data.MODE.GRID;
+				} else if(classList.contains('feed-item-content'))
+				{
+					currentMode = ttdb_data.MODE.FEED;
+				} else if(classList.contains('browse-mode') || classList.contains('video-card-big'))
+				{
+					currentMode = ttdb_data.MODE.BROWSER;
+				}
+
+				if(currentMode !== null)
+				{
+					currentEnvironment = ttdb_data.ENV.__NEXT;
+				}
+			}
+
+			console.log('currentMode', currentMode);
+			
+			/** A valid mode has been found */
+			if(currentMode !== null)
+			{
 				/** Data that we're sending downstream */
 				let data = {
-					mode: mode,
+					mode: currentMode,
+					env: currentEnvironment,
 					container: item
 				};
-	
-				if(mode === ttdb_data.MODE.BIG)
+
+				if(currentMode === ttdb_data.MODE.FEED)
 				{
-					ttdb_setupItem.big(item, data);
+					ttdb_setupItem.feed(item, data);
 					processed++;
-				} else if(mode === ttdb_data.MODE.GRID)
+				} else if(currentMode === ttdb_data.MODE.GRID)
 				{
 					ttdb_setupItem.grid(item, data);
 					processed++;
-				} else if(mode === ttdb_data.MODE.BROWSER)
+				} else if(currentMode === ttdb_data.MODE.BROWSER)
 				{
 					ttdb_setupItem.browser(item, data);
 					processed++;
@@ -519,10 +688,13 @@
 	{
 		ttdb_setInterval(15);
 	});
-	
+
 	window.addEventListener('DOMContentLoaded', () =>
 	{
-		let appContainer = document.querySelector('div#app');
+		let appContainer = document.querySelector(ttdb_DOM.multiSelector({
+			app: 'div#app',
+			__next: 'div#main'
+		}));
 	
 		if(appContainer)
 		{
