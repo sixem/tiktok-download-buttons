@@ -21,6 +21,19 @@ a.ttdb__button_browser
     border-radius: 4px;
     text-align: center;
     display: block;
+    font-size: 14px;
+}
+
+a.ttdb__button_browser[ttdb_mode="__NEXT"]
+{
+    margin-bottom: 10px!important;
+    margin-top: -12px!important;
+    padding: 4px 8px 6px 8px!important;
+}
+
+a.ttdb__button_browser[ttdb_mode="APP"]
+{
+    margin: 10px 0px 10px 0px!important;
 }
 
 a.ttdb__button_feed
@@ -68,8 +81,6 @@ a.ttdb__button_grid > span
     height: 24px;
     line-height: 24px;
     width: 18px;
-
-    background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE5LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4Ig0KCSB2aWV3Qm94PSIwIDAgNDg5LjcwMSA0ODkuNzAxIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0ODkuNzAxIDQ4OS43MDE7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxnPg0KCTxnPg0KCQk8Zz4NCgkJCTxwYXRoIGQ9Ik0yNDQuOSwwYy05LjUsMC0xNy4xLDcuNy0xNy4xLDE3LjJ2MzEyLjNsLTc3LjYtNzcuNmMtNi43LTYuNy0xNy42LTYuNy0yNC4zLDBjLTYuNyw2LjctNi43LDE3LjYsMCwyNC4zbDEwNi45LDEwNi45DQoJCQkJYzMuMiwzLjIsNy42LDUsMTIuMSw1YzQuNiwwLDguOS0xLjgsMTIuMS01bDEwNi45LTEwN2M2LjctNi43LDYuNy0xNy42LDAtMjQuM3MtMTcuNi02LjctMjQuMywwTDI2MiwzMjkuNFYxNy4yDQoJCQkJQzI2Mi4xLDcuNywyNTQuNCwwLDI0NC45LDB6Ii8+DQoJCQk8cGF0aCBkPSJNNDU1LjgsNDcyLjZjMC05LjUtNy43LTE3LjItMTcuMi0xNy4ySDUxLjFjLTkuNSwwLTE3LjIsNy43LTE3LjIsMTcuMnM3LjcsMTcuMSwxNy4yLDE3LjFoMzg3LjYNCgkJCQlDNDQ4LjIwMSw0ODkuOCw0NTUuOCw0ODIuMSw0NTUuOCw0NzIuNnoiLz4NCgkJPC9nPg0KCTwvZz4NCgk8Zz4NCgk8L2c+DQoJPGc+DQoJPC9nPg0KCTxnPg0KCTwvZz4NCgk8Zz4NCgk8L2c+DQoJPGc+DQoJPC9nPg0KCTxnPg0KCTwvZz4NCgk8Zz4NCgk8L2c+DQoJPGc+DQoJPC9nPg0KCTxnPg0KCTwvZz4NCgk8Zz4NCgk8L2c+DQoJPGc+DQoJPC9nPg0KCTxnPg0KCTwvZz4NCgk8Zz4NCgk8L2c+DQoJPGc+DQoJPC9nPg0KCTxnPg0KCTwvZz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjwvc3ZnPg0K")
 }
 
 a.ttdb__button_feed > div
@@ -86,14 +97,12 @@ a.ttdb__button_feed > div
 
 a.ttdb__button_feed > div > svg
 {
-    color: #fff;
     fill: currentColor;
     width: 55%;
     margin-left: 1px;
     margin-top: -1px;
 }
 
-a.ttdb__button_browser > span::after,
 a.ttdb__button_grid > span::after
 {
     content: '\01F853';

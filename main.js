@@ -116,9 +116,14 @@
 				width, height,
 				viewBox: `0 0 ${width} ${height}`
 			});
-	
+
 			elementPolygon.setAttribute('points', values.points.join(' '));
 			elementSvg.appendChild(elementPolygon);
+
+			if(values.style)
+			{
+				ttdb_DOM.setStyle(elementSvg, values);
+			}
 	
 			return elementSvg;
 		},
@@ -204,6 +209,7 @@
 		/** Browser items (full-view items) */
 		BROWSER: () =>
 		{
+			/** Create download button */
 			let button = ttdb_DOM.createButton({
 				content: ['textContent', 'Download'],
 				class: 'ttdb__button_browser'
@@ -220,6 +226,7 @@
 		/** Feed items */
 		FEED: () =>
 		{
+			/** Create download button */
 			let button = ttdb_DOM.createButton({
 				content: ['appendChild', ttdb_DOM.createPolygonSvg({
 					dimensions: [24, 24],
@@ -228,7 +235,10 @@
 						'11', '17.586', '4.707', '11.293', '3.293',
 						'12.707', '12', '21.414', '20.707', '12.707',
 						'19.293', '11.293', '13', '17.586'
-					]
+					],
+					style: {
+						color: '#161823'
+					},
 				})],
 				innerType: 'div',
 				class: 'ttdb__button_feed'
@@ -245,6 +255,7 @@
 		/** Grid items (videos/liked items) */
 		GRID: () =>
 		{
+			/** Create download button */
 			let button = ttdb_DOM.createButton({
 				content: false,
 				class: 'ttdb__button_grid'
@@ -448,7 +459,7 @@
 
 	const ttdb_setupItem = {
 		/** Set up feed item */
-		feed: (item, data) =>
+		FEED: (item, data) =>
 		{
 			let videoPreview = null;
 
@@ -463,7 +474,12 @@
 
 			if(videoPreview)
 			{
+				item.setAttribute('is-downloadable', 'true');
+
+				/** Create download button */
 				let button = ttdb_createButton.FEED();
+
+				/** Container for existing buttons (like, comment and share) */
 				let actionContainer = null;
 				
 				if(data.env === ttdb_data.ENV.APP)
@@ -477,52 +493,58 @@
 				if(!actionContainer)
 				{
 					return false;
+				} else {
+					actionContainer.prepend(button);
 				}
 
-				item.setAttribute('is-downloadable', 'true');
-				actionContainer.prepend(button);
-				let container = videoPreview.parentElement;
-		
-				let callback = (mutationsList, observer) =>
+				let videoDataOnSetup = ttdb_getVideoData(item, data);
+
+				if(videoDataOnSetup.url && !button.ttIsProcessed)
 				{
-					for(let mutation of mutationsList)
+					/** Item has already loaded when being set up */
+					setTimeout(() => button.style.opacity = 1, 50);
+					ttdb_hookDownload(button, videoData);
+					button.ttIsProcessed = true;
+				} else {
+					/** Item has not loaded, so we'll prepare and watch for it */
+					let container = videoPreview.parentElement;
+		
+					let callback = (mutationsList, observer) =>
 					{
-						if(mutation.type === 'childList')
+						for(let mutation of mutationsList)
 						{
-							let videoData = ttdb_getVideoData(item, data);
-		
-							/**
-							 * We have a valid video URL — set download data
-							 */
-							if(videoData.url && !button.ttIsProcessed)
+							if(mutation.type === 'childList')
 							{
-								setTimeout(() =>
+								let videoData = ttdb_getVideoData(item, data);
+			
+								/** We have a valid video URL, so set download data */
+								if(videoData.url && !button.ttIsProcessed)
 								{
-									button.style.opacity = 1;
-								}, 50);
-		
-								observer.disconnect();
-		
-								ttdb_hookDownload(button, videoData);
-								button.ttIsProcessed = true;
+									observer.disconnect();
+	
+									setTimeout(() => button.style.opacity = 1, 50);
+									ttdb_hookDownload(button, videoData);
+									button.ttIsProcessed = true;
+								}
 							}
 						}
-					}
-				};
-				
-				let observer = new MutationObserver(callback);
-		
-				observer.observe(container, {
-					childList: true,
-					subtree: true
-				});
+					};
+					
+					let observer = new MutationObserver(callback);
+			
+					observer.observe(container, {
+						childList: true,
+						subtree: true
+					});
+				}
 			}
 		},
 		/** Set up grid item */
-		grid: (item, data) =>
+		GRID: (item, data) =>
 		{
 			item.setAttribute('is-downloadable', 'true');
 
+			/** Create download button */
 			let button = ttdb_createButton.GRID();
 	
 			item.addEventListener('mouseenter', (e) =>
@@ -551,33 +573,34 @@
 			}, 100);
 		},
 		/** Set up browser item */
-		browser: (item, data) =>
+		BROWSER: (item, data) =>
 		{
-			let linkContainer = item.querySelector('div[class*="-DivCopyLinkContainer "][class^="tiktok-"]');
+			let linkContainer = null;
+
+			if(data.env === ttdb_data.ENV.APP)
+			{
+				linkContainer = item.querySelector('div[class*="-DivCopyLinkContainer "][class^="tiktok-"]');
+			} else if(data.env === ttdb_data.ENV.__NEXT)
+			{
+				linkContainer = item.querySelector('div.video-infos-container > div.action-container');
+			}
 		
 			if(linkContainer)
 			{
+				/** Create download button */
 				let button = ttdb_createButton.BROWSER();
 				let videoData = ttdb_getVideoData(item, data);
 
-				linkContainer.before(button);
-		
-				if(linkContainer.parentElement && linkContainer.parentElement.children.length > 0)
+				if(data.env === ttdb_data.ENV.APP)
 				{
-					let interactButtons = linkContainer.parentElement.children[0];
-		
-					ttdb_DOM.setStyle(interactButtons, {
-						'margin-bottom': '10px'
-					});
-		
-					if(interactButtons.children[0])
-					{
-						ttdb_DOM.setStyle(button, {
-							'width': `${interactButtons.children[0].offsetWidth}px`
-						});
-					}
+					linkContainer.before(button);
+				} else if(data.env === ttdb_data.ENV.__NEXT)
+				{
+					linkContainer.after(button);
 				}
-		
+				
+				button.setAttribute('ttdb_mode', data.env === ttdb_data.ENV.__NEXT ? '__NEXT' : 'APP');
+
 				ttdb_hookDownload(button, videoData);
 
 				item.setAttribute('is-downloadable', 'true');
@@ -638,15 +661,15 @@
 
 				if(currentMode === ttdb_data.MODE.FEED)
 				{
-					ttdb_setupItem.feed(item, data);
+					ttdb_setupItem.FEED(item, data);
 					processed++;
 				} else if(currentMode === ttdb_data.MODE.GRID)
 				{
-					ttdb_setupItem.grid(item, data);
+					ttdb_setupItem.GRID(item, data);
 					processed++;
 				} else if(currentMode === ttdb_data.MODE.BROWSER)
 				{
-					ttdb_setupItem.browser(item, data);
+					ttdb_setupItem.BROWSER(item, data);
 					processed++;
 				}
 			}
