@@ -6,6 +6,7 @@
 	"version": "1.0.0",
 	"homepage_url": "https://github.com/sixem/tiktok-download-buttons",
 	"icons": {
+		"48": "48.png",
 		"128": "128.png"
 	},
 	"content_scripts": [{
