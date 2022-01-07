@@ -74,13 +74,13 @@
 		{
 			buttonElement.style.cursor = 'progress';
 		}
+
+		let a = document.createElement('a');
 	
 		fetch(url, ttdb_data.headers).then((t) =>
 		{
 			return t.blob().then((b) =>
 			{
-				let a = document.createElement('a');
-	
 				a.href = URL.createObjectURL(b);
 				a.setAttribute('download', filename);
 				a.click();
@@ -90,6 +90,16 @@
 					buttonElement.style.cursor = 'pointer';
 				}
 			});
+		/**
+		 * TikTok will sometimes return an invalid response (`TCP_MISS`)
+		 * This causes the downloaded items to be 0 bytes.
+		 * 
+		 * Can we find a way to have a fallback here?
+		 */
+		}).catch(() =>
+		{
+			a.href = url;
+			a.click();
 		});
 	};
 
