@@ -2,6 +2,9 @@
 {
 	const ttdb_data = {};
 
+	ttdb_data.timers = {};
+	ttdb_data.observers = {};
+
 	/**
 	 * Interval object
 	 * 
@@ -25,11 +28,6 @@
 			ttdb_data.interval.counter = count
 		}
 	};
-
-	/**
-	 * Timers
-	 */
-	ttdb_data.timers = {};
 
 	/**
 	 * Different item modes
@@ -122,7 +120,7 @@
 
 			if(values.style)
 			{
-				ttdb_DOM.setStyle(elementSvg, values);
+				ttdb_DOM.setStyle(elementSvg, values.style);
 			}
 	
 			return elementSvg;
@@ -421,7 +419,7 @@
 	const ttdb_getVideoItems = () =>
 	{
 		let selectors = ttdb_DOM.multiSelector({
-			appItemContainer: 'div[class*="-DivItemContainer "][class^="tiktok-"]:not([is-downloadable]):not([class*="-kdocy-"])',
+			appItemContainer: 'div[class*="-DivItemContainer"][class^="tiktok-"]:not([is-downloadable]):not([class*="-kdocy-"])',
 			appBrowserMode: 'div[class*="-DivBrowserModeContainer "][class^="tiktok-"]:not([is-downloadable])',
 			__nextGrid: 'div.video-feed div.video-feed-item:not([is-downloadable])',
 			__nextBig: 'div.video-feed-container div.feed-item-content:not([is-downloadable])',
@@ -431,23 +429,36 @@
 		return document.querySelectorAll(selectors);
 	};
 
-	const ttdb_hookDownload = (button, videoData) =>
+	const ttdb_hookDownload = (button, videoData, recreate = false) =>
 	{
 		let fileName = (videoData.id && videoData.user) ? `${videoData.user}-${videoData.id}` : Date.now();
 	
-		button.setAttribute('href', videoData.url);
-		button.setAttribute('filename', `${fileName}.mp4`);
-		button.setAttribute('download', fileName);
-	
-		button.addEventListener('click', (e) =>
-		{
-			/** Override default click behavior */
-			e.preventDefault();
-	
-			/** Download file using this function instead */
-			ttdb_downloadFile(videoData.url, `${fileName}.mp4`, e.target);
+		ttdb_DOM.setAttributes(button, {
+			'href': videoData.url,
+			'filename': `${fileName}.mp4`,
+			'download': fileName
 		});
-	
+
+		if(!button.ttdb_hasListener)
+		{
+			button.addEventListener('click', (e) =>
+			{
+				/** Override default click behavior */
+				e.preventDefault();
+
+				let attrUrl = button.getAttribute('href') || null;
+				let attrFilename = button.getAttribute('filename') || null;
+		
+				/** Download file using this function instead */
+				if(attrUrl && attrFilename)
+				{
+					ttdb_downloadFile(attrUrl, attrFilename, e.target);
+				}
+			});
+
+			button.ttdb_hasListener = true;
+		}
+
 		/** Download data has been set, make element interactable again */
 		ttdb_DOM.setStyle(button, {
 			'cursor': 'pointer',
@@ -501,9 +512,14 @@
 
 				if(videoDataOnSetup.url && !button.ttIsProcessed)
 				{
-					/** Item has already loaded when being set up */
-					setTimeout(() => button.style.opacity = 1, 50);
-					ttdb_hookDownload(button, videoData);
+					setTimeout(() =>
+					{
+						button.style.opacity = 1;
+					}, 50);
+
+					/** Item has already loaded when being set up, so set up download button */
+					ttdb_hookDownload(button, videoDataOnSetup);
+
 					button.ttIsProcessed = true;
 				} else {
 					/** Item has not loaded, so we'll prepare and watch for it */
@@ -520,10 +536,17 @@
 								/** We have a valid video URL, so set download data */
 								if(videoData.url && !button.ttIsProcessed)
 								{
+									/** Stop observing */
 									observer.disconnect();
-	
-									setTimeout(() => button.style.opacity = 1, 50);
+
+									setTimeout(() =>
+									{
+										button.style.opacity = 1;
+									}, 50);
+
+									/** Set up download button */
 									ttdb_hookDownload(button, videoData);
+
 									button.ttIsProcessed = true;
 								}
 							}
@@ -584,9 +607,12 @@
 			{
 				linkContainer = item.querySelector('div.video-infos-container > div.action-container');
 			}
-		
+
 			if(linkContainer)
 			{
+				/** Mark container as handled */
+				item.setAttribute('is-downloadable', 'true');
+
 				/** Create download button */
 				let button = ttdb_createButton.BROWSER();
 				let videoData = ttdb_getVideoData(item, data);
@@ -603,7 +629,34 @@
 
 				ttdb_hookDownload(button, videoData);
 
-				item.setAttribute('is-downloadable', 'true');
+				if(ttdb_data.observers.browserObserver)
+				{
+					ttdb_data.observers.browserObserver.disconnect();
+				}
+
+				let callback = (mutationsList, observer) =>
+				{
+					for(let mutation of mutationsList)
+					{
+						if(mutation.type === 'childList')
+						{
+							clearTimeout(ttdb_data.timers.browserObserver);
+	
+							ttdb_data.timers.browserObserver = setTimeout(() =>
+							{
+								ttdb_hookDownload(button, ttdb_getVideoData(item, data));
+							}, 100);
+						}
+					}
+				};
+
+				ttdb_data.observers.browserObserver = new MutationObserver(callback);
+	
+				/** Observe any changes when navigating through items */
+				ttdb_data.observers.browserObserver.observe(item, {
+					childList: true,
+					subtree: true
+				});
 			}
 		}
 	};
@@ -737,9 +790,9 @@
 				}
 			};
 			
-			let observer = new MutationObserver(callback);
+			ttdb_data.observers.mainObserver = new MutationObserver(callback);
 		
-			observer.observe(appContainer, {
+			ttdb_data.observers.mainObserver.observe(appContainer, {
 				childList: true,
 				subtree: true
 			});
