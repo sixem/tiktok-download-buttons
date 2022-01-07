@@ -2,7 +2,7 @@
 	"name": "TikTok Download Buttons",
 	"description": "Adds download buttons to TikTok videos",
 	"author": "emy",
-	"manifest_version": 2,
+	"manifest_version": 3,
 	"version": "1.0.0",
 	"homepage_url": "https://github.com/sixem/tiktok-download-buttons",
 	"icons": {
