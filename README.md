@@ -12,6 +12,8 @@ I made this mostly for my own needs, but it's also published here:
 
 * [Chrome Web Store](https://chrome.google.com/webstore/detail/tiktok-download-buttons/kcnchleajedobajlpgkcinfcdmdnfejd)
 
+* [Add-ons for Firefox](https://addons.mozilla.org/en-US/firefox/addon/tiktok-download-buttons/)
+
 ---
 
 ## Firefox (Manifest version < 3):
