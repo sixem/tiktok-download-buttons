@@ -14,7 +14,7 @@ I made this mostly for my own needs, but it's also published here:
 
 ---
 
-## Firefox (Manifest version <= 2):
+## Firefox (Manifest version < 3):
 
 Firefox (and possibly some other browsers supporting WebKit extensions) will need to use the manifest version 2. This addon's default version is 3, which is the recommended version that is also supported by Google Chrome. In order to use this for Firefox, simply replace [manifest.json](./manifest.json) with [.manifest_v2.json](./.manifest_v2.json).
 
