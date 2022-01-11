@@ -15,7 +15,6 @@
 		"css": ["main.css"],
 		"run_at": "document_end"
 	}],
-	"permissions": ["tabs"],
 	"host_permissions": [
 		"*://*.tiktok.com/*",
 		"https://tiktok.com/*"
