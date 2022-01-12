@@ -4,6 +4,7 @@
 
 	ttdb_data.timers = {};
 	ttdb_data.observers = {};
+	ttdb_data.recentTrigger = null;
 
 	/**
 	 * Interval object
@@ -21,13 +22,28 @@
 	 * 
 	 * @param {integer} count 
 	 */
-	const ttdb_setInterval = (count) =>
+	const ttdb_setInterval = (count, trigger = null) =>
 	{
 		if(ttdb_data.interval.counter < count)
 		{
 			ttdb_data.interval.counter = count
 		}
+
+		if(trigger)
+		{
+			ttdb_data.recentTrigger = trigger;
+		}
 	};
+
+	/**
+	 * Log to console
+	 * 
+	 * @param  {...any} args 
+	 */
+	const pipe = (...args) =>
+	{
+		console.log(`[TTDB]`, ...args)
+	}
 
 	/**
 	 * Different item modes
@@ -63,6 +79,17 @@
 		credentials: 'same-origin',
 		redirect: 'follow'
 	};
+
+	/**
+	 * Attempts to get the `app` container
+	 */
+	const ttdb_getAppContainer = () =>
+	{
+		return document.querySelector(ttdb_DOM.multiSelector({
+			APP: 'div#app',
+			__NEXT: 'div#main'
+		}));
+	};
 	
 	/**
 	 * Downloads a file
@@ -77,17 +104,15 @@
 			buttonElement.style.cursor = 'progress';
 		}
 
-		let a = document.createElement('a');
-
 		/**
-		 * TikTok will sometimes return an invalid response (`TCP_MISS` | Code: 416)
+		 * TikTok will sometimes return an invalid response (`TCP_MISS` || Code: 416)
 		 * This causes the downloaded items to be 0 bytes.
 		 * 
 		 * This is a workaround for now.
 		 */
 		let fallback = (url) =>
 		{
-			console.error('File could not be fetched, opening instead.');
+			pipe('File could not be fetched — opening instead.');
 			window.open(url, '_blank').focus();
 		};
 
@@ -97,6 +122,8 @@
 			{
 				return t.blob().then((b) =>
 				{
+					let a = document.createElement('a');
+
 					a.href = URL.createObjectURL(b);
 					a.setAttribute('download', filename);
 					a.click();
@@ -106,7 +133,7 @@
 						buttonElement.style.cursor = 'pointer';
 					}
 	
-					console.log(`Downloaded: ${url}`);
+					pipe(`Downloaded: ${url}`);
 				});
 			} else {
 				fallback(url);
@@ -691,7 +718,7 @@
 	const ttdb_updateItems = () =>
 	{
 		let processed = 0;
-	
+
 		(ttdb_getVideoItems()).forEach((item) =>
 		{
 			let currentMode = null;
@@ -764,7 +791,7 @@
 	
 		if(processedItems > 0)
 		{
-			console.log(`Processed ${processedItems} item(s)!`);
+			pipe(`Processed ${processedItems} item${processedItems !== 1 ? 's' : ''}!`);
 		}
 	};
 	
@@ -777,7 +804,7 @@
 
 		ttdb_data.timers.scrollBreak = setTimeout(() =>
 		{
-			ttdb_setInterval(25);
+			ttdb_setInterval(20, 'DOCUMENT_SCROLL');
 		}, 250);
 	});
 	
@@ -786,42 +813,67 @@
 	 */
 	window.addEventListener('click', () =>
 	{
-		ttdb_setInterval(15);
+		ttdb_setInterval(10, 'WINDOW_CLICK');
 	});
 
-	window.addEventListener('DOMContentLoaded', () =>
+	let observeApp = (container) =>
 	{
-		let appContainer = document.querySelector(ttdb_DOM.multiSelector({
-			app: 'div#app',
-			__next: 'div#main'
-		}));
-	
-		if(appContainer)
+		if(ttdb_data.observers.mainObserver)
 		{
-			let callback = (mutationsList, observer) =>
-			{
-				for(let mutation of mutationsList)
-				{
-					if(mutation.type === 'childList')
-					{
-						clearTimeout(ttdb_data.timers.appUpdated);
-	
-						ttdb_data.timers.appUpdated = setTimeout(() =>
-						{
-							ttdb_setInterval(15);
-						}, 500);
-					}
-				}
-			};
-			
-			ttdb_data.observers.mainObserver = new MutationObserver(callback);
-		
-			ttdb_data.observers.mainObserver.observe(appContainer, {
-				childList: true,
-				subtree: true
-			});
+			ttdb_data.observers.mainObserver.disconnect();
 		}
-	});
+
+		let callback = (mutationsList, observer) =>
+		{
+			for(let mutation of mutationsList)
+			{
+				if(mutation.type === 'childList')
+				{
+					clearTimeout(ttdb_data.timers.appUpdated);
+
+					ttdb_data.timers.appUpdated = setTimeout(() =>
+					{
+						ttdb_setInterval(15, 'APP_MUTATION');
+					}, 500);
+				}
+			}
+		};
+		
+		ttdb_data.observers.mainObserver = new MutationObserver(callback);
+	
+		ttdb_data.observers.mainObserver.observe(container, {
+			childList: true,
+			subtree: true
+		});
+
+		pipe('Watching for DOM changes ..');
+	};
+
+	let appContainer = ttdb_getAppContainer();
+
+	if(appContainer)
+	{
+		observeApp(appContainer);
+	} else {
+		let checks = 0;
+
+		ttdb_data.timers.appCreationWatcher = setInterval(() =>
+		{
+			appContainer = ttdb_getAppContainer();
+
+			if(appContainer || checks === 10)
+			{
+				clearInterval(ttdb_data.timers.appCreationWatcher);
+
+				if(appContainer)
+				{
+					observeApp(appContainer);
+				}
+			}
+
+			checks++;
+		}, 1000);
+	}
 
 	/**
 	 * Tracks and does item checks on the page
