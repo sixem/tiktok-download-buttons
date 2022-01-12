@@ -49,6 +49,8 @@
 		__NEXT: Symbol(true),
 	};
 
+	ttdb_data.DEFAULT_ENV = ttdb_data.ENV.APP;
+
 	/**
 	 * `fetch` headers for downloading videos
 	 * 
@@ -76,30 +78,42 @@
 		}
 
 		let a = document.createElement('a');
-	
-		fetch(url, ttdb_data.headers).then((t) =>
-		{
-			return t.blob().then((b) =>
-			{
-				a.href = URL.createObjectURL(b);
-				a.setAttribute('download', filename);
-				a.click();
-	
-				if(buttonElement)
-				{
-					buttonElement.style.cursor = 'pointer';
-				}
-			});
+
 		/**
-		 * TikTok will sometimes return an invalid response (`TCP_MISS`)
+		 * TikTok will sometimes return an invalid response (`TCP_MISS` | Code: 416)
 		 * This causes the downloaded items to be 0 bytes.
 		 * 
-		 * Can we find a way to have a fallback here?
+		 * This is a workaround for now.
 		 */
+		let fallback = (url) =>
+		{
+			console.error('File could not be fetched, opening instead.');
+			window.open(url, '_blank').focus();
+		};
+
+		fetch(url, ttdb_data.headers).then((t) =>
+		{
+			if(t.ok)
+			{
+				return t.blob().then((b) =>
+				{
+					a.href = URL.createObjectURL(b);
+					a.setAttribute('download', filename);
+					a.click();
+		
+					if(buttonElement)
+					{
+						buttonElement.style.cursor = 'pointer';
+					}
+	
+					console.log(`Downloaded: ${url}`);
+				});
+			} else {
+				fallback(url);
+			}
 		}).catch(() =>
 		{
-			a.href = url;
-			a.click();
+			fallback(url);
 		});
 	};
 
@@ -710,31 +724,31 @@
 				}
 			}
 
-			console.log('currentMode', currentMode);
-			
-			/** A valid mode has been found */
-			if(currentMode !== null)
+			/** Set default environment if nothing has been detected */
+			if(currentMode === null)
 			{
-				/** Data that we're sending downstream */
-				let data = {
-					mode: currentMode,
-					env: currentEnvironment,
-					container: item
-				};
+				currentMode = ttdb_data.DEFAULT_ENV;
+			}
 
-				if(currentMode === ttdb_data.MODE.FEED)
-				{
-					ttdb_setupItem.FEED(item, data);
-					processed++;
-				} else if(currentMode === ttdb_data.MODE.GRID)
-				{
-					ttdb_setupItem.GRID(item, data);
-					processed++;
-				} else if(currentMode === ttdb_data.MODE.BROWSER)
-				{
-					ttdb_setupItem.BROWSER(item, data);
-					processed++;
-				}
+			/** Data that we're sending downstream */
+			let data = {
+				mode: currentMode,
+				env: currentEnvironment,
+				container: item
+			};
+
+			if(currentMode === ttdb_data.MODE.FEED)
+			{
+				ttdb_setupItem.FEED(item, data);
+				processed++;
+			} else if(currentMode === ttdb_data.MODE.GRID)
+			{
+				ttdb_setupItem.GRID(item, data);
+				processed++;
+			} else if(currentMode === ttdb_data.MODE.BROWSER)
+			{
+				ttdb_setupItem.BROWSER(item, data);
+				processed++;
 			}
 		});
 	
