@@ -51,7 +51,8 @@
 	ttdb_data.MODE = {
 		FEED: '0',
 		GRID: '1',
-		BROWSER: '2'
+		BROWSER: '2',
+		SWIPER_SLIDE: '3'
 	};
 
 	/**
@@ -255,6 +256,35 @@
 	 * Creates different buttons for the different modes
 	 */
 	const ttdb_createButton = {
+		/** Swiper slide items */
+		SWIPER_SLIDE: () =>
+		{
+			/** Create download button */
+			let button = ttdb_DOM.createButton({
+				content: ['appendChild', ttdb_DOM.createPolygonSvg({
+					dimensions: [24, 24],
+					points: [
+						'13', '17.586', '13', '4', '11', '4',
+						'11', '17.586', '4.707', '11.293', '3.293',
+						'12.707', '12', '21.414', '20.707', '12.707',
+						'19.293', '11.293', '13', '17.586'
+					],
+					style: {
+						color: '#161823'
+					},
+				})],
+				innerType: 'div',
+				class: 'ttdb__button_swiper_slide'
+			});
+	
+			/** Set directly, as this makes it more compatible with dark mode addons */
+			ttdb_DOM.setStyle(button, {
+				'background-color': 'rgba(0, 0, 0, 0.25)',
+				'color': '#000'
+			});
+	
+			return button;
+		},
 		/** Browser items (full-view items) */
 		BROWSER: () =>
 		{
@@ -472,6 +502,7 @@
 		let selectors = ttdb_DOM.multiSelector({
 			appItemContainer: 'div[class*="-DivItemContainer"][class^="tiktok-"]:not([is-downloadable]):not([class*="-kdocy-"])',
 			appBrowserMode: 'div[class*="-DivBrowserModeContainer "][class^="tiktok-"]:not([is-downloadable])',
+			appSwiperSlide: 'div.swiper div.swiper-slide:not([is-downloadable])',
 			__nextGrid: 'div.video-feed div.video-feed-item:not([is-downloadable])',
 			__nextBig: 'div.video-feed-container div.feed-item-content:not([is-downloadable])',
 			__nextBrowser: 'div.tt-feed div.video-card-big.browse-mode:not([is-downloadable])'
@@ -520,6 +551,93 @@
 	}
 
 	const ttdb_setupItem = {
+		/** Set up swiper slide item */
+		SWIPER_SLIDE: (item, data) =>
+		{
+			let videoPreview = item.querySelector('img');
+			let videoElement = item.querySelector('video');
+			let videoWrapper = item.querySelector('div[class*="VideoWrapperForSwiper"]');
+
+			if((videoElement || videoPreview) && videoWrapper)
+			{
+				item.setAttribute('is-downloadable', 'true');
+
+				/** Create download button */
+				let button = ttdb_createButton.SWIPER_SLIDE();
+
+				videoWrapper.prepend(button);
+
+				/** We already have a video element */
+				if(videoElement)
+				{
+					let videoData = ttdb_getVideoData(item, data);
+
+					/** We have a valid video URL, so set download data */
+					if(videoData.url && !button.ttIsProcessed)
+					{
+						setTimeout(() =>
+						{
+							button.style.opacity = 1;
+						}, 50);
+
+						/** Set up download button */
+						ttdb_hookDownload(button, videoData);
+
+						button.ttIsProcessed = true;
+					} else {
+						videoElement = null;
+					}
+				}
+
+				/** Only preview, no video yet */
+				if(videoPreview && !videoElement)
+				{
+					let observer = null;
+
+					/** Item has not loaded, so we'll prepare and watch for it */
+					let container = videoWrapper;
+		
+					let callback = (mutationsList, observer) =>
+					{
+						for(let mutation of mutationsList)
+						{
+							if(mutation.type === 'childList')
+							{
+								let videoData = ttdb_getVideoData(item, data);
+			
+								/** We have a valid video URL, so set download data */
+								if(videoData.url && !button.ttIsProcessed)
+								{
+									/** Stop observing */
+									observer.disconnect();
+
+									setTimeout(() =>
+									{
+										button.style.opacity = 1;
+									}, 50);
+
+									/** Set up download button */
+									ttdb_hookDownload(button, videoData);
+
+									button.ttIsProcessed = true;
+								}
+							}
+						}
+					};
+					
+					observer = new MutationObserver(callback);
+			
+					observer.observe(container, {
+						childList: true,
+						subtree: true
+					});
+				}
+
+				return true;
+			}
+
+			return false;
+		},
 		/** Set up feed item */
 		FEED: (item, data) =>
 		{
@@ -611,7 +729,11 @@
 						subtree: true
 					});
 				}
+
+				return true;
 			}
+
+			return false;
 		},
 		/** Set up grid item */
 		GRID: (item, data) =>
@@ -645,6 +767,8 @@
 			{
 				button.style.opacity = 1;
 			}, 100);
+
+			return true;
 		},
 		/** Set up browser item */
 		BROWSER: (item, data) =>
@@ -708,7 +832,11 @@
 					childList: true,
 					subtree: true
 				});
+
+				return true;
 			}
+
+			return false;
 		}
 	};
 	
@@ -743,6 +871,9 @@
 				} else if(classList.contains('browse-mode') || classList.contains('video-card-big'))
 				{
 					currentMode = ttdb_data.MODE.BROWSER;
+				} else if(classList.contains('swiper-slide'))
+				{
+					currentMode = ttdb_data.MODE.SWIPER_SLIDE;
 				}
 
 				if(currentMode !== null)
@@ -766,16 +897,28 @@
 
 			if(currentMode === ttdb_data.MODE.FEED)
 			{
-				ttdb_setupItem.FEED(item, data);
-				processed++;
+				if(ttdb_setupItem.FEED(item, data))
+				{
+					processed++;
+				}
 			} else if(currentMode === ttdb_data.MODE.GRID)
 			{
-				ttdb_setupItem.GRID(item, data);
-				processed++;
+				if(ttdb_setupItem.GRID(item, data))
+				{
+					processed++;
+				}
 			} else if(currentMode === ttdb_data.MODE.BROWSER)
 			{
-				ttdb_setupItem.BROWSER(item, data);
-				processed++;
+				if(ttdb_setupItem.BROWSER(item, data))
+				{
+					processed++;
+				}
+			} else if(currentMode === ttdb_data.MODE.SWIPER_SLIDE)
+			{
+				if(ttdb_setupItem.SWIPER_SLIDE(item, data))
+				{
+					processed++;
+				}
 			}
 		});
 	

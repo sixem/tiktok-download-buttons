@@ -1,9 +1,11 @@
-a.ttdb__button_feed > div > svg
+a.ttdb__button_feed > div > svg,
+a.ttdb__button_swiper_slide > div > svg
 {
     transition: background-color 0.5s, color 0.5s, opacity 1s;
 }
 
 a.ttdb__button_feed,
+a.ttdb__button_swiper_slide,
 a.ttdb__button_grid
 {
     cursor: not-allowed;
@@ -37,7 +39,8 @@ a.ttdb__button_browser[ttdb_mode="APP"]
     margin: 10px 0px 10px 0px!important;
 }
 
-a.ttdb__button_feed
+a.ttdb__button_feed,
+a.ttdb__button_swiper_slide
 {
     text-align: center;
     width: 48px;
@@ -45,7 +48,18 @@ a.ttdb__button_feed
     line-height: 48px;
     border-radius: 100%;
     font-size: 1.5em;
+}
 
+a.ttdb__button_swiper_slide
+{
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 1;
+}
+
+a.ttdb__button_feed
+{
     padding: 0;
     position: relative;
     display: -webkit-box;
@@ -104,6 +118,26 @@ a.ttdb__button_feed > div > svg
     margin-top: -1px;
 }
 
+a.ttdb__button_swiper_slide > div
+{
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+a.ttdb__button_swiper_slide > div > svg
+{
+    fill: currentColor;
+    width: 55%;
+    margin-left: 1px;
+    margin-top: -1px;
+}
+
 a.ttdb__button_grid > span::after
 {
     content: '\01F853';
@@ -117,7 +151,8 @@ a.ttdb__button_browser:hover
 	text-decoration: none;
 }
 
-a.ttdb__button_feed:hover > div > svg
+a.ttdb__button_feed:hover > div > svg,
+a.ttdb__button_swiper_slide:hover > div > svg
 {
     color: #fe4569!important;
 }
