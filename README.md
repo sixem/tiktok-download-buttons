@@ -22,4 +22,4 @@ Firefox (and possibly some other browsers supporting WebKit extensions) will nee
 
 ## Not working?
 
-TikTok is known for changing their site often, something that may brake the addon from time to time. If it isn't working, feel free to submit an issue (or a PR with a fix), and I'll look into it. Keeping this addon updated is a priority as long as it's feasible.
+TikTok is known for changing their site often, something that may break the addon from time to time. If it isn't working, feel free to submit an issue (or a PR with a fix), and I'll look into it. Keeping this addon updated is a priority as long as it's feasible.
