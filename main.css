@@ -1,30 +1,61 @@
 a.ttdb__button_feed > div > svg,
 a.ttdb__button_swiper_slide > div > svg
 {
-    transition: background-color 0.5s, color 0.5s, opacity 1s;
+    transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+    -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+    -moz-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+    -o-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
 }
 
 a.ttdb__button_feed,
 a.ttdb__button_swiper_slide,
-a.ttdb__button_grid
+a.ttdb__button_grid,
+a.ttdb__button_basic-player
 {
+    transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+    -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+    -moz-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+    -o-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+
     cursor: not-allowed;
     pointer-events: none;
     opacity: 0;
     outline: none;
-
-    transition: background-color 0.5s, color 0.5s, opacity 1s;
 }
 
 a.ttdb__button_browser
 {
-    padding: 4px 8px;
+    padding: 5px 8px 4px 8px;
     font-weight: bold;
     letter-spacing: 1px;
     border-radius: 4px;
     text-align: center;
     display: block;
     font-size: 14px;
+    pointer-events: none;
+    position: relative;
+}
+
+a.ttdb__button_browser.loading::after
+{
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E")!important;
+}
+
+a.ttdb__button_feed.loading,
+a.ttdb__button_swiper_slide.loading,
+a.ttdb__button_grid.loading,
+a.ttdb__button_basic-player.loading,
+a.ttdb__button_browser.loading
+{
+    cursor: progress!important;
+}
+
+a.ttdb__button_grid.loading > span::after
+{
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='white' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E")!important;
 }
 
 a.ttdb__button_browser[ttdb_mode="__NEXT"]
@@ -76,6 +107,31 @@ a.ttdb__button_feed
     flex-direction: column;
 }
 
+a.ttdb__button_feed:hover
+{
+    color: purple;
+}
+
+a.ttdb__button_feed.loading > div
+{
+    display: none!important;
+}
+
+a.ttdb__button_feed.loading::after
+{
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E");
+}
+
 a.ttdb__button_grid
 {
 	position: absolute;
@@ -84,7 +140,7 @@ a.ttdb__button_grid
 	right: 4px;
 	background-color: rgba(19, 19, 19, 0.2);
 	border-radius: 4px;
-	color: rgb(255, 255, 255, 0.75);
+	color: rgb(255, 255, 255, 0.75)!important;
 }
 
 a.ttdb__button_grid > span
@@ -138,10 +194,15 @@ a.ttdb__button_swiper_slide > div > svg
     margin-top: -1px;
 }
 
-a.ttdb__button_grid > span::after
+a.ttdb__button_grid:not(.loading) > span::after
 {
     content: '\01F853';
     font-size: 16px!important;
+}
+
+a.ttdb__button_grid.loading > span::after
+{
+    margin-left: -2px;
 }
 
 a.ttdb__button_browser:hover
@@ -162,4 +223,98 @@ a.ttdb__button_grid:hover
 	background-color: rgba(19, 19, 19, 0.5);
 	color: rgb(255, 255, 255, 1);
 	text-decoration: none;
+}
+
+div.ttdb__button_basic-player_wrapper
+{
+    margin-top: 18px;
+    display: none;
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player
+{
+    padding: 8px 10px 6px 10px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    display: inline-block;
+    text-decoration: none;
+    position: relative;
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player,
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:visited
+{
+    color: rgba(254, 44, 85, 1.0);
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:hover
+{
+    background-color: rgba(254, 44, 85, 0.15)!important;
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player::after
+{
+    content: "🡓";
+    position: absolute;
+    left: 10px;
+    font-size: 20px;
+    top: 4px;
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player.loading::after
+{
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgba(254, 44, 85, 1.0)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E")!important;
+    top: 6px!important;
+    left: 6px!important;
+}
+
+body > div.ttdb_splash-wrapper
+{
+    transition: bopacity 0.35s!important;;
+    -webkit-transition: opacity 0.35s!important;;
+    -moz-transition: opacity 0.35s!important;;
+    -o-transition: opacity 0.35s!important;;
+
+    position: fixed;
+    top: 0px;
+    right: 30px;
+    z-index: 99999;
+    opacity: 0;
+    pointer-events: none;
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content
+{
+    width: auto;
+    margin: 10px auto;
+    padding: 5px 10px 3px 10px;
+    display: inline-block;
+    text-align: center;
+    border-radius: 2px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    font-feature-settings: 'tnum';
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-success
+{
+    background-color: #188351e8;
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-warn
+{
+    background-color: #df5c3ef0;
+}
+
+button.extract
+{
+    pointer-events: none!important;
+}
+
+button.extract div[class*="-DivContainer "]
+{
+    display: none!important;
+    pointer-events: none!important;
 }
