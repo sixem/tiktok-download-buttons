@@ -1,0 +1,162 @@
+body
+{
+    color: #b8b8b8;
+    background-color: #272727;
+    border: 2px solid #262626;
+    margin: 0px;
+    position: relative;
+    width: 320px;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    font-size: 75%;
+    overflow: hidden;
+}
+
+body > div#version,
+body > a#website
+{
+    visibility: hidden;
+    color: #484848;
+}
+
+body > div#version
+{
+    position: absolute;
+    top: 1px;
+    right: 4px;
+    pointer-events: none;
+}
+
+body > a#website
+{
+    transition: color 0.3s;
+    -webkit-transition: color 0.3s;
+    -moz-transition: color 0.3s;
+    -o-transition: color 0.3s;
+
+    position: absolute;
+    top: 2px;
+    left: 4px;
+}
+
+body > a#website:hover
+{
+    color: #666666;
+}
+
+body > div.header
+{
+    font-size: 120%;
+    font-weight: bold;
+    text-align: center;
+    font-style: italic;
+    display: block;
+    background-color: #222222;
+    color: #666666;
+    width: 320px;
+    padding: 8px 4px 10px 4px;
+    border-bottom: 1px solid #1e1e1e;
+}
+
+body > div.content
+{
+    padding: 10px;
+}
+
+body > div.content > div.category-divide
+{
+    background-color: #2e2e2e;
+    border-top: 1px solid #363636;
+    border-bottom: 1px solid #363636;
+    padding: 2px 0px 4px 10px;
+    margin: 14px -12px 8px -12px;
+    font-weight: bold;
+}
+
+body > div.content div.textbox-container input
+{
+    transition: border 0.3s;
+    -webkit-transition: border 0.3s;
+    -moz-transition: border 0.3s;
+    -o-transition: border 0.3s;
+
+    font-family: Consolas, monospace;
+    border: 1px solid #2e2e2e;
+    background-color: #222222;
+    border-radius: 2px;
+    margin-top: 10px;
+    display: block;
+    padding: 4px 8px;
+    color: #8d8d8d;
+    width: calc(100% - 18px);
+}
+
+body > div.content div.textbox-container input:focus,
+body > div.content div.textbox-container input:focus-visible
+{
+    border: 1px solid #424242;
+    outline: none;
+}
+
+body > div.content div.checkbox-container:not(:first-child)
+{
+    margin-top: 10px;
+}
+
+body > div.content div.checkbox-container > span
+{
+    padding-left: 22px;
+    color: #6c6c6c;
+}
+
+body > div.content div.checkbox-container label
+{
+    display: block;
+    padding-right: 10px;
+    padding-left: 22px;
+    text-indent: -22px;
+    cursor: pointer;
+    margin-bottom: 4px;
+
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+body > div.content div.checkbox-container input
+{
+    vertical-align: middle;
+}
+
+body > div.content div.checkbox-container label > span
+{
+    vertical-align: middle;
+    font-size: 110%;
+}
+
+body > button#settings-save
+{
+    transition: background-color 0.3s, color 0.3s;
+    -webkit-transition: background-color 0.3s, color 0.3s;
+    -moz-transition: background-color 0.3s, color 0.3s;
+    -o-transition: background-color 0.3s, color 0.3s;
+
+    width: 100%;
+    border: 1px solid #383838;
+    background-color: #323232;
+    padding: 4px 0px 5px;
+    color: #fff;
+    margin: 0px 0px 1px 0px;
+    border-radius: 2px;
+    cursor: pointer;
+    color: #b8b8b8;
+}
+
+body > button#settings-save:hover
+{
+    background-color: #282828;
+    color: #fff;
+}

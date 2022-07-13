@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+    <head>
+        <link rel="stylesheet" href="popup.css"> 
+        <script src='popup.js'></script>
+    </head>
+    <body>
+        <div class="header">TikTok Download Buttons</div>
+
+        <div class="content">
+            <div class="checkbox-container">
+                <label>
+                    <input type="checkbox" id="download-prioritize-api"> <span>Prioritize API download</span>
+                </label>
+                <span>Attempts to download a non-watermarked video using the API.</span>
+            </div>
+
+            <div class="checkbox-container">
+                <label>
+                    <input type="checkbox" id="download-fallback-tab-focus"> <span>Focus on new tabs</span>
+                </label>
+                <span>Decides if newly opened tabs (through the fallback) should be auto-focused on or not.</span>
+            </div>
+
+            <div class="category-divide">Subfolder</div>
+
+            <div class="textbox-container">
+                <span>Subfolder to download videos to. Leaving it empty will download videos to your default directory.</span>
+                <input type="text" id="download-subfolder-path" placeholder="Subfolder path ...">
+            </div>
+
+            <div class="category-divide">Tips</div>
+
+            <div style="font-size: 105%;">Uncheck "<i>Ask where to save each file before downloading</i>"
+                in <span style="text-decoration: underline;">chrome://settings/downloads</span>
+                for better download support.</div>
+        </div>
+
+        <button id="settings-save">Save</button>
+
+        <div id="version"></div><a href="#" id="website" target="_blank">Website</a>
+    </body>
+</html>
