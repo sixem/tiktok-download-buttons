@@ -16,9 +16,11 @@ I made this mostly for my own needs, but it's also published here:
 
 ---
 
-## Firefox (Manifest version < 3):
+## Watermarks
 
-Firefox (and possibly some other browsers supporting WebKit extensions) will need to use the manifest version 2. This addon's default version is 3, which is the recommended version that is also supported by Google Chrome. In order to use this for Firefox, simply replace [manifest.json](./manifest.json) with [.manifest_v2.json](./.manifest_v2.json).
+This addon will attempt to use the API to download videos without the watermark. This may not always work because TikTok can change how this works.
+
+By default it'll prioritize downloading from the API, but this can be turned off in the settings. If the addon detects that the API isn't responding correctly, it'll revert back to the fallbacks (with watermarks) and it'll try the API again at a later time.
 
 ## Not working?
 
