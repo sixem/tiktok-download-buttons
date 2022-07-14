@@ -18,10 +18,12 @@ I made this mostly for my own needs, but it's also published here:
 
 ## Watermarks
 
-This addon will attempt to use the API to download videos without the watermark. This may not always work because TikTok can change how this works.
+This addon will _attempt_ to use the API to download videos without the watermark. This may not always work because TikTok can change how this works and block the way of downloading.
 
-By default it'll prioritize downloading from the API, but this can be turned off in the settings. If the addon detects that the API isn't responding correctly, it'll revert back to the fallbacks (with watermarks) and it'll try the API again at a later time.
+By default it'll prioritize downloading from the API, but this can be turned off in the settings. If the addon detects that the API isn't responding correctly, it'll revert back to the fallbacks (with watermarks) and it'll try again with the API at a later time.
 
 ## Not working?
 
-TikTok is known for changing their site often, something that may break the addon from time to time. If it isn't working, feel free to submit an issue (or a PR with a fix), and I'll look into it. Keeping this addon updated is a priority as long as it's feasible.
+TikTok is known for changing their site often, something that may break the addon from time to time. If it isn't working, feel free to submit an issue (or a PR with a fix), and I'll look into it.
+
+Keeping this addon updated is a priority as long as it's feasible.
