@@ -103,8 +103,22 @@
 	 */
 	UTIL.sanitizeFilename = (string) =>
 	{
-		// return string.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, ' ').trim();
-		return string.replace(/[^0-9a-zA-Z-._ #()\[\]]/g, '').replace(/\s\s+/g, ' ').trim();
+		/**
+		 * Regex ranges and characters:
+		 * 
+		 * \u3040-\u30ff — Hiragana and katakana
+		 * \u3400-\u4dbf — CJK unified ideographs extension A
+		 * \u4e00-\u9fff — CJK unified ideographs
+		 * \uf900-\ufaff — CJK compatibility ideographs
+		 * \uff66-\uff9f — Half-width katakana
+		 * \wа-я — Cyrillic
+		 * 0-9a-zA-Z — Numbers and latin letters
+		 * -._ #()\[\] — Other characters
+		 */
+
+		return string.replace(
+			/[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\wа-я0-9a-zA-Z-._ #()\[\]]/g, ''
+		).replace(/\s\s+/g, ' ').trim();
 	}
 	
 	/**
