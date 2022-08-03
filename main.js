@@ -111,14 +111,17 @@
 		 * \u4e00-\u9fff — CJK unified ideographs
 		 * \uf900-\ufaff — CJK compatibility ideographs
 		 * \uff66-\uff9f — Half-width katakana
-		 * \wа-я — Cyrillic
-		 * 0-9a-zA-Z — Numbers and latin letters
-		 * -._ #()\[\] — Other characters
+		 * \wа-я 		 — Cyrillic
+		 * 0-9a-zA-Z 	 — Numbers and latin letters
+		 * -._ #()\[\] 	 — Other characters
 		 */
 
-		return string.replace(
+		string = string.replace(
 			/[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\wа-я0-9a-zA-Z-._ #()\[\]]/g, ''
 		).replace(/\s\s+/g, ' ').trim();
+
+		/** Filename limit is about 250, so we'll shorten any super long filenames. */
+		return (string.length - 4) >= 246 ? `${string.replace('.mp4', '').substring(0, 246)}.mp4` : string;
 	}
 	
 	/**
@@ -313,11 +316,12 @@
 		'download_addr'
 	];
 	API.VERSIONS = [
-		['20.9.3', '293'],
-		['20.4.3', '243'],
-		['20.2.1', '221'],
-		['20.1.2', '212'],
-		['20.0.4', '204']
+		['25.4.4', '2022504040']
+		//['20.9.3', '293'],
+		//['20.4.3', '243'],
+		//['20.2.1', '221'],
+		//['20.1.2', '212'],
+		//['20.0.4', '204']
 	];
 	
 	/**
