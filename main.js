@@ -316,12 +316,12 @@
 		'download_addr'
 	];
 	API.VERSIONS = [
-		['25.4.4', '2022504040']
-		//['20.9.3', '293'],
-		//['20.4.3', '243'],
-		//['20.2.1', '221'],
-		//['20.1.2', '212'],
-		//['20.0.4', '204']
+		['25.4.4', '244']
+		['20.9.3', '293'],
+		['20.4.3', '243'],
+		['20.2.1', '221'],
+		['20.1.2', '212'],
+		['20.0.4', '204']
 	];
 	
 	/**
@@ -1144,7 +1144,7 @@
 		}
 
 		/**
-		 * If no existing share menu (this accounts for 99% av the cases)
+		 * If no existing share menu (this accounts for 99% of the cases)
 		 * 
 		 * It only really already exists if the user hovers the share button prior
 		 * to the actual extraction, which is rare.
