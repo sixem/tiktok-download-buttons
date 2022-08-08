@@ -25,7 +25,6 @@
 		"run_at": "document_idle"
 	}],
 	"permissions": [
-		"tabs",
 		"downloads",
 		"storage"
 	],
