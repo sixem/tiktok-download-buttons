@@ -2,3 +2,4 @@
 .chrome
 ff_port-*
 *.zip
+zip.sh
