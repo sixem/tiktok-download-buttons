@@ -1,4 +1,4 @@
 .firefox
 .chrome
+ff_port-*
 *.zip
-*.sh
