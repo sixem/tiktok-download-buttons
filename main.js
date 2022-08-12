@@ -111,7 +111,7 @@
 		 * \u4e00-\u9fff — CJK unified ideographs
 		 * \uf900-\ufaff — CJK compatibility ideographs
 		 * \uff66-\uff9f — Half-width katakana
-		 * \wа-я 		 — Cyrillic
+		 * \wа-я		 — Cyrillic
 		 * 0-9a-zA-Z 	 — Numbers and latin letters
 		 * -._ #()\[\] 	 — Other characters
 		 */
@@ -121,7 +121,7 @@
 		).replace(/\s\s+/g, ' ').trim();
 
 		/** Filename limit is about 250, so we'll shorten any super long filenames. */
-		return (string.length - 4) >= 246 ? `${string.replace('.mp4', '').substring(0, 246)}.mp4` : string;
+		return (string.length - 4) >= 246 ? `${string.replace('.mp4', '').substring(0, 246).trim()}.mp4` : string;
 	}
 	
 	/**
@@ -1583,16 +1583,52 @@
 	
 		/** Create download button */
 		let button = createButton.GRID();
-	
-		item.addEventListener('mouseenter', (e) =>
+
+		let setButton = (videoData, button) =>
 		{
-			let videoData = itemData.get(item, data);
-	
+			pipe('Found video data:', videoData);
+
 			/** We have a valid video URL — set download data */
 			if(videoData.url && !button.ttIsProcessed)
 			{
 				downloadHook(button, videoData);
 				button.ttIsProcessed = true;
+			}
+		}
+
+		item.addEventListener('mouseleave', () =>
+		{
+			/** Clear any active timers on `mouseleave` */
+			clearInterval(TTDB.timers.gridAwaitVideoData);
+		});
+	
+		item.addEventListener('mouseenter', () =>
+		{
+			if(!button.ttIsProcessed)
+			{
+				clearInterval(TTDB.timers.gridAwaitVideoData);
+
+				let videoData = itemData.get(item, data);
+	
+				/** No URL was found on the initial attempt */
+				if(!videoData.url)
+				{
+					/** Check for existing video URLs */
+					TTDB.timers.gridAwaitVideoData = setInterval(() =>
+					{
+						videoData = itemData.get(item, data);
+	
+						/** We have a valid video URL — set download data and clear interval */
+						if(videoData.url)
+						{
+							setButton(videoData, button);
+							clearInterval(TTDB.timers.gridAwaitVideoData);
+						}
+					}, 20);
+				} else {
+					/** We have a valid video URL — set download data */
+					setButton(videoData, button);
+				}
 			}
 		});
 	
