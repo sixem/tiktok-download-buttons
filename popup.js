@@ -29,8 +29,6 @@ window.addEventListener('DOMContentLoaded', async () =>
 
 	let options = await getOptions();
 
-	console.log(options);
-
 	Object.keys(options).forEach((key) =>
 	{
 		/** Handle toggleable options (checkboxes) */

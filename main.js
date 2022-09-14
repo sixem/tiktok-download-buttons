@@ -523,34 +523,6 @@
 			let manifest = API.VERSION_WORKING ? {
 				working: API.VERSION_WORKING
 			} : await getStoredSetting('manifest');
-
-
-			/** Validate stored manifest version (if it exists as a valid version) */
-			if(Array.isArray(manifest.working) && manifest.working.length === 2)
-			{
-				let manifestValidated = false;
-
-				for(let i = 0; i <= API.VERSIONS.length - 1; i++)
-				{
-					let version = API.VERSIONS[i];
-	
-					let [storedVersionFull, storedVersionShort] = manifest.working;
-					let [validVersionFull, validVersionShort] = version;
-	
-					if(storedVersionFull === validVersionFull
-						&& storedVersionShort === validVersionShort)
-					{
-						manifestValidated = true;
-						break;
-					}
-				}
-
-				/** Stored manifest version is outdated, reset last attempt */
-				if(!manifestValidated)
-				{
-					manifest.updated = 0;
-				}
-			}
 	
 			if(manifest &&
 				manifest.updated &&
