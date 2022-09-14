@@ -316,12 +316,11 @@
 		'download_addr'
 	];
 	API.VERSIONS = [
-		['25.4.4', '244'],
-		['20.9.3', '293'],
-		['20.4.3', '243'],
-		['20.2.1', '221'],
-		['20.1.2', '212'],
-		['20.0.4', '204']
+		['26.1.3', '2613'],
+		['26.1.2', '2612'],
+		['26.1.1', '2611'],
+		['25.6.2', '2562'],
+		['24.1.5', '2415']
 	];
 	
 	/**
@@ -1464,8 +1463,9 @@
 				let attrUrl = button.getAttribute('href') || null;
 				let attrFilename = button.getAttribute('filename') || null;
 				let attrApiId = button.getAttribute('video-id') || null;
-	
-				let useApi = await getStoredSetting('download-prioritize-api');
+
+				/** TikTok generated blob() URLs can't be downloaded, so force API on those, otherwise get value from settings */
+				let useApi = attrUrl.startsWith('blob:') ? true : await getStoredSetting('download-prioritize-api');
 	
 				/** If a video ID is present and `useApi` is enabled, attempt to get API data */
 				if(useApi && attrApiId)
