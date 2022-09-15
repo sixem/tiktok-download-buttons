@@ -328,7 +328,7 @@
 	 * 
 	 * @param {string} videoId 
 	 */
-	API.constructApiQuery = (videoId, appVersion, manifestAppVersion) =>
+	API.constructApiQuery = (videoId, appVersion, manifestAppVersion, fetchType = 'aweme/detail') =>
 	{
 		let ts = Math.round(Date.now() / 1000);
 	
@@ -368,7 +368,7 @@
 			'cp': 'cbfhckdckkde1'
 		};
 	
-		return `https://${API.HOSTNAME}/aweme/${API.API_V}/aweme/detail/` + Object.keys(parameters).map(
+		return `https://${API.HOSTNAME}/aweme/${API.API_V}/${fetchType}/` + Object.keys(parameters).map(
 			(key, index) => `${index > 0 ? '&' : '?'}${key}=${parameters[key]}`
 		).join('');
 	};
@@ -419,7 +419,7 @@
 	 * @param {string} videoId 
 	 * @param {array}  version 
 	 */
-	API.getResponse = (videoId, version) =>
+	API.getResponse = (videoId, version, useFallback = false) =>
 	{
 		let videoData = {
 			success: false,
@@ -437,23 +437,57 @@
 			let urlQuery = API.constructApiQuery(
 				videoId,
 				appVersion,
-				manifestAppVersion
+				manifestAppVersion,
+				useFallback ? 'feed' : 'aweme/detail'
 			);
 	
 			try
 			{
-				/** Fetch API response */
-				let response = await fetch(urlQuery, TTDB.headers);
-	
-				/** Get JSON data */
-				let data = await response.json();
+				let response = await chrome.runtime.sendMessage(
+					chrome.runtime.id, {
+						task: 'fetch',
+						url: urlQuery
+				});
 
-				pipe('API RESPONSE', data);
-	
+				/** Get JSON data */
+				let data = response.data;
+
+				if(response.error)
+				{
+					pipe('API Response failed', '@', urlQuery);
+				} else if(data)
+				{
+					pipe('API Response:', data);
+				}
+
 				let videoUrl = null;
+
+				/** Extract potential fallback data if available */
+				if(data && UTIL.checkNested(data, 'aweme_list'))
+				{
+					let awemeList = data.aweme_list,
+						awemeEntries = Object.keys(awemeList);
+
+					for(let index = 0; index < awemeEntries.length; index++)
+					{
+						let item = awemeList[awemeEntries[index]],
+							awemeId = item.aweme_id ? parseInt(item.aweme_id) : null,
+							targetId = parseInt(videoId);
+
+						if(awemeId === targetId)
+						{
+							/** Set list item as `aweme_detail` because the structure is the same as the default fetch method */
+							data.aweme_detail = {
+								...item
+							};
+
+							break;
+						}
+					}
+				}
 	
 				/** Check JSON data */
-				if(UTIL.checkNested(data, 'aweme_detail', 'video'))
+				if(data && UTIL.checkNested(data, 'aweme_detail', 'video'))
 				{
 					/** Iterate over formats */
 					(API.FORMATS).forEach((format) =>
@@ -496,7 +530,7 @@
 				}
 			} catch(error)
 			{
-				reject('Caught an error:', error);
+				reject(error);
 			}
 		});
 	}
@@ -532,8 +566,6 @@
 				if(((Date.now() / 1000) - manifest.updated) < 900)
 				{
 					attemptTimeout = true;
-
-					reject(null);
 				}
 			}
 
@@ -555,7 +587,7 @@
 					}
 				}).catch((error) =>
 				{
-					pipe('API ATTEMPT FAILED (stored manifest)', error);
+					pipe('API Attempt failed (using stored manifest):', error);
 				});
 			}
 	
@@ -568,7 +600,7 @@
 				{
 					await API.getResponse(videoId, [...API.VERSIONS[index]]).then((response) =>
 					{
-						pipe(`API ATTEMPT ${index + 1}: ${response ? 'GOOD' : 'BAD'}`);
+						pipe(`API Attempt (${index + 1}):`, { response });
 		
 						/** API response was good */
 						if(response.success)
@@ -586,7 +618,7 @@
 						}
 					}).catch((error) =>
 					{
-						pipe('API ATTEMPT FAILED', error);
+						pipe('API attempt failed:', error);
 					});
 
 					if(isComplete)
@@ -594,6 +626,31 @@
 						break;
 					}
 				}
+			}
+
+			/** No data available still, try fallback */
+			if(!videoData.success)
+			{
+				pipe('Attempting fallback using `feed` method ...');
+				
+				/** Attempt fallback using `feed` method */
+				await API.getResponse(videoId, API.VERSIONS[0], true).then((response) =>
+				{
+					/** API response was good */
+					if(response.success)
+					{
+						/** Set video data */
+						videoData = {
+							...videoData,
+							...response
+						};
+
+						pipe('Successfully fetched API data using fallback.');
+					}
+				}).catch((error) =>
+				{
+					pipe('API Fallback attempt was unsuccessful:', error);
+				});
 			}
 	
 			if(videoData.success)
