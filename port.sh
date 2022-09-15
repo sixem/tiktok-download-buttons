@@ -61,5 +61,11 @@ do
 
             ((INDEX=INDEX+1))
         done
+
+        if [[ $FILE == "service.js"  ]]
+        then
+            cat "./.ff_requires/modifyHeaders.js" "./$OUTPUT/$FILE" > "./$OUTPUT/injected_service.js";
+            mv "./$OUTPUT/injected_service.js" "./$OUTPUT/$FILE"
+        fi
     fi
 done
