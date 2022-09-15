@@ -1,0 +1,40 @@
+[{
+    "id": 1, 
+    "priority": 1, 
+    "action": {
+       "type": "modifyHeaders", 
+       "requestHeaders": [{
+            "header": "User-Agent",
+            "operation": "set",
+            "value": "com.ss.android.ugc.trill/2613 (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)"
+        },
+        {
+            "header": "Sec-Fetch-Dest",
+            "operation": "set",
+            "value": "document"
+        },
+        {
+            "header": "Sec-Fetch-Mode",
+            "operation": "set",
+            "value": "navigate"
+        },
+        {
+            "header": "Sec-Fetch-Site",
+            "operation": "set",
+            "value": "cross-site"
+        },
+        {
+            "header": "referer",
+            "operation": "remove"
+        },
+        {
+            "header": "origin",
+            "operation": "remove"
+        }
+        ]
+    },
+    "condition": {
+        "urlFilter": "*://api-h2.tiktokv.com/*",
+        "resourceTypes": ["main_frame", "xmlhttprequest"]
+    }
+}]
