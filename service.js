@@ -158,7 +158,35 @@ const manifestSave = (args) =>
 			success: true
 		});
 	});
-}
+};
+
+/**
+ * Fetching function
+ */
+const serviceFetch = async (args) =>
+{
+	let url = args.data.url,
+		options = args.data.options || {};
+
+	return fetch(url, options).then((response) =>
+	{
+		return response.json();
+	}).then((data) =>
+	{
+		args.sendResponse({
+			data: data,
+			error: false
+		});
+	}).catch((error) =>
+	{
+		console.info('Caught a fetching error:', error);
+
+		args.sendResponse({
+			data: null,
+			error: error
+		});
+	})
+};
 
 /**
  * `onMessage` listener
@@ -171,7 +199,8 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) =>
 		'windowOpen': windowOpen,
 		'fileShow': showDefaultFolder,
 		'manifestSave': manifestSave,
-		'optionsGet': optionsGet
+		'optionsGet': optionsGet,
+		'fetch': serviceFetch
 	};
 
 	if(tasks[data.task])
