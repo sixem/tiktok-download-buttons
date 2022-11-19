@@ -316,11 +316,11 @@
 		'download_addr'
 	];
 	API.VERSIONS = [
-		['26.1.3', '2613'],
-		['26.1.2', '2612'],
-		['26.1.1', '2611'],
-		['25.6.2', '2562'],
-		['24.1.5', '2415']
+		['26.1.3', '260103'],
+		['26.1.2', '260102'],
+		['26.1.1', '260101'],
+		['25.6.2', '250602'],
+		['24.1.5', '240105']
 	];
 	
 	/**
@@ -571,7 +571,7 @@
 
 			if(manifest && manifest.working !== false)
 			{
-				await API.getResponse(videoId, [...manifest.working]).then((response) =>
+				await API.getResponse(videoId, [...manifest.working], true).then((response) =>
 				{
 					/** API response was good */
 					if(response.success)
@@ -598,7 +598,7 @@
 				/** Iterate over API versions */
 				for(let index = 0; index < API.VERSIONS.length; index++)
 				{
-					await API.getResponse(videoId, [...API.VERSIONS[index]]).then((response) =>
+					await API.getResponse(videoId, [...API.VERSIONS[index]], true).then((response) =>
 					{
 						pipe(`API Attempt (${index + 1}):`, { response });
 		
@@ -628,31 +628,6 @@
 				}
 			}
 
-			/** No data available still, try fallback */
-			if(!videoData.success)
-			{
-				pipe('Attempting fallback using `feed` method ...');
-				
-				/** Attempt fallback using `feed` method */
-				await API.getResponse(videoId, API.VERSIONS[0], true).then((response) =>
-				{
-					/** API response was good */
-					if(response.success)
-					{
-						/** Set video data */
-						videoData = {
-							...videoData,
-							...response
-						};
-
-						pipe('Successfully fetched API data using fallback.');
-					}
-				}).catch((error) =>
-				{
-					pipe('API Fallback attempt was unsuccessful:', error);
-				});
-			}
-	
 			if(videoData.success)
 			{
 				chrome.runtime.sendMessage(chrome.runtime.id,
@@ -1025,12 +1000,6 @@
 				class: 'ttdb__button_browser'
 			});
 	
-			/** Set directly, as this makes it more compatible with dark mode addons */
-			DOM.setStyle(button, {
-				'background-color': '#f1f1f2',
-				'color': '#000'
-			});
-	
 			return button;
 		},
 		/** Feed items */
@@ -1045,19 +1014,10 @@
 						'11', '17.586', '4.707', '11.293', '3.293',
 						'12.707', '12', '21.414', '20.707', '12.707',
 						'19.293', '11.293', '13', '17.586'
-					],
-					style: {
-						color: '#161823'
-					},
+					]
 				})],
 				innerType: 'div',
 				class: 'ttdb__button_feed'
-			});
-	
-			/** Set directly, as this makes it more compatible with dark mode addons */
-			DOM.setStyle(button, {
-				'background-color': '#f1f1f2',
-				'color': '#000'
 			});
 	
 			return button;
@@ -1119,6 +1079,8 @@
 	
 	/**
 	 * Hacky way of retrieving the videoId of a `For You` item
+	 * 
+	 * We need the ID to query the API correctly.
 	 * 
 	 * @param {HTMLElement} element 
 	 * @param {function}    callback 
