@@ -79,6 +79,7 @@ a.ttdb__button_swiper_slide
     line-height: 48px;
     border-radius: 100%;
     font-size: 1.5em;
+    margin-bottom: 8px;
 }
 
 a.ttdb__button_swiper_slide
@@ -207,7 +208,6 @@ a.ttdb__button_grid.loading > span::after
 
 a.ttdb__button_browser:hover
 {
-    background-color: #e7e7e8;
     color: #fe4569!important;
 	text-decoration: none;
 }
@@ -317,4 +317,53 @@ button.extract div[class*="-DivContainer "]
 {
     display: none!important;
     pointer-events: none!important;
+}
+
+/* Light mode colors */
+
+html:not([data-theme]) a.ttdb__button_feed,
+html:not([data-theme="dark"]) a.ttdb__button_feed,
+html[data-theme="light"] a.ttdb__button_feed
+{
+    background-color: #f1f1f2;
+    color: #000;
+}
+
+html:not([data-theme]) a.ttdb__button_feed svg,
+html:not([data-theme="dark"]) a.ttdb__button_feed svg,
+html[data-theme="light"] a.ttdb__button_feed svg
+{
+    color: #161823;
+}
+
+html:not([data-theme]) a.ttdb__button_browser,
+html:not([data-theme="dark"]) a.ttdb__button_browser,
+html[data-theme="light"] a.ttdb__button_browser
+{
+    background-color: #f1f1f2;
+    color: #000;
+}
+
+/* Dark mode colors */
+
+html[data-theme="dark"] a.ttdb__button_feed
+{
+    background-color: #2f2f2f;
+    color: #fff;
+}
+
+html[data-theme="dark"] a.ttdb__button_feed:hover
+{
+    background-color: #252525;
+}
+
+html[data-theme="dark"] a.ttdb__button_feed svg
+{
+    color: #fff;
+}
+
+html[data-theme="dark"] a.ttdb__button_browser
+{
+    background-color: #1e1e1e;
+    color: #fff;
 }
