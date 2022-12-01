@@ -1454,7 +1454,7 @@
 	
 		DOM.setAttributes(button, {
 			'href': videoData.url,
-			'filename': `${fileName}.mp4`,
+			'filename': `${fileName.trim()}.mp4`,
 			'download': fileName
 		});
 	
@@ -1492,7 +1492,7 @@
 					/** Attempt to download non-watermarked version by using the API */
 					await API.getVideoData(attrApiId).then((res) =>
 					{
-						let filename = (`${res.user ? (res.user + ' - ') : ''}${res.description}.mp4`);
+						let filename = (`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`);
 
 						downloadFile(res.url, filename, button, true);
 					}).catch(() =>
