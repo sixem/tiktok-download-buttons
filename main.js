@@ -306,15 +306,17 @@
 	 */
 	API.AID = 1180;
 	API.APP_NAME = 'trill';
-	API.HOSTNAME = 'api-h2.tiktokv.com';
+	API.HOSTNAME = 'api16-normal-c-useast1a.tiktokv.com';
 	API.API_V = 'v1';
 	API.VERSION_WORKING = false;
+	
 	API.FORMATS = [
 		'play_addr',
 		'play_addr_h264',
 		'play_addr_bytevc1',
 		'download_addr'
 	];
+
 	API.VERSIONS = [
 		['26.1.3', '260103'],
 		['26.1.2', '260102'],
@@ -328,11 +330,12 @@
 	 * 
 	 * @param {string} videoId 
 	 */
-	API.constructApiQuery = (videoId, appVersion, manifestAppVersion, fetchType = 'aweme/detail') =>
+	API.constructApiQuery = (videoId, appVersion, manifestAppVersion) =>
 	{
-		let ts = Math.round(Date.now() / 1000);
+		const fetchType = 'feed';
+		const ts = Math.round(Date.now() / 1000);
 	
-		let parameters = {
+		const parameters = {
 			'aweme_id': videoId,
 			'version_name': appVersion,
 			'version_code': manifestAppVersion,
@@ -372,7 +375,7 @@
 			(key, index) => `${index > 0 ? '&' : '?'}${key}=${parameters[key]}`
 		).join('');
 	};
-	
+
 	/**
 	 * Attempts to get id from API data
 	 * 
@@ -419,7 +422,7 @@
 	 * @param {string} videoId 
 	 * @param {array}  version 
 	 */
-	API.getResponse = (videoId, version, useFallback = false) =>
+	API.getResponse = (videoId, version) =>
 	{
 		let videoData = {
 			success: false,
@@ -437,8 +440,7 @@
 			let urlQuery = API.constructApiQuery(
 				videoId,
 				appVersion,
-				manifestAppVersion,
-				useFallback ? 'feed' : 'aweme/detail'
+				manifestAppVersion
 			);
 	
 			try
