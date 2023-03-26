@@ -120,6 +120,12 @@
 			/[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\wа-я0-9a-zA-Z-._ #()\[\]]/g, ''
 		).replace(/\s\s+/g, ' ').trim();
 
+		/** Remove any leading dots */
+		while(string[0].includes(['.']))
+		{
+			string = string.substring(1);
+		}
+
 		/** Filename limit is about 250, so we'll shorten any super long filenames. */
 		return (string.length - 4) >= 246 ? `${string.replace('.mp4', '').substring(0, 246).trim()}.mp4` : string;
 	}
