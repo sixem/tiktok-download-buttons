@@ -121,7 +121,7 @@
 		).replace(/\s\s+/g, ' ').trim();
 
 		/** Remove any leading dots */
-		while(string[0].includes(['.']))
+		while(string[0] === '.')
 		{
 			string = string.substring(1);
 		}
