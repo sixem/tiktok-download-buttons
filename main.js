@@ -529,7 +529,8 @@
 							...{
 								videoId: videoId
 							}
-						})
+						}),
+						apiFullResponse: data
 					};
 
 					resolve(videoData);
@@ -1399,11 +1400,11 @@
 	};
 	
 	/**
-		* Get video data from an item
-		* 
-		* @param {HTMLElement} container 
-		* @param {object}      data 
-		*/
+	* Get video data from an item
+	* 
+	* @param {HTMLElement} container 
+	* @param {object}      data 
+	*/
 	itemData.get = (container, data) =>
 	{
 		let videoData = {
@@ -1437,8 +1438,8 @@
 	};
 	
 	/**
-		* Fetches video items
-		*/
+	* Fetches video items
+	*/
 	const selectAllVideoItems = () =>
 	{
 		let selectors = DOM.multiSelector({
@@ -1453,6 +1454,149 @@
 		});
 	
 		return document.querySelectorAll(selectors);
+	};
+
+	/**
+	 * Object getter using dot notation
+	 */
+	const _get = (obj, path, defValue) =>
+	{
+		if(!path)
+		{
+			return undefined;
+		}
+
+		const pathArray = Array.isArray(path) ? path : path.match(/([^[.\]])+/g);
+		
+		const result = pathArray.reduce(
+			(prevObj, key) => prevObj && prevObj[key],
+			obj
+		);
+
+		return result === undefined ? defValue : result
+	}
+
+	/**
+	 * Returns the filename template
+	 * 
+	 * @param {object} data 
+	 * @param {string} template 
+	 */
+	const getFileNameTemplate = (data, template = '{uploader} - {desc}') =>
+	{
+		const [apiData] = [data.apiFullResponse];
+		const templateValues = {};
+
+		/**
+		 * Desired template data of the keys
+		 */
+		const templateKeys = {
+			/** User ID (their @ID) */
+			uploader: [data.user, ['aweme_detail', 'author', 'unique_id']],
+			/** User nickname (full username), not their @ID */
+			nickname: [['aweme_detail', 'author', 'nickname']],
+			/** Video description */
+			desc: [data.description, ['aweme_detail', 'author', 'unique_id']],
+			/** User ID */
+			uid: [['aweme_detail', 'author', 'uid'], ['aweme_detail', 'author_user_id']],
+			/** Video ID */
+			id: [data.videoId],
+			/** Video region */
+			region: [['aweme_detail', 'region']],
+			/** Video language */
+			language: [['aweme_detail', 'author', 'language']],
+			/** Uploaders signature (their profile description) */
+			signature: [['aweme_detail', 'author', 'signature']],
+			/** Upload timestamp (Unix) */
+			uploaded: [['aweme_detail', 'create_time']],
+			/** Current timestamp (Unix) */
+			timestamp: [Math.round(Date.now() / 1000)]
+		};
+
+		/**
+		 * Get template options from the API data
+		 */
+		for(const [key, value] of Object.entries(templateKeys))
+		{
+			if(!templateValues.hasOwnProperty(key))
+			{
+				let keyData = null;
+
+				for(const item of value)
+				{
+					if(!Array.isArray(item) && item)
+					{
+						keyData = item; break;
+					} else if(Array.isArray(item) && UTIL.checkNested(apiData, ...item))
+					{
+						keyData = _get(apiData, item.join('.')); break;
+					}
+				}
+
+				/** Set template key value, revert to a nulled string */
+				templateValues[key] = keyData || '';
+			}
+		}
+
+		/**
+		 * Create readable timestamps
+		 */
+		for(const timestamp of ['uploaded', 'timestamp'])
+		{
+			if(Number.isInteger(templateValues[timestamp])
+				&& templateValues[timestamp] > 0)
+			{
+				/** Convert to `Date` object */
+				const ts = new Date(templateValues[timestamp] * 1000);
+
+				/** Get required date values */
+				const tsData = {
+					year: ts.getFullYear(),
+					month: ts.getMonth() + 1,
+					day: ts.getDate(),
+					hour: ts.getHours(),
+					minute: ts.getMinutes(),
+					second: ts.getSeconds()
+				};
+
+				/** Pad any values under ten */
+				for(const [key, value] of Object.entries(tsData))
+				{
+					if(value < 10) tsData[key] = `0${value}`;
+				}
+
+				/** Format date */
+				const tsDate = `${tsData.year}${tsData.month}${tsData.day}`;
+
+				/** Format time */
+				const tsTime = `${tsData.hour}${tsData.minute}${tsData.second}`;
+
+				/** Set template key value */
+				templateValues[`${timestamp}_s`] = `${tsDate}_${tsTime}`;
+			}
+		}
+
+		let filename = template;
+
+		/**
+		 * Replace template options with actual values
+		 */
+		for(const [key, value] of Object.entries(templateValues))
+		{
+			filename = filename.replace(`{${key}}`, value);
+		}
+
+		/**
+		 * Remove any remaining template options
+		 */
+		filename = filename.replace(/({[^}]+})/g, '');
+
+		if(!filename.endsWith('.mp4'))
+		{
+			filename = `${filename}.mp4`;
+		}
+
+		return filename.length >= 5 ? filename : null;
 	};
 	
 	const downloadHook = async (button, videoData) =>
@@ -1498,21 +1642,36 @@
 				if(useApi && attrApiId)
 				{
 					/** Attempt to download non-watermarked version by using the API */
-					await API.getVideoData(attrApiId).then((res) =>
+					await API.getVideoData(attrApiId).then(async (res) =>
 					{
-						let filename = (`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`);
+						const nameTemplate = await getStoredSetting('download-naming-template');
 
-						downloadFile(res.url, filename, button, true);
+						let fileName = (
+							`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
+						);
+
+						if(nameTemplate && nameTemplate.length >= 1)
+						{
+							/** Get template file name */
+							let templateFilename = getFileNameTemplate(
+								{...res, ...{ videoId: attrApiId }}, nameTemplate
+							);
+
+							/** Set template file name if accepted */
+							fileName = templateFilename ? templateFilename : fileName;
+						}
+
+						downloadFile(res.url, fileName, button, true);
 					}).catch(() =>
 					{
-						/** Download watermarked file as a fallback */
+						/** Attempt to download watermarked video as fallback */
 						if(attrUrl && attrFilename)
 						{
 							downloadFile(attrUrl, attrFilename, button);
 						}
 					});
 				} else {
-					/** Download watermarked file */
+					/** Download watermarked video */
 					if(attrUrl && attrFilename)
 					{
 						downloadFile(attrUrl, attrFilename, button);

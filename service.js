@@ -27,6 +27,11 @@ const options = {
 		type: 'text',
 		default: false,
 		current: null
+	},
+	'download-naming-template': {
+		type: 'text',
+		default: false,
+		current: null
 	}
 };
 
