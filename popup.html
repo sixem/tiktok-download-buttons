@@ -25,7 +25,14 @@
 
             <div class="textbox-container">
                 <span>Subfolder to download videos to. Leaving it empty will download videos to your default directory.</span>
-                <input type="text" id="download-subfolder-path" placeholder="Subfolder path ...">
+                <input type="text" spellcheck="false" id="download-subfolder-path" placeholder="Subfolder path ...">
+            </div>
+
+            <div class="category-divide">Naming</div>
+
+            <div class="textbox-container">
+                <span>Naming template to use when saving videos. This will only have an effect when using the API. See <a class="link" target="_blank" href="https://github.com/sixem/tiktok-download-buttons/blob/main/TEMPLATE.md">templating</a>.</a></span>
+                <input type="text" spellcheck="false" id="download-naming-template" placeholder="{uploader} - {desc}">
             </div>
 
             <div class="category-divide">Tips</div>

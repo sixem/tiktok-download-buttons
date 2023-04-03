@@ -43,6 +43,20 @@ body > a#website:hover
     color: #666666;
 }
 
+body a.link
+{
+    color: #d3d3d3;
+    transition: color 0.3s;
+    -webkit-transition: color 0.3s;
+    -moz-transition: color 0.3s;
+    -o-transition: color 0.3s;
+}
+
+body a.link:hover
+{
+    color: #fff;
+}
+
 body > div.header
 {
     font-size: 120%;
