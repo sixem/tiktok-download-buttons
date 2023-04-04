@@ -135,7 +135,7 @@
 	 * 
 	 * @param {object}  obj 
 	 * @param {string}  level 
-	 * @param  {...any} rest 
+	 * @param {...any}  rest 
 	 * @returns 
 	 */
 	UTIL.checkNested = (obj, level, ...rest) =>
@@ -1467,7 +1467,7 @@
 		}
 
 		const pathArray = Array.isArray(path) ? path : path.match(/([^[.\]])+/g);
-		
+
 		const result = pathArray.reduce(
 			(prevObj, key) => prevObj && prevObj[key],
 			obj
@@ -1644,21 +1644,31 @@
 					/** Attempt to download non-watermarked version by using the API */
 					await API.getVideoData(attrApiId).then(async (res) =>
 					{
-						const nameTemplate = await getStoredSetting('download-naming-template');
-
 						let fileName = (
 							`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
 						);
 
-						if(nameTemplate && nameTemplate.length >= 1)
+						try
 						{
-							/** Get template file name */
-							let templateFilename = getFileNameTemplate(
-								{...res, ...{ videoId: attrApiId }}, nameTemplate
-							);
+							const nameTemplate = await getStoredSetting('download-naming-template');
 
-							/** Set template file name if accepted */
-							fileName = templateFilename ? templateFilename : fileName;
+							if(nameTemplate && nameTemplate.length >= 1)
+							{
+								/** Get template file name */
+								let templateFilename = getFileNameTemplate(
+									{...res, ...{ videoId: attrApiId }}, nameTemplate
+								);
+	
+								/** Set template file name if accepted */
+								fileName = templateFilename ? templateFilename : fileName;
+	
+								pipe('Using template:', {
+									template: nameTemplate,
+									filename: fileName
+								});
+							}
+						} catch(e) {
+							pipe('Failed to use template', e);
 						}
 
 						downloadFile(res.url, fileName, button, true);

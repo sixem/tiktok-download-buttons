@@ -77,6 +77,11 @@ const fileDownload = (args) =>
 
 	try
 	{
+		console.log('[TTDB]', 'Attempting download', {
+			filename: `${subFolder ? subFolder : ''}${filename}`,
+			url: url
+		});
+
 		chrome.downloads.download({
 			conflictAction: 'uniquify',
 			filename: `${subFolder ? subFolder : ''}${filename}`,
