@@ -1097,7 +1097,7 @@
 	 */
 	const feedShareExtractId = (element, callback, timeout = 500) =>
 	{
-		let timer = null, shareButton = element.querySelector('button:nth-child(4)');
+		let timer = null, shareButton = element.querySelector('button:last-child');
 		let shareButtonSvg = shareButton.querySelector('span > svg');
 	
 		/** None of the required elements are defined — return `false` */
