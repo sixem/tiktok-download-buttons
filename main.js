@@ -1057,7 +1057,7 @@
 	
 		if(env === TTDB.ENV.APP)
 		{
-			let description = container.querySelector('span[class*="-SpanText "][class^="tiktok-"]');
+			let description = container.querySelector('span[class*="-SpanText "]');
 	
 			if(description)
 			{
@@ -1213,7 +1213,7 @@
 	itemData.extract[TTDB.MODE.FEED] = (data) =>
 	{
 		let videoData = {}, itemUser = data.container.querySelector(DOM.multiSelector({
-			app: 'a > [class*="AuthorTitle "][class^="tiktok-"]',
+			app: 'a > [class*="AuthorTitle "]',
 			__next: 'h3.author-uniqueId'
 		}));
 	
@@ -1369,8 +1369,8 @@
 			}
 	
 			let videoTags = parent.querySelectorAll(
-				'span[class*="-SpanText "][class^="tiktok-"], a[href^="/tag/"] \
-				strong[class*="-StrongText "][class^="tiktok-"]'
+				'span[class*="-SpanText "], a[href^="/tag/"] \
+				strong[class*="-StrongText "]'
 			);
 	
 			if(videoTags)
@@ -1443,8 +1443,8 @@
 	const selectAllVideoItems = () =>
 	{
 		let selectors = DOM.multiSelector({
-			appItemContainer: 'div[class*="-DivItemContainer"][class^="tiktok-"]:not([is-downloadable]):not([class*="-kdocy-"])',
-			appBrowserMode: 'div[class*="-DivBrowserModeContainer "][class^="tiktok-"]:not([is-downloadable])',
+			appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
+			appBrowserMode: 'div[class*="-DivBrowserModeContainer "]:not([is-downloadable])',
 			appSwiperSlide: 'div.swiper div.swiper-slide:not([is-downloadable])',
 			appBasicPlayer: 'div[class*="-DivLeftContainer "] div[class*="-DivVideoContainer "] \
 				div[class*="-DivContainer "]:not([is-downloadable])',
@@ -1711,7 +1711,7 @@
 
 		if(data.env === TTDB.ENV.APP)
 		{
-			linkContainer = item.querySelector('div[class*="-DivCopyLinkContainer "][class^="tiktok-"]');
+			linkContainer = item.querySelector('div[class*="-DivCopyLinkContainer "]');
 		} else if(data.env === TTDB.ENV.__NEXT)
 		{
 			linkContainer = item.querySelector('div.video-infos-container > div.action-container');
@@ -1845,7 +1845,7 @@
 	itemSetup.setters[TTDB.MODE.FEED] = (item, data) =>
 	{
 		let videoPreview = item.querySelector(data.env === TTDB.ENV.APP ?
-			'div[class*="-DivContainer "][class^="tiktok-"] > img' :
+			'div[class*="-DivContainer "][mode] > img' :
 			'div[class*="video-card"] > span[class$="mask"]'
 		);
 	
@@ -1858,7 +1858,7 @@
 	
 			/** Container for existing buttons (like, comment and share) */
 			let actionContainer = item.querySelector(data.env === TTDB.ENV.APP ?
-				'div[class*="-DivActionItemContainer "][class^="tiktok-"]' :
+				'div[class*="-DivActionItemContainer "]' :
 				'div[class*="-action-bar"].vertical'
 			);
 	
@@ -2099,7 +2099,7 @@
 	const updateItems = () =>
 	{
 		let processed = 0;
-	
+
 		(selectAllVideoItems()).forEach((item) =>
 		{
 			let currentMode = null, currentEnvironment = null;
@@ -2134,7 +2134,7 @@
 					currentEnvironment = TTDB.ENV.__NEXT;
 				}
 			}
-	
+
 			if(currentMode)
 			{
 				/** Set default environment if nothing has been detected */
