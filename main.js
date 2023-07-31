@@ -1311,12 +1311,14 @@
 			if(selectors.xgWrapper) {
 				const xgId = selectors.xgWrapper.getAttribute('id').split('-').pop();
 
-				if(xgId > 0) {
+				if(parseInt(xgId) > 0) {
 					videoData.videoApiId = xgId;
 
 					if(selectors.spanUniqueId) {
 						videoData.user = selectors.spanUniqueId.innerText.trim();
 					}
+
+					pipe('[BROWSER] Extracted from `xgwrapper`:', videoData);
 				}
 			}
 
@@ -1330,6 +1332,8 @@
 			
 					videoData.videoApiId = videoId;
 					videoData.user = user;
+
+					pipe('[BROWSER] Extracted from window location:', videoData);
 				}
 			}
 
@@ -1342,6 +1346,8 @@
 
 				videoData.user = username;
 				videoData.videoApiId = videoId;
+
+				pipe('[BROWSER] Extracted from copy link feature:', videoData);
 			}
 
 			/** Attempt anchor extraction */
@@ -1353,6 +1359,8 @@
 				{
 					videoData.user = shareData.username;
 					videoData.videoApiId = shareData.videoId;
+
+					pipe('[BROWSER] Extracted from share URLs:', videoData);
 				}
 			}
 		} else if(data.env === TTDB.ENV.__NEXT)
