@@ -46,7 +46,7 @@
 	 */
 	const pipe = (...args) =>
 	{
-		console.log('[TTDB]', ...args)
+		console.info('[TTDB]', ...args)
 	};
 	
 	/**
@@ -663,7 +663,7 @@
 	 * 
 	 * @param {HTMLElement} element 
 	 */
-	let findVideoUrls = (element) =>
+	const findVideoUrls = (element) =>
 	{
 		let data = false;
 
@@ -915,6 +915,15 @@
 	
 			return selectors.join(', ');
 		},
+		selectorNamed: (values) =>
+		{
+			for(const [name, value] of Object.entries(values)) {
+				const selector = document.querySelector(value);
+				values[name] = selector || null;
+			}
+
+			return values;
+		},
 		/**
 		 * Base function for creating button elements
 		 * 
@@ -1099,7 +1108,7 @@
 	{
 		let timer = null, shareButton = element.querySelector('button:last-child');
 		let shareButtonSvg = shareButton.querySelector('span > svg');
-	
+
 		/** None of the required elements are defined — return `false` */
 		if(!shareButtonSvg || !shareButton)
 		{
@@ -1275,8 +1284,9 @@
 	/** Browser items (when opened a video grid item or on the `For You` page) */
 	itemData.extract[TTDB.MODE.BROWSER] = (data) =>
 	{
-		let videoData = {}, itemUser = null;
-	
+		let videoData = {};
+		let itemUser = null;
+
 		if(data.env === TTDB.ENV.APP)
 		{
 			/** Get username */
@@ -1291,17 +1301,51 @@
 				}
 			}
 
-			let copyElement = data.container.querySelector('p[class*="-PCopyLinkText "]');
+			const selectors = DOM.selectorNamed({
+				xgWrapper: 'div[id*="xgwrapper-"]',
+				spanUniqueId: 'span[class*="-SpanUniqueId"]',
+				legacyCopyLink: 'p[class*="-PCopyLinkText"]',
+			});
 
-			if(copyElement)
+			/** Attempt `xgwrapper` extraction */
+			if(selectors.xgWrapper) {
+				const xgId = selectors.xgWrapper.getAttribute('id').split('-').pop();
+
+				if(xgId > 0) {
+					videoData.videoApiId = xgId;
+
+					if(selectors.spanUniqueId) {
+						videoData.user = selectors.spanUniqueId.innerText.trim();
+					}
+				}
+			}
+
+			/** Attempt location extraction */
+			if(!videoData.videoApiId) {
+				const matches = EXPR.vanillaVideoUrl(window.location.href);
+
+				if(matches)
+				{
+					const [, user, videoId] = matches;
+			
+					videoData.videoApiId = videoId;
+					videoData.user = user;
+				}
+			}
+
+			/** Attempt "Copy link" extraction */
+			if(!videoData.videoApiId && selectors.legacyCopyLink)
 			{
 				/** Get data from copy link URL */
-				let matches = EXPR.vanillaVideoUrl(copyElement.textContent);
-				let [, username, videoId] = matches;
+				const matches = EXPR.vanillaVideoUrl(selectors.legacyCopyLink.textContent);
+				const [, username, videoId] = matches;
 
 				videoData.user = username;
 				videoData.videoApiId = videoId;
-			} else {
+			}
+
+			/** Attempt anchor extraction */
+			if(!videoData.videoApiId) {
 				/** Get data from share URLs */
 				let shareData = findVideoUrls(data.container);
 
@@ -1339,7 +1383,7 @@
 	
 		if(parent)
 		{
-			let userId = parent.querySelectorAll(
+			const userId = parent.querySelectorAll(
 				'span[class*="-SpanUniqueId "], span[data-e2e="browse-username"]'
 			);
 	
@@ -1386,11 +1430,11 @@
 		}
 	
 		/** Get user and video id from URL */
-		let matches = EXPR.vanillaVideoUrl(window.location.href);
+		const matches = EXPR.vanillaVideoUrl(window.location.href);
 		
 		if(matches)
 		{
-			let [, user, videoId] = matches;
+			const [, user, videoId] = matches;
 	
 			videoData.videoApiId = videoId;
 			videoData.user = user;
@@ -1413,7 +1457,7 @@
 			url: null
 		};
 	
-		let videoElement = container.querySelector('video');
+		const videoElement = container.querySelector('video');
 	
 		if(videoElement &&
 			itemData.extract[data.mode])
@@ -1421,7 +1465,7 @@
 			/** Get actual video download URL */
 			videoData.url = videoElement.getAttribute('src');
 	
-			let extractedData = itemData.extract[data.mode](data);
+			const extractedData = itemData.extract[data.mode](data);
 	
 			videoData = {
 				...videoData,
@@ -1711,7 +1755,10 @@
 
 		if(data.env === TTDB.ENV.APP)
 		{
-			linkContainer = item.querySelector('div[class*="-DivCopyLinkContainer "]');
+			linkContainer = document.querySelector(DOM.multiSelector({
+				legacyCopyLink: 'div[class*="-DivCopyLinkContainer"]',
+				newMainContent: 'div[class*="-DivTabMenuContainer"]'
+			}));
 		} else if(data.env === TTDB.ENV.__NEXT)
 		{
 			linkContainer = item.querySelector('div.video-infos-container > div.action-container');
@@ -1723,8 +1770,8 @@
 			item.setAttribute('is-downloadable', 'true');
 
 			/** Create download button */
-			let button = createButton.BROWSER();
-			let videoData = itemData.get(item, data);
+			const button = createButton.BROWSER();
+			const videoData = itemData.get(item, data);
 	
 			if(data.env === TTDB.ENV.APP)
 			{
@@ -2102,15 +2149,17 @@
 
 		(selectAllVideoItems()).forEach((item) =>
 		{
-			let currentMode = null, currentEnvironment = null;
-			let modeElement = item.querySelector('div[mode]');
-	
+			let currentMode = null;
+			let currentEnvironment = null;
+
+			const modeElement = item.querySelector('div[mode]');
+
 			if(modeElement)
 			{
 				currentMode = modeElement.getAttribute('mode');
 				currentEnvironment = TTDB.ENV.APP;
 			} else {
-				let classList = item.classList;
+				const classList = item.classList;
 
 				if(classList.contains('video-feed-item') || classList.contains('three-column-item'))
 				{

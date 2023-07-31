@@ -364,6 +364,6 @@ html[data-theme="dark"] a.ttdb__button_feed svg
 
 html[data-theme="dark"] a.ttdb__button_browser
 {
-    background-color: #1e1e1e;
+    background-color: rgb(41, 41, 41);
     color: #fff;
 }
