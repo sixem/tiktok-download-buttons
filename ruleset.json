@@ -34,7 +34,7 @@
         ]
     },
     "condition": {
-        "urlFilter": "*://api16-normal-c-useast1a.tiktokv.com/*",
+        "urlFilter": "*://api22-normal-c-useast2a.tiktokv.com/*",
         "resourceTypes": ["main_frame", "xmlhttprequest"]
     }
 }]

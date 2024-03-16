@@ -36,12 +36,9 @@ const options = {
 };
 
 /** Set default storage values */
-Object.keys(options).forEach((key) =>
-{
-	chrome.storage.local.get(key, (result) =>
-	{
-		if(!result.hasOwnProperty(key))
-		{
+Object.keys(options).forEach((key) => {
+	chrome.storage.local.get(key, (result) => {
+		if(!result.hasOwnProperty(key)) {
 			let value = new Object();
 			value[key] = options[key].default;
 			chrome.storage.local.set(value);
@@ -52,8 +49,7 @@ Object.keys(options).forEach((key) =>
 /**
  * Options getter
  */
- const optionsGet = (args) =>
- {
+ const optionsGet = (args) => {
 	return args.sendResponse(options);
  };
 
@@ -62,21 +58,18 @@ Object.keys(options).forEach((key) =>
  * 
  * @param {object} args 
  */
-const fileDownload = (args) =>
-{
+const fileDownload = (args) => {
 	let [filename, url, subFolder] = [
 		args.data.filename,
 		args.data.url,
 		args.data.subFolder
 	];
 
-	if(subFolder && subFolder.length > 1 && !subFolder.endsWith('/'))
-	{
+	if(subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
 		subFolder = (subFolder + '/');
 	}
 
-	try
-	{
+	try {
 		console.log('[TTDB]', 'Attempting download', {
 			filename: `${subFolder ? subFolder : ''}${filename}`,
 			url: url
@@ -90,43 +83,30 @@ const fileDownload = (args) =>
 			saveAs: false
 		}, (itemId) =>
 		{
-			chrome.downloads.onChanged.addListener((delta) =>
-			{
-				if(itemId === delta.id)
-				{
+			chrome.downloads.onChanged.addListener((delta) => {
+				if(itemId === delta.id) {
 					console.log('[TTDB]', delta);
 
-					if(delta.endTime ||
-						(delta.state && delta.state.current === 'complete'))
-					{
+					if(delta.endTime || (delta.state && delta.state.current === 'complete')) {
 						/** Successful download */
-						args.sendResponse({
-							itemId: itemId,
-							success: true
-						});
-					} else if(delta.error)
-					{
+						args.sendResponse({ itemId: itemId, success: true });
+					} else if(delta.error) {
 						/** Error encountered */
-						args.sendResponse({
-							success: false
-						});
+						args.sendResponse({ success: false });
 					}
 				}      
 			});
 		});
 	} catch(error) {
 		/** Error encountered */
-		args.sendResponse({
-			success: false
-		});
+		args.sendResponse({ success: false });
 	}
 };
 
 /**
  * Opens the default download folder
  */
-const showDefaultFolder = () =>
-{
+const showDefaultFolder = () => {
 	chrome.downloads.showDefaultFolder();
 };
 
@@ -135,13 +115,11 @@ const showDefaultFolder = () =>
  * 
  * @param {object} args 
  */
-const windowOpen = (args) =>
-{
+const windowOpen = (args) => {
 	chrome.tabs.create({
 		url: args.data.url,
 		active: args.data.active ? args.data.active : false
-	}, () => // May wanna handle errors here, not a priority for now however
-	{
+	}, () => { // May wanna handle errors here, not a priority for now however
 		args.sendResponse({
 			success: true
 		});
@@ -153,58 +131,42 @@ const windowOpen = (args) =>
  * 
  * @param {object} args 
  */
-const manifestSave = (args) =>
-{
-	let manifest = args.data.manifest, ts = (Date.now() / 1000);
+const manifestSave = (args) => {
+	const manifest = args.data.manifest, ts = (Date.now() / 1000);
 
 	chrome.storage.local.set({
 		manifest: {
 			working: manifest,
 			updated: ts
 		}
-	}, () =>
-	{
-		args.sendResponse({
-			success: true
-		});
+	}, () => {
+		args.sendResponse({ success: true });
 	});
 };
 
 /**
  * Fetching function
  */
-const serviceFetch = async (args) =>
-{
-	let url = args.data.url,
-		options = args.data.options || {};
+const serviceFetch = async (args) => {
+	const url = args.data.url;
+	const options = args.data.options || {};
 
-	return fetch(url, options).then((response) =>
-	{
+	return fetch(url, options).then((response) => {
 		return response.json();
-	}).then((data) =>
-	{
-		args.sendResponse({
-			data: data,
-			error: false
-		});
-	}).catch((error) =>
-	{
+	}).then((data) => {
+		args.sendResponse({ data: data, error: false });
+	}).catch((error) => {
 		console.info('Caught a fetching error:', error);
-
-		args.sendResponse({
-			data: null,
-			error: error
-		});
+		args.sendResponse({ data: null, error: error });
 	})
 };
 
 /**
  * `onMessage` listener
  */
-chrome.runtime.onMessage.addListener((data, sender, sendResponse) =>
-{
+chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 	/** Task IDs and their corresponding functions */
-	let tasks = {
+	const tasks = {
 		'fileDownload': fileDownload,
 		'windowOpen': windowOpen,
 		'fileShow': showDefaultFolder,

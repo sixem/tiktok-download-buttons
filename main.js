@@ -160,7 +160,7 @@
 	 */
 	const getStoredSetting = async (key) =>
 	{
-		let stored = await chrome.storage.local.get(key);
+		const stored = await chrome.storage.local.get(key);
 	
 		if(stored && stored.hasOwnProperty(key))
 		{
@@ -175,13 +175,11 @@
 	{
 		let expression = ('https?:\/\/(?:www\.)?tiktok\.com\/@([^\/]+)\/video\/([0-9]+)');
 	
-		if(options.strict)
-		{
+		if(options.strict) {
 			expression = ('^' + expression + '$');
 		}
 	
-		let matches = new RegExp(expression).exec(haystack);
-	
+		const matches = new RegExp(expression).exec(haystack);
 		return matches ? matches : null;
 	};
 	
@@ -190,11 +188,11 @@
 	 */
 	SPLASH.create = () =>
 	{
-		let body = document.body;
+		const body = document.body;
 	
 		/** Create splash elements */
-		let wrapper = document.createElement('div');
-		let content = document.createElement('div');
+		const wrapper = document.createElement('div');
+		const content = document.createElement('div');
 	
 		/** Add classes */
 		wrapper.classList.add('ttdb_splash-wrapper');
@@ -235,14 +233,12 @@
 	 */
 	SPLASH.message = (message, options = {}, callback = null) =>
 	{
-		let state = options.state ? options.state : 0;
+		const state = options.state ? options.state : 0;
 	
-		if(SPLASH.wrapper && SPLASH.content)
-		{
+		if(SPLASH.wrapper && SPLASH.content) {
 			clearTimeout(TTDB.timers.splash);
 	
-			if(state === 0 || state === 1)
-			{
+			if(state === 0 || state === 1) {
 				if(SPLASH.content.classList.contains('state-warn'))
 					SPLASH.content.classList.remove('state-warn');
 	
@@ -264,15 +260,13 @@
 				'pointer-events': 'auto'
 			});
 	
-			TTDB.timers.splash = setTimeout(() =>
-			{
+			TTDB.timers.splash = setTimeout(() => {
 				DOM.setStyle(SPLASH.wrapper, {
 					'opacity': 0,
 					'pointer-events': 'none'
 				});
 	
-				if(callback)
-				{
+				if(callback) {
 					callback();
 				}
 			}, options.duration || 3000);
@@ -312,7 +306,7 @@
 	 */
 	API.AID = 1180;
 	API.APP_NAME = 'trill';
-	API.HOSTNAME = 'api16-normal-c-useast1a.tiktokv.com';
+	API.HOSTNAME = 'api22-normal-c-useast2a.tiktokv.com';
 	API.API_V = 'v1';
 	API.VERSION_WORKING = false;
 	
@@ -336,8 +330,7 @@
 	 * 
 	 * @param {string} videoId 
 	 */
-	API.constructApiQuery = (videoId, appVersion, manifestAppVersion) =>
-	{
+	API.constructApiQuery = (videoId, appVersion, manifestAppVersion) => {
 		const fetchType = 'feed';
 		const ts = Math.round(Date.now() / 1000);
 	
@@ -387,40 +380,75 @@
 	 * 
 	 * @param {object} data 
 	 */
-	API.extractId = (data, fallback = null) =>
-	{
-		let id = {
-			user: null,
-			description: null
-		};
+	API.extractId = (data, fallback = null) => {
+		let id = { user: null, description: null };
 	
 		/** Attempt to get the video description */
-		if(UTIL.checkNested(data, 'aweme_detail', 'desc'))
-		{
+		if(UTIL.checkNested(data, 'aweme_detail', 'desc')) {
 			id.description = data.aweme_detail.desc;
 		}
 	
 		/** Attempt to get the channel of the video */
-		(['unique_id', 'nickname', 'ins_id']).forEach((key) =>
-		{
-			if(!id.user && UTIL.checkNested(data, 'aweme_detail', 'author', key))
-			{
+		(['unique_id', 'nickname', 'ins_id']).forEach((key) => {
+			if(!id.user && UTIL.checkNested(data, 'aweme_detail', 'author', key)) {
 				id.user = data.aweme_detail.author[key];
 			}
 		});
 	
-		if(!id.description)
-		{
+		if(!id.description) {
 			id = {
 				user: id.user,
-				description: fallback ?
-					fallback :
-					(data.videoId ? data.videoId : Date.now())
+				description: fallback
+					? fallback
+					: (data.videoId ? data.videoId : Date.now())
 			};
 		}
 	
 		return id;
 	};
+
+	API.extractVideoUrls = (data) => {
+		const urls = [];
+
+		/** Iterate over formats */
+		(API.FORMATS).forEach((format) =>
+		{
+			/** Check if format is available */
+			if(data.aweme_detail.video.hasOwnProperty(format) &&
+				data.aweme_detail.video[format].hasOwnProperty('data_size') &&
+				data.aweme_detail.video[format].hasOwnProperty('url_list') &&
+				data.aweme_detail.video[format].url_list.length > 0)
+			{
+				const videoUrl = data.aweme_detail.video[format].url_list[0];
+				const videoSize = data.aweme_detail.video[format].data_size;
+				const videoRes = data.aweme_detail.video[format].height * data.aweme_detail.video[format].width;
+				urls.push([videoRes, videoSize, videoUrl]);
+			}
+		});
+
+		/** Iterate over bit_rate data */
+		if(data.aweme_detail.video.hasOwnProperty('bit_rate') && Array.isArray(data.aweme_detail.video.bit_rate)) {
+			let bestItem = null, bestQuality = null;
+
+			for(const videoItem of data.aweme_detail.video.bit_rate) {
+				if(bestQuality === null || videoItem.quality_type < bestQuality) {
+					bestItem = videoItem;
+					bestQuality = videoItem.quality_type;
+				}
+			}
+
+			if(bestItem.hasOwnProperty('play_addr') && bestItem.play_addr.hasOwnProperty('url_list')) {
+				const videoUrl = bestItem.play_addr.url_list[0];
+				const videoSize = bestItem.play_addr.data_size;
+				const videoRes = bestItem.play_addr.height * bestItem.play_addr.width;
+				urls.unshift([videoRes, videoSize, videoUrl]);
+			}
+		}
+
+		urls.sort((a, b) => (a[0] !== b[0]) ? b[0] - a[0] : b[1] - a[1]);
+
+		return urls;
+	}
 	
 	/**
 	 * Attempts to get a response from the API
@@ -428,8 +456,7 @@
 	 * @param {string} videoId 
 	 * @param {array}  version 
 	 */
-	API.getResponse = (videoId, version) =>
-	{
+	API.getResponse = (videoId, version) => {
 		let videoData = {
 			success: false,
 			description: null,
@@ -437,87 +464,63 @@
 			url: null
 		};
 	
-		return new Promise(async (resolve, reject) =>
-		{
+		return new Promise(async (resolve, reject) => {
 			/** Set app version */
-			let [appVersion, manifestAppVersion] = version;
+			const [appVersion, manifestAppVersion] = version;
 	
 			/** Create API query URL */
-			let urlQuery = API.constructApiQuery(
+			const urlQuery = API.constructApiQuery(
 				videoId,
 				appVersion,
 				manifestAppVersion
 			);
 	
-			try
-			{
-				let response = await chrome.runtime.sendMessage(
-					chrome.runtime.id, {
-						task: 'fetch',
-						url: urlQuery
-				});
+			try {
+				const response = await chrome.runtime.sendMessage(
+					chrome.runtime.id, { task: 'fetch', url: urlQuery }
+				);
 
 				/** Get JSON data */
-				let data = response.data;
+				const data = response.data;
 
-				if(response.error)
-				{
+				if(response.error) {
 					pipe('API Response failed', '@', urlQuery);
-				} else if(data)
-				{
+				} else if(data) {
 					pipe('API Response:', data);
 				}
 
 				let videoUrl = null;
 
 				/** Extract potential fallback data if available */
-				if(data && UTIL.checkNested(data, 'aweme_list'))
-				{
-					let awemeList = data.aweme_list,
-						awemeEntries = Object.keys(awemeList);
+				if(data && UTIL.checkNested(data, 'aweme_list')) {
+					const awemeList = data.aweme_list;
+					const awemeEntries = Object.keys(awemeList);
 
-					for(let index = 0; index < awemeEntries.length; index++)
-					{
-						let item = awemeList[awemeEntries[index]],
-							awemeId = item.aweme_id ? parseInt(item.aweme_id) : null,
-							targetId = parseInt(videoId);
+					for(let index = 0; index < awemeEntries.length; index++) {
+						const item = awemeList[awemeEntries[index]];
+						const awemeId = item.aweme_id ? parseInt(item.aweme_id) : null;
 
-						if(awemeId === targetId)
-						{
+						if(awemeId === parseInt(videoId)) {
 							/** Set list item as `aweme_detail` because the structure is the same as the default fetch method */
-							data.aweme_detail = {
-								...item
-							};
-
-							break;
+							data.aweme_detail = { ...item }; break;
 						}
 					}
 				}
 	
 				/** Check JSON data */
-				if(data && UTIL.checkNested(data, 'aweme_detail', 'video'))
-				{
-					/** Iterate over formats */
-					(API.FORMATS).forEach((format) =>
-					{
-						/** Has a video URL not yet been found? */
-						if(!videoUrl)
-						{
-							/** Check if format is available */
-							if(data.aweme_detail.video.hasOwnProperty(format) &&
-								data.aweme_detail.video[format].hasOwnProperty('url_list') &&
-								data.aweme_detail.video[format].url_list.length > 0)
-							{
-								/** Set video URL */
-								videoUrl = data.aweme_detail.video[format].url_list[0];
-							}
-						}
-					});
+				if(data && UTIL.checkNested(data, 'aweme_detail', 'video')) {
+					const extractedUrls = API.extractVideoUrls(data);
+
+					if(extractedUrls.length > 0) {
+						pipe("Extracted URLs", extractedUrls);
+						videoUrl = extractedUrls[0][2];
+					} else {
+						pipe("No URLs could be extracted from the response.");
+					}
 				}
 	
 				/** Break and set data if a video URL has been found */
-				if(videoUrl)
-				{
+				if(videoUrl) {
 					videoData.success = true;
 					videoData.url = videoUrl;
 	
@@ -531,14 +534,11 @@
 							}
 						}),
 						apiFullResponse: data
-					};
-
-					resolve(videoData);
+					}; resolve(videoData);
 				} else {
 					reject('No `videoUrl` was found in the API response.');
 				}
-			} catch(error)
-			{
+			} catch(error) {
 				reject(error);
 			}
 		});
@@ -549,10 +549,8 @@
 	 * 
 	 * @param {string} videoId 
 	 */
-	API.getVideoData = async (videoId) =>
-	{
-		return new Promise(async (resolve, reject) =>
-		{
+	API.getVideoData = async (videoId) => {
+		return new Promise(async (resolve, reject) => {
 			let videoData = {
 				success: false,
 				description: null,
@@ -563,92 +561,65 @@
 			let attemptTimeout = false;
 	
 			/** Get stored working manifest version */
-			let manifest = API.VERSION_WORKING ? {
+			const manifest = API.VERSION_WORKING ? {
 				working: API.VERSION_WORKING
 			} : await getStoredSetting('manifest');
 	
-			if(manifest &&
-				manifest.updated &&
-				manifest.working === false)
-			{
+			if(manifest && manifest.updated && manifest.working === false) {
 				/** If a recent failed API attempt has been made — reject the promise */
-				if(((Date.now() / 1000) - manifest.updated) < 900)
-				{
+				if(((Date.now() / 1000) - manifest.updated) < 900) {
 					attemptTimeout = true;
 				}
 			}
 
-			if(manifest && manifest.working !== false)
-			{
-				await API.getResponse(videoId, [...manifest.working], true).then((response) =>
-				{
+			if(manifest && manifest.working !== false) {
+				await API.getResponse(videoId, [...manifest.working], true).then((response) => {
 					/** API response was good */
-					if(response.success)
-					{
+					if(response.success) {
 						/** Mark that this API version is working */
 						API.VERSION_WORKING = manifest.working;
-		
 						/** Set video data */
-						videoData = {
-							...videoData,
-							...response
-						};
+						videoData = { ...videoData, ...response };
 					}
-				}).catch((error) =>
-				{
+				}).catch((error) => {
 					pipe('API Attempt failed (using stored manifest):', error);
 				});
 			}
 	
-			if(!videoData.success && !attemptTimeout)
-			{
+			if(!videoData.success && !attemptTimeout) {
 				let isComplete = false;
 
 				/** Iterate over API versions */
-				for(let index = 0; index < API.VERSIONS.length; index++)
-				{
-					await API.getResponse(videoId, [...API.VERSIONS[index]], true).then((response) =>
-					{
+				for(let index = 0; index < API.VERSIONS.length; index++) {
+					await API.getResponse(videoId, [...API.VERSIONS[index]], true).then((response) => {
 						pipe(`API Attempt (${index + 1}):`, { response });
 		
 						/** API response was good */
-						if(response.success)
-						{
+						if(response.success) {
 							/** Mark that this API version is working */
 							API.VERSION_WORKING = API.VERSIONS[index];
 		
 							/** Set video data */
-							videoData = {
-								...videoData,
-								...response
-							};
-
+							videoData = { ...videoData, ...response };
 							isComplete = true;
 						}
-					}).catch((error) =>
-					{
+					}).catch((error) => {
 						pipe('API attempt failed:', error);
 					});
 
-					if(isComplete)
-					{
-						break;
-					}
+					if(isComplete) break;
 				}
 			}
 
-			if(videoData.success)
-			{
-				chrome.runtime.sendMessage(chrome.runtime.id,
-				{
+			if(videoData.success) {
+				chrome.runtime.sendMessage(chrome.runtime.id, {
 					task: 'manifestSave',
 					manifest: API.VERSION_WORKING
 				});
 
 				resolve(videoData);
 			} else {
-				chrome.runtime.sendMessage(chrome.runtime.id,
-				{
+				chrome.runtime.sendMessage(chrome.runtime.id, {
 					task: 'manifestSave',
 					manifest: false
 				});
@@ -663,29 +634,20 @@
 	 * 
 	 * @param {HTMLElement} element 
 	 */
-	const findVideoUrls = (element) =>
-	{
+	const findVideoUrls = (element) => {
 		let data = false;
 
-		if(element)
-		{
+		if(element) {
 			/** Get shareable `a` elements */
-			let anchors = element.querySelectorAll('a[href]');
+			const anchors = element.querySelectorAll('a[href]');
 
-			for(let i = 0; i < anchors.length; i++)
-			{
-				let matches = EXPR.vanillaVideoUrl(decodeURIComponent(anchors[i].getAttribute('href')));
+			for(let i = 0; i < anchors.length; i++) {
+				const matches = EXPR.vanillaVideoUrl(decodeURIComponent(anchors[i].getAttribute('href')));
 
 				/** If any matches */
-				if(matches)
-				{
-					let [, username, videoId] = matches;
-
-					data = {
-						username, videoId
-					};
-
-					break;
+				if(matches) {
+					const [, username, videoId] = matches;
+					data = { username, videoId }; break;
 				}
 			}
 		}
@@ -696,11 +658,9 @@
 	/**
 	 * Attempts to get the `app` container
 	 */
-	const getAppContainer = () =>
-	{
+	const getAppContainer = () => {
 		return document.querySelector(DOM.multiSelector({
-			APP: 'div#app',
-			__NEXT: 'div#main'
+			APP: 'div#app', __NEXT: 'div#main'
 		}));
 	};
 	
@@ -710,14 +670,12 @@
 	 * @param {string} url 
 	 * @param {string} filename 
 	 */
-	const downloadFile = async (url, filename, buttonElement = null, isApi = false) =>
-	{
+	const downloadFile = async (url, filename, buttonElement = null, isApi = false) => {
 		/** Sanitize filename */
 		filename = UTIL.sanitizeFilename(filename), hasFallbacked = false;
 
 		/** Truncate any super long strings */
-		if(filename.length > 250)
-		{
+		if(filename.length > 250) {
 			filename = UTIL.truncateString(filename, 250);
 		}
 	
@@ -726,10 +684,8 @@
 		 * 
 		 * @param {HTMLElement} buttonElement 
 		 */
-		let revertState = (buttonElement) =>
-		{
-			if(buttonElement)
-			{
+		const revertState = (buttonElement) => {
+			if(buttonElement) {
 				buttonElement.classList.remove('loading');
 			}
 		}
@@ -740,10 +696,8 @@
 		 * 
 		 * This is a workaround for now.
 		 */
-		let fallback = async (url) =>
-		{
-			if(hasFallbacked)
-			{
+		const fallback = async (url) => {
+			if(hasFallbacked) {
 				return;
 			}
 
@@ -755,7 +709,7 @@
 				}
 			);
 	
-			let tabActive = await getStoredSetting('download-fallback-tab-focus');
+			const tabActive = await getStoredSetting('download-fallback-tab-focus');
 	
 			chrome.runtime.sendMessage(
 				chrome.runtime.id, {
@@ -765,14 +719,12 @@
 				});
 	
 			revertState(buttonElement);
-
 			hasFallbacked = true;
 		};
 	
 		let subFolder = await getStoredSetting('download-subfolder-path');
 	
-		if(!(typeof subFolder === 'string' || subFolder instanceof String))
-		{
+		if(!(typeof subFolder === 'string' || subFolder instanceof String)) {
 			subFolder = '';
 		}
 
@@ -783,13 +735,9 @@
 				filename,
 				url,
 				subFolder
-			})
-		.then((response) =>
-		{
-			if(response.success)
-			{
+		}).then((response) => {
+			if(response.success) {
 				pipe(`Downloaded ${url}`);
-	
 				revertState(buttonElement);
 	
 				/** Show splash message */
@@ -800,13 +748,10 @@
 				);
 			} else {
 				/** Attempt download using .blob() */
-				fetch(url, TTDB.headers).then((t) =>
-				{
-					if(t.ok)
-					{
-						return t.blob().then((b) =>
-						{
-							let anchor = document.createElement('a');
+				fetch(url, TTDB.headers).then((t) => {
+					if(t.ok) {
+						return t.blob().then((b) => {
+							const anchor = document.createElement('a');
 		
 							anchor.href = URL.createObjectURL(b);
 							anchor.setAttribute('download', filename);
@@ -828,8 +773,7 @@
 						/** Fallback (open in new tab) */
 						fallback(url);
 					}
-				}).catch(() =>
-				{
+				}).catch(() => {
 					/** Fallback (open in new tab) */
 					fallback(url);
 				});
@@ -846,13 +790,12 @@
 		 * 
 		 * @param {object} values 
 		 */
-		createPolygonSvg: (values) =>
-		{
-			let w3Url = 'http://www.w3.org/2000/svg';
-			let [width, height] = values.dimensions;
+		createPolygonSvg: (values) => {
+			const w3Url = 'http://www.w3.org/2000/svg';
+			const [width, height] = values.dimensions;
 	
-			let elementSvg = document.createElementNS(w3Url, 'svg');
-			let elementPolygon = document.createElementNS(w3Url, 'polygon');
+			const elementSvg = document.createElementNS(w3Url, 'svg');
+			const elementPolygon = document.createElementNS(w3Url, 'polygon');
 	
 			DOM.setAttributes(elementSvg, {
 				width, height,
@@ -862,8 +805,7 @@
 			elementPolygon.setAttribute('points', values.points.join(' '));
 			elementSvg.appendChild(elementPolygon);
 	
-			if(values.style)
-			{
+			if(values.style) {
 				DOM.setStyle(elementSvg, values.style);
 			}
 	
@@ -875,12 +817,8 @@
 		 * @param {HTMLElement} element 
 		 * @param {object}      values 
 		 */
-		setStyle: (element, values) =>
-		{
-			let keys = Object.keys(values);
-	
-			(keys).forEach((key) =>
-			{
+		setStyle: (element, values) => {
+			Object.keys(values).forEach((key) => {
 				element.style[key] = values[key];
 			});
 		},
@@ -890,10 +828,8 @@
 		 * @param {HTMLElement} element 
 		 * @param {object}      attributes 
 		 */
-		setAttributes: (element, attributes) =>
-		{
-			Object.keys(attributes).forEach((key) =>
-			{
+		setAttributes: (element, attributes) => {
+			Object.keys(attributes).forEach((key) => {
 				element.setAttribute(key, attributes[key]);
 			});
 	
@@ -904,22 +840,12 @@
 		 * 
 		 * @param {object} values 
 		 */
-		multiSelector: (values) =>
-		{
-			let selectors = [];
-	
-			Object.keys(values).forEach((key) =>
-			{
-				selectors.push(values[key]);
-			});
-	
-			return selectors.join(', ');
+		multiSelector: (values) => {
+			return Object.keys(values).map((key) => values[key]).join(', ');
 		},
-		selectorNamed: (values) =>
-		{
+		selectorNamed: (values) => {
 			for(const [name, value] of Object.entries(values)) {
-				const selector = document.querySelector(value);
-				values[name] = selector || null;
+				values[name] = document.querySelector(value) || null;
 			}
 
 			return values;
@@ -929,17 +855,14 @@
 		 * 
 		 * @param {object} values
 		 */
-		createButton: (values) =>
-		{
-			let container = document.createElement('a');
-			let inner = document.createElement(values.innerType ? values.innerType : 'span');
+		createButton: (values) => {
+			const container = document.createElement('a');
+			const inner = document.createElement(values.innerType ? values.innerType : 'span');
 	
-			if(values.content)
-			{
-				let [contentMode, content] = values.content || ['textContent', 'Download'];
+			if(values.content) {
+				const [contentMode, content] = values.content || ['textContent', 'Download'];
 	
-				if(content instanceof Element)
-				{
+				if(content instanceof Element) {
 					inner[contentMode](content);
 				} else {
 					inner[contentMode] = content;
@@ -958,14 +881,12 @@
 	 */
 	const createButton = {
 		/** Basic player (theater view) */
-		BASIC_PLAYER: () =>
-		{
-			let wrapper = document.createElement('div');
-	
+		BASIC_PLAYER: () => {
+			const wrapper = document.createElement('div');
 			wrapper.classList.add('ttdb__button_basic-player_wrapper');
 	
 			/** Create download button */
-			let button = DOM.createButton({
+			const button = DOM.createButton({
 				content: ['textContent', 'Download'],
 				class: 'ttdb__button_basic-player'
 			});
@@ -977,14 +898,12 @@
 			});
 	
 			wrapper.appendChild(button);
-	
 			return wrapper;
 		},
 		/** Swiper slide items */
-		SWIPER_SLIDE: () =>
-		{
+		SWIPER_SLIDE: () => {
 			/** Create download button */
-			let button = DOM.createButton({
+			const button = DOM.createButton({
 				content: ['appendChild', DOM.createPolygonSvg({
 					dimensions: [24, 24],
 					points: [
@@ -1010,21 +929,17 @@
 			return button;
 		},
 		/** Browser items (full-view items) */
-		BROWSER: () =>
-		{
+		BROWSER: () => {
 			/** Create download button */
-			let button = DOM.createButton({
+			return DOM.createButton({
 				content: ['textContent', 'Download'],
 				class: 'ttdb__button_browser'
 			});
-	
-			return button;
 		},
 		/** Feed items */
-		FEED: () =>
-		{
+		FEED: () => {
 			/** Create download button */
-			let button = DOM.createButton({
+			return DOM.createButton({
 				content: ['appendChild', DOM.createPolygonSvg({
 					dimensions: [24, 24],
 					points: [
@@ -1037,19 +952,14 @@
 				innerType: 'div',
 				class: 'ttdb__button_feed'
 			});
-	
-			return button;
 		},
 		/** Grid items (videos/liked items) */
-		GRID: () =>
-		{
+		GRID: () => {
 			/** Create download button */
-			let button = DOM.createButton({
+			return DOM.createButton({
 				content: false,
 				class: 'ttdb__button_grid'
 			});
-	
-			return button;
 		}
 	};
 	
@@ -1059,35 +969,28 @@
 	 * @param {HTMLElement} container 
 	 * @param {string}      env 
 	 */
-	const extractDescriptionId = (container, env = TTDB.ENV.APP) =>
-	{
+	const extractDescriptionId = (container, env = TTDB.ENV.APP) => {
 		let identifier = null;
 		let extracted = null;
 	
-		if(env === TTDB.ENV.APP)
-		{
-			let description = container.querySelector('span[class*="-SpanText "]');
-	
-			if(description)
-			{
+		if(env === TTDB.ENV.APP) {
+			const description = container.querySelector('span[class*="-SpanText "]');
+
+			if(description) {
 				extracted = description.parentElement.textContent;
 			}
-		} else if(env === TTDB.ENV.__NEXT)
-		{
-			let metaTitle = container.querySelector('div[class*="video-meta-caption"]');
-	
-			if(metaTitle)
-			{
+		} else if(env === TTDB.ENV.__NEXT) {
+			const metaTitle = container.querySelector('div[class*="video-meta-caption"]');
+
+			if(metaTitle) {
 				extracted = metaTitle.textContent;
 			}
 		}
 		
-		if(extracted)
-		{
+		if(extracted) {
 			extracted = extracted.replace(/[/\\?%*:|"<>]/g, '-').toLowerCase().trim();
 		
-			if(extracted && extracted.length > 0)
-			{
+			if(extracted && extracted.length > 0) {
 				identifier = extracted;
 			}
 		}
@@ -1104,29 +1007,25 @@
 	 * @param {function}    callback 
 	 * @param {integer}     timeout
 	 */
-	const feedShareExtractId = (element, callback, timeout = 500) =>
-	{
-		let timer = null, shareButton = element.querySelector('button:last-child');
-		let shareButtonSvg = shareButton.querySelector('span > svg');
+	const feedShareExtractId = (element, callback, timeout = 500) => {
+		let timer = null;
+
+		const shareButton = element.querySelector('button:last-child');
+		const shareButtonSvg = shareButton.querySelector('span > svg');
 
 		/** None of the required elements are defined — return `false` */
-		if(!shareButtonSvg || !shareButton)
-		{
+		if(!shareButtonSvg || !shareButton) {
 			callback(false);
 		}
 	
 		/** Callback wrapper */
-		let respond = (response, existing = false) =>
-		{
-			if(!existing)
-			{
-				setTimeout(() =>
-				{
+		const respond = (response, existing = false) => {
+			if(!existing) {
+				setTimeout(() => {
 					shareButton.classList.remove('extract');
 				}, 500);
 
 				clearTimeout(timer);
-
 				UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
 			}
 			
@@ -1138,16 +1037,12 @@
 		 * 
 		 * @param {array} mutationsList 
 		 */
-		let onMutate = (mutationsList) =>
-		{
-			for(let mutation of mutationsList)
-			{
-				if(mutation.type === 'childList')
-				{
-					let attempt = findVideoUrls(element.querySelector('div[class*="-DivContainer "]'));
+		const onMutate = (mutationsList) => {
+			for(let mutation of mutationsList) {
+				if(mutation.type === 'childList') {
+					const attempt = findVideoUrls(element.querySelector('div[class*="-DivContainer "]'));
 					
-					if(attempt)
-					{
+					if(attempt) {
 						/** Good attempt — disconnect observer */
 						observer.disconnect();
 	
@@ -1164,13 +1059,10 @@
 		let existingShare = element.querySelector('div[class*="-DivContainer "]');
 
 		/** Share menu is present, clone it and extract data */
-		if(existingShare)
-		{
-			let cloned = existingShare.cloneNode(true),
-			attempt = findVideoUrls(cloned);
+		if(existingShare) {
+			attempt = findVideoUrls(existingShare.cloneNode(true));
 
-			if(attempt)
-			{
+			if(attempt) {
 				/** Good attempt — callback */
 				respond(attempt, true);
 			} else {
@@ -1185,8 +1077,7 @@
 		 * It only really already exists if the user hovers the share button prior
 		 * to the actual extraction, which is rare.
 		 */
-		if(!existingShare)
-		{
+		if(!existingShare) {
 			/** Create new observer */
 			observer = new MutationObserver(onMutate);
 			
@@ -1203,8 +1094,7 @@
 			UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
 		
 			/** If no success within `timeout`, return `false` */
-			timer = setTimeout(() =>
-			{
+			timer = setTimeout(() => {
 				/** Stop observing */
 				observer.disconnect();
 				respond(false);
@@ -1219,34 +1109,31 @@
 	};
 	
 	/** Feed items (`For Your` page etc.) */
-	itemData.extract[TTDB.MODE.FEED] = (data) =>
-	{
-		let videoData = {}, itemUser = data.container.querySelector(DOM.multiSelector({
+	itemData.extract[TTDB.MODE.FEED] = (data) => {
+		const videoData = {};
+
+		let itemUser = data.container.querySelector(DOM.multiSelector({
 			app: 'a > [class*="AuthorTitle "]',
 			__next: 'h3.author-uniqueId'
 		}));
 	
-		if(itemUser)
-		{
+		if(itemUser) {
 			/** Set username */
 			videoData.user = itemUser.textContent;
 		} else {
 			/** Fallback username fetch */
 			itemUser = data.container.querySelector('a[href^="/@"]');
 	
-			if(itemUser)
-			{
+			if(itemUser) {
 				videoData.user = itemUser.getAttribute('href').split('/@')[1];
-	
-				if(videoData.user.includes('?'))
-				{
+				if(videoData.user.includes('?')) {
 					videoData.user = videoData.user.split('?')[0];
 				}
 			}
 		}
 	
 		/** Get alternative id (no ID available here) */
-		let descriptionIdentifier = extractDescriptionId(data.container, data.env);
+		const descriptionIdentifier = extractDescriptionId(data.container, data.env);
 		/** Set `descriptionIdentifier` or fallback */
 		videoData.id = descriptionIdentifier ? descriptionIdentifier : Date.now();
 	
@@ -1254,25 +1141,22 @@
 	};
 	
 	/** Grid items (videos from user page, liked videos etc.) */
-	itemData.extract[TTDB.MODE.GRID] = (data) =>
-	{
-		let videoData = {}, itemLinks = data.container.querySelectorAll('a[href*="com/@"]');
+	itemData.extract[TTDB.MODE.GRID] = (data) => {
+		const videoData = {};
+		const itemLinks = data.container.querySelectorAll('a[href*="com/@"]');
 	
-		(itemLinks).forEach((link) =>
-		{
-			let matches = EXPR.vanillaVideoUrl(link.getAttribute('href'), {
+		(itemLinks).forEach((link) => {
+			const matches = EXPR.vanillaVideoUrl(link.getAttribute('href'), {
 				strict: true
 			});
 	
-			if(matches)
-			{
+			if(matches) {
 				let [, user, id] = matches;
 	
 				videoData.user = user;
 				videoData.id = id;
 	
-				if(/^\d+$/.test(id))
-				{
+				if(/^\d+$/.test(id)) {
 					videoData.videoApiId = id;
 				}
 			}
@@ -1282,21 +1166,17 @@
 	};
 	
 	/** Browser items (when opened a video grid item or on the `For You` page) */
-	itemData.extract[TTDB.MODE.BROWSER] = (data) =>
-	{
-		let videoData = {};
+	itemData.extract[TTDB.MODE.BROWSER] = (data) => {
+		const videoData = {};
 		let itemUser = null;
 
-		if(data.env === TTDB.ENV.APP)
-		{
+		if(data.env === TTDB.ENV.APP) {
 			/** Get username */
 			itemUser = data.container.querySelector('div[class*="-DivInfoContainer "] a[href*="/@"]');
 
-			if(itemUser)
-			{
+			if(itemUser) {
 				videoData.user = itemUser.getAttribute('href').split('/@')[1];
-				if(videoData.user.includes('?'))
-				{
+				if(videoData.user.includes('?')) {
 					videoData.user = videoData.user.split('?')[0];
 				}
 			}
@@ -1326,8 +1206,7 @@
 			if(!videoData.videoApiId) {
 				const matches = EXPR.vanillaVideoUrl(window.location.href);
 
-				if(matches)
-				{
+				if(matches) {
 					const [, user, videoId] = matches;
 			
 					videoData.videoApiId = videoId;
@@ -1338,8 +1217,7 @@
 			}
 
 			/** Attempt "Copy link" extraction */
-			if(!videoData.videoApiId && selectors.legacyCopyLink)
-			{
+			if(!videoData.videoApiId && selectors.legacyCopyLink) {
 				/** Get data from copy link URL */
 				const matches = EXPR.vanillaVideoUrl(selectors.legacyCopyLink.textContent);
 				const [, username, videoId] = matches;
@@ -1353,65 +1231,55 @@
 			/** Attempt anchor extraction */
 			if(!videoData.videoApiId) {
 				/** Get data from share URLs */
-				let shareData = findVideoUrls(data.container);
+				const shareData = findVideoUrls(data.container);
 
-				if(shareData)
-				{
+				if(shareData) {
 					videoData.user = shareData.username;
 					videoData.videoApiId = shareData.videoId;
 
 					pipe('[BROWSER] Extracted from share URLs:', videoData);
 				}
 			}
-		} else if(data.env === TTDB.ENV.__NEXT)
-		{
+		} else if(data.env === TTDB.ENV.__NEXT) {
 			/** Get username */
 			itemUser = data.container.querySelector('div.user-info a > h2.user-username');
-	
-			if(itemUser)
-			{
+			if(itemUser) {
 				videoData.user = itemUser.textContent.trim();
 			}
 		}
 	
 		/** Get alternative id (no ID available here) */
-		let descriptionIdentifier = extractDescriptionId(data.container, data.env);
+		const descriptionIdentifier = extractDescriptionId(data.container, data.env);
 	
-		if(descriptionIdentifier)
-		{
+		if(descriptionIdentifier) {
 			videoData.id = descriptionIdentifier;
 		}
 	
 		return videoData;
 	};
 	
-	itemData.extract[TTDB.MODE.BASIC_PLAYER] = (data) =>
-	{
-		let videoData = {}, parent = data.container.closest('div[class*="-DivLeftContainer "]');
+	itemData.extract[TTDB.MODE.BASIC_PLAYER] = (data) => {
+		const videoData = {};
+		const parent = data.container.closest('div[class*="-DivLeftContainer "]');
 	
-		if(parent)
-		{
+		if(parent) {
 			const userId = parent.querySelectorAll(
 				'span[class*="-SpanUniqueId "], span[data-e2e="browse-username"]'
 			);
 	
-			if(userId[0])
-			{
+			if(userId[0]) {
 				videoData.user = userId[0].textContent.trim();
 			} else {
 				/** User ID fallback */
-				let authorElement = parent.querySelector('div[class*="-DivAuthorContainer "]');
+				const authorElement = parent.querySelector('div[class*="-DivAuthorContainer "]');
 	
 				if(authorElement)
 				{
-					let userHref = authorElement.querySelectorAll('a[href^="/@"]');
+					const userHref = authorElement.querySelectorAll('a[href^="/@"]');
 	
-					if(userHref[0])
-					{
+					if(userHref[0]) {
 						videoData.user = userHref[0].getAttribute('href').split('/@')[1].trim();
-	
-						if(videoData.user.includes('?'))
-						{
+						if(videoData.user.includes('?')) {
 							videoData.user = videoData.user.split('?')[0];
 						}
 					} else {
@@ -1427,8 +1295,7 @@
 	
 			if(videoTags)
 			{
-				videoTags = [...videoTags].map((e) =>
-				{
+				videoTags = [...videoTags].map((e) => {
 					return e.textContent ? e.textContent.trim() : false;
 				});
 	
@@ -1440,8 +1307,7 @@
 		/** Get user and video id from URL */
 		const matches = EXPR.vanillaVideoUrl(window.location.href);
 		
-		if(matches)
-		{
+		if(matches) {
 			const [, user, videoId] = matches;
 	
 			videoData.videoApiId = videoId;
@@ -1457,8 +1323,7 @@
 	* @param {HTMLElement} container 
 	* @param {object}      data 
 	*/
-	itemData.get = (container, data) =>
-	{
+	itemData.get = (container, data) => {
 		let videoData = {
 			id: null,
 			user: null,
@@ -1467,21 +1332,16 @@
 	
 		const videoElement = container.querySelector('video');
 	
-		if(videoElement &&
-			itemData.extract[data.mode])
-		{
+		if(videoElement && itemData.extract[data.mode]) {
 			/** Get actual video download URL */
 			videoData.url = videoElement.getAttribute('src');
 	
-			const extractedData = itemData.extract[data.mode](data);
-	
 			videoData = {
 				...videoData,
-				...extractedData
+				...itemData.extract[data.mode](data)
 			};
 	
-			if(!videoData.id)
-			{
+			if(!videoData.id) {
 				videoData.id = Date.now();
 			}
 		}
@@ -1492,9 +1352,8 @@
 	/**
 	* Fetches video items
 	*/
-	const selectAllVideoItems = () =>
-	{
-		let selectors = DOM.multiSelector({
+	const selectAllVideoItems = () => {
+		const selectors = DOM.multiSelector({
 			appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
 			appBrowserMode: 'div[class*="-DivBrowserModeContainer "]:not([is-downloadable])',
 			appSwiperSlide: 'div.swiper div.swiper-slide:not([is-downloadable])',
@@ -1511,15 +1370,12 @@
 	/**
 	 * Object getter using dot notation
 	 */
-	const _get = (obj, path, defValue) =>
-	{
-		if(!path)
-		{
+	const _get = (obj, path, defValue) => {
+		if(!path) {
 			return undefined;
 		}
 
 		const pathArray = Array.isArray(path) ? path : path.match(/([^[.\]])+/g);
-
 		const result = pathArray.reduce(
 			(prevObj, key) => prevObj && prevObj[key],
 			obj
@@ -1534,8 +1390,7 @@
 	 * @param {object} data 
 	 * @param {string} template 
 	 */
-	const getFileNameTemplate = (data, template = '{uploader} - {desc}') =>
-	{
+	const getFileNameTemplate = (data, template = '{uploader} - {desc}') => {
 		const [apiData] = [data.apiFullResponse];
 		const templateValues = {};
 
@@ -1568,19 +1423,15 @@
 		/**
 		 * Get template options from the API data
 		 */
-		for(const [key, value] of Object.entries(templateKeys))
-		{
+		for(const [key, value] of Object.entries(templateKeys)) {
 			if(!templateValues.hasOwnProperty(key))
 			{
 				let keyData = null;
 
-				for(const item of value)
-				{
-					if(!Array.isArray(item) && item)
-					{
+				for(const item of value) {
+					if(!Array.isArray(item) && item) {
 						keyData = item; break;
-					} else if(Array.isArray(item) && UTIL.checkNested(apiData, ...item))
-					{
+					} else if(Array.isArray(item) && UTIL.checkNested(apiData, ...item)) {
 						keyData = _get(apiData, item.join('.')); break;
 					}
 				}
@@ -1593,11 +1444,8 @@
 		/**
 		 * Create readable timestamps
 		 */
-		for(const timestamp of ['uploaded', 'timestamp'])
-		{
-			if(Number.isInteger(templateValues[timestamp])
-				&& templateValues[timestamp] > 0)
-			{
+		for(const timestamp of ['uploaded', 'timestamp']) {
+			if(Number.isInteger(templateValues[timestamp]) && templateValues[timestamp] > 0) {
 				/** Convert to `Date` object */
 				const ts = new Date(templateValues[timestamp] * 1000);
 
@@ -1612,8 +1460,7 @@
 				};
 
 				/** Pad any values under ten */
-				for(const [key, value] of Object.entries(tsData))
-				{
+				for(const [key, value] of Object.entries(tsData)) {
 					if(value < 10) tsData[key] = `0${value}`;
 				}
 
@@ -1643,17 +1490,15 @@
 		 */
 		filename = filename.replace(/({[^}]+})/g, '');
 
-		if(!filename.endsWith('.mp4'))
-		{
+		if(!filename.endsWith('.mp4')) {
 			filename = `${filename}.mp4`;
 		}
 
 		return filename.length >= 5 ? filename : null;
 	};
 	
-	const downloadHook = async (button, videoData) =>
-	{
-		let videoIdentifier = videoData.id ? videoData.id : Date.now();
+	const downloadHook = async (button, videoData) => {
+		const videoIdentifier = videoData.id ? videoData.id : Date.now();
 		let fileName = `${videoData.user ? videoData.user + ' - ' : ''}${videoIdentifier}`;
 	
 		DOM.setAttributes(button, {
@@ -1662,20 +1507,16 @@
 			'download': fileName
 		});
 	
-		if(videoData.videoApiId)
-		{
+		if(videoData.videoApiId) {
 			button.setAttribute('video-id', videoData.videoApiId);
 		}
 	
-		if(!button.hasListener)
-		{
-			button.addEventListener('click', async (e) =>
-			{
+		if(!button.hasListener) {
+			button.addEventListener('click', async (e) => {
 				/** Override default click behavior */
 				e.preventDefault();
 
-				if(button.classList.contains('loading'))
-				{
+				if(button.classList.contains('loading')) {
 					/** It's already loading */
 					return false;
 				} else {
@@ -1691,33 +1532,26 @@
 				let useApi = attrUrl.startsWith('blob:') ? true : await getStoredSetting('download-prioritize-api');
 	
 				/** If a video ID is present and `useApi` is enabled, attempt to get API data */
-				if(useApi && attrApiId)
-				{
+				if(useApi && attrApiId) {
 					/** Attempt to download non-watermarked version by using the API */
-					await API.getVideoData(attrApiId).then(async (res) =>
-					{
+					await API.getVideoData(attrApiId).then(async (res) => {
 						let fileName = (
 							`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
 						);
 
-						try
-						{
+						try {
 							const nameTemplate = await getStoredSetting('download-naming-template');
 
-							if(nameTemplate && nameTemplate.length >= 1)
-							{
+							if(nameTemplate && nameTemplate.length >= 1) {
 								/** Get template file name */
-								let templateFilename = getFileNameTemplate(
+								const templateFilename = getFileNameTemplate(
 									{...res, ...{ videoId: attrApiId }}, nameTemplate
 								);
 	
 								/** Set template file name if accepted */
 								fileName = templateFilename ? templateFilename : fileName;
 	
-								pipe('Using template:', {
-									template: nameTemplate,
-									filename: fileName
-								});
+								pipe('Using template:', { template: nameTemplate, filename: fileName });
 							}
 						} catch(e) {
 							pipe('Failed to use template', e);
@@ -1727,15 +1561,13 @@
 					}).catch(() =>
 					{
 						/** Attempt to download watermarked video as fallback */
-						if(attrUrl && attrFilename)
-						{
+						if(attrUrl && attrFilename) {
 							downloadFile(attrUrl, attrFilename, button);
 						}
 					});
 				} else {
 					/** Download watermarked video */
-					if(attrUrl && attrFilename)
-					{
+					if(attrUrl && attrFilename) {
 						downloadFile(attrUrl, attrFilename, button);
 					}
 				}
@@ -1757,23 +1589,19 @@
 		setters: {}
 	};
 	
-	itemSetup.setters[TTDB.MODE.BROWSER] = (item, data) =>
-	{
+	itemSetup.setters[TTDB.MODE.BROWSER] = (item, data) => {
 		let linkContainer = null;
 
-		if(data.env === TTDB.ENV.APP)
-		{
+		if(data.env === TTDB.ENV.APP) {
 			linkContainer = document.querySelector(DOM.multiSelector({
 				legacyCopyLink: 'div[class*="-DivCopyLinkContainer"]',
 				newMainContent: 'div[class*="-DivTabMenuContainer"]'
 			}));
-		} else if(data.env === TTDB.ENV.__NEXT)
-		{
+		} else if(data.env === TTDB.ENV.__NEXT) {
 			linkContainer = item.querySelector('div.video-infos-container > div.action-container');
 		}
 	
-		if(linkContainer)
-		{
+		if(linkContainer) {
 			/** Mark container as handled */
 			item.setAttribute('is-downloadable', 'true');
 
@@ -1781,33 +1609,24 @@
 			const button = createButton.BROWSER();
 			const videoData = itemData.get(item, data);
 	
-			if(data.env === TTDB.ENV.APP)
-			{
+			if(data.env === TTDB.ENV.APP) {
 				linkContainer.before(button);
-			} else if(data.env === TTDB.ENV.__NEXT)
-			{
+			} else if(data.env === TTDB.ENV.__NEXT) {
 				linkContainer.after(button);
 			}
 			
 			button.setAttribute('ttdb_mode', data.env === TTDB.ENV.__NEXT ? '__NEXT' : 'APP');
-	
 			downloadHook(button, videoData);
 	
-			if(TTDB.observers.browserObserver)
-			{
+			if(TTDB.observers.browserObserver) {
 				TTDB.observers.browserObserver.disconnect();
 			}
 	
-			let callback = (mutationsList) =>
-			{
-				for(let mutation of mutationsList)
-				{
-					if(mutation.type === 'childList')
-					{
+			const callback = (mutationsList) => {
+				for(let mutation of mutationsList) {
+					if(mutation.type === 'childList') {
 						clearTimeout(TTDB.timers.browserObserver);
-	
-						TTDB.timers.browserObserver = setTimeout(() =>
-						{
+						TTDB.timers.browserObserver = setTimeout(() => {
 							downloadHook(button, itemData.get(item, data));
 						}, 100);
 					}
@@ -1828,15 +1647,13 @@
 		return false;
 	};
 	
-	itemSetup.setters[TTDB.MODE.GRID] = (item, data) =>
-	{
+	itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
 		item.setAttribute('is-downloadable', 'true');
 	
 		/** Create download button */
-		let button = createButton.GRID();
+		const button = createButton.GRID();
 
-		let setButton = (videoData, button) =>
-		{
+		const setButton = (videoData, button) => {
 			pipe('Found video data:', videoData);
 
 			/** We have a valid video URL — set download data */
@@ -1847,31 +1664,25 @@
 			}
 		}
 
-		item.addEventListener('mouseleave', () =>
-		{
+		item.addEventListener('mouseleave', () => {
 			/** Clear any active timers on `mouseleave` */
 			clearInterval(TTDB.timers.gridAwaitVideoData);
 		});
 	
-		item.addEventListener('mouseenter', () =>
-		{
-			if(!button.ttIsProcessed)
-			{
+		item.addEventListener('mouseenter', () => {
+			if(!button.ttIsProcessed) {
 				clearInterval(TTDB.timers.gridAwaitVideoData);
 
 				let videoData = itemData.get(item, data);
 	
 				/** No URL was found on the initial attempt */
-				if(!videoData.url)
-				{
+				if(!videoData.url) {
 					/** Check for existing video URLs */
-					TTDB.timers.gridAwaitVideoData = setInterval(() =>
-					{
+					TTDB.timers.gridAwaitVideoData = setInterval(() => {
 						videoData = itemData.get(item, data);
 	
 						/** We have a valid video URL — set download data and clear interval */
-						if(videoData.url)
-						{
+						if(videoData.url) {
 							setButton(videoData, button);
 							clearInterval(TTDB.timers.gridAwaitVideoData);
 						}
@@ -1889,58 +1700,46 @@
 	
 		item.appendChild(button);
 	
-		setTimeout(() =>
-		{
-			button.style.opacity = 1;
-		}, 100);
+		setTimeout(() => { button.style.opacity = 1; }, 100);
 	
 		return true;
 	};
 	
-	itemSetup.setters[TTDB.MODE.FEED] = (item, data) =>
-	{
-		let videoPreview = item.querySelector(data.env === TTDB.ENV.APP ?
+	itemSetup.setters[TTDB.MODE.FEED] = (item, data) => {
+		const videoPreview = item.querySelector(data.env === TTDB.ENV.APP ?
 			'div[class*="-DivContainer "][mode] > img' :
 			'div[class*="video-card"] > span[class$="mask"]'
 		);
 	
-		if(videoPreview)
-		{
+		if(videoPreview) {
 			item.setAttribute('is-downloadable', 'true');
 	
 			/** Create download button */
-			let button = createButton.FEED();
+			const button = createButton.FEED();
 	
 			/** Container for existing buttons (like, comment and share) */
-			let actionContainer = item.querySelector(data.env === TTDB.ENV.APP ?
+			const actionContainer = item.querySelector(data.env === TTDB.ENV.APP ?
 				'div[class*="-DivActionItemContainer "]' :
 				'div[class*="-action-bar"].vertical'
 			);
 	
-			if(!actionContainer)
-			{
+			if(!actionContainer) {
 				return false;
 			} else {
 				actionContainer.prepend(button);
 			}
 	
-			let videoDataOnSetup = itemData.get(item, data);
+			const videoDataOnSetup = itemData.get(item, data);
 	
-			if(videoDataOnSetup.url && !button.ttIsProcessed)
-			{
+			if(videoDataOnSetup.url && !button.ttIsProcessed) {
 				/** Attempt to get video id (for API support) */
-				feedShareExtractId(actionContainer, (res) =>
-				{
-					if(res.videoId)
-					{
+				feedShareExtractId(actionContainer, (res) => {
+					if(res.videoId) {
 						button.setAttribute('video-id', res.videoId);
 					}
 				});
 	
-				setTimeout(() =>
-				{
-					button.style.opacity = 1;
-				}, 50);
+				setTimeout(() => { button.style.opacity = 1; }, 50);
 	
 				/** Item has already loaded when being set up, so set up download button */
 				downloadHook(button, videoDataOnSetup);
@@ -1948,24 +1747,18 @@
 				button.ttIsProcessed = true;
 			} else {
 				/** Item has not loaded, so we'll prepare and watch for it */
-				let container = videoPreview.parentElement;
+				const container = videoPreview.parentElement;
 	
-				let callback = (mutationsList, observer) =>
-				{
-					for(let mutation of mutationsList)
-					{
-						if(mutation.type === 'childList')
-						{
-							let videoData = itemData.get(item, data);
+				const callback = (mutationsList, observer) => {
+					for(let mutation of mutationsList) {
+						if(mutation.type === 'childList') {
+							const videoData = itemData.get(item, data);
 	
 							/** We have a valid video URL, so set download data */
-							if(videoData.url && !button.ttIsProcessed)
-							{
+							if(videoData.url && !button.ttIsProcessed) {
 								/** Attempt to get video id (for API support) */
-								feedShareExtractId(actionContainer, (res) =>
-								{
-									if(res.videoId)
-									{
+								feedShareExtractId(actionContainer, (res) => {
+									if(res.videoId) {
 										button.setAttribute('video-id', res.videoId);
 									}
 								});
@@ -1973,10 +1766,7 @@
 								/** Stop observing */
 								observer.disconnect();
 	
-								setTimeout(() =>
-								{
-									button.style.opacity = 1;
-								}, 50);
+								setTimeout(() => { button.style.opacity = 1; }, 50);
 	
 								/** Set up download button */
 								downloadHook(button, videoData);
@@ -2002,28 +1792,24 @@
 	};
 	
 	/** Set up swiper slide item (may be obsolete) */
-	itemSetup.setters[TTDB.MODE.SWIPER_SLIDE] = (item, data) =>
-	{
-		let videoPreview = item.querySelector('img');
+	itemSetup.setters[TTDB.MODE.SWIPER_SLIDE] = (item, data) => {
+		const videoPreview = item.querySelector('img');
+		const videoWrapper = item.querySelector('div[class*="VideoWrapperForSwiper"]');
 		let videoElement = item.querySelector('video');
-		let videoWrapper = item.querySelector('div[class*="VideoWrapperForSwiper"]');
 	
-		if((videoElement || videoPreview) && videoWrapper)
-		{
+		if((videoElement || videoPreview) && videoWrapper) {
 			item.setAttribute('is-downloadable', 'true');
 	
 			/** Create download button */
-			let button = createButton.SWIPER_SLIDE();
+			const button = createButton.SWIPER_SLIDE();
 			videoWrapper.prepend(button);
 	
 			/** We already have a video element */
-			if(videoElement)
-			{
+			if(videoElement) {
 				let videoData = itemData.get(item, data);
 	
 				/** We have a valid video URL, so set download data */
-				if(videoData.url && !button.ttIsProcessed)
-				{
+				if(videoData.url && !button.ttIsProcessed) {
 					setTimeout(() => button.style.opacity = 1, 50);
 	
 					/** Set up download button */
@@ -2035,22 +1821,17 @@
 			}
 	
 			/** Only preview, no video yet */
-			if(videoPreview && !videoElement)
-			{
+			if(videoPreview && !videoElement) {
 				/** Item has not loaded, so we'll prepare and watch for it */
 				let observer = null, container = videoWrapper;
 	
-				let callback = (mutationsList, observer) =>
-				{
-					for(let mutation of mutationsList)
-					{
-						if(mutation.type === 'childList')
-						{
+				const callback = (mutationsList, observer) => {
+					for(let mutation of mutationsList) {
+						if(mutation.type === 'childList') {
 							let videoData = itemData.get(item, data);
 		
 							/** We have a valid video URL, so set download data */
-							if(videoData.url && !button.ttIsProcessed)
-							{
+							if(videoData.url && !button.ttIsProcessed) {
 								/** Stop observing */
 								observer.disconnect();
 	
@@ -2080,24 +1861,20 @@
 	};
 	
 	/** Set up basic player item ("theater" mode) */
-	itemSetup.setters[TTDB.MODE.BASIC_PLAYER] = (item, data) =>
-	{
+	itemSetup.setters[TTDB.MODE.BASIC_PLAYER] = (item, data) => {
 		let videoElement = item.querySelector('video');
 	
-		if(videoElement)
-		{
+		if(videoElement) {
 			item.setAttribute('is-downloadable', 'true');
 	
 			/** Create download button */
 			let button = createButton.BASIC_PLAYER();
 			let parent = data.container.closest('div[class*="-DivLeftContainer "]');
 	
-			if(parent)
-			{
+			if(parent) {
 				let existingButton = parent.querySelector(`.${button.classList[0]}`);
 			
-				if(existingButton)
-				{
+				if(existingButton) {
 					existingButton.remove();
 				}
 
@@ -2107,20 +1884,18 @@
 	
 				button = button.querySelector('a');
 	
-				let widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]');
+				const widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]');
 	
 				DOM.setStyle(button, {
 					'width': `${widthTarget ? widthTarget.offsetWidth : 320}px`
 				});
 	
 				/** We already have a video element */
-				if(videoElement)
-				{
+				if(videoElement) {
 					let videoData = itemData.get(item, data);
 	
 					/** We have a valid video URL, so set download data */
-					if(videoData.url && !button.ttIsProcessed)
-					{
+					if(videoData.url && !button.ttIsProcessed) {
 						button.parentNode.style.display = 'inherit';
 						setTimeout(() => button.style.opacity = 1, 50);
 	
@@ -2143,72 +1918,57 @@
 		* @param {HTMLElement} item 
 		* @param {object}      data 
 		*/
-	itemSetup.set = (itemType, item, data) =>
-	{
+	itemSetup.set = (itemType, item, data) => {
 		return itemSetup.setters[itemType](item, data);
 	};
 	
 	/**
 		* Updates video items
 		*/
-	const updateItems = () =>
-	{
+	const updateItems = () => {
 		let processed = 0;
 
-		(selectAllVideoItems()).forEach((item) =>
-		{
+		(selectAllVideoItems()).forEach((item) => {
 			let currentMode = null;
 			let currentEnvironment = null;
 
 			const modeElement = item.querySelector('div[mode]');
 
-			if(modeElement)
-			{
+			if(modeElement) {
 				currentMode = modeElement.getAttribute('mode');
 				currentEnvironment = TTDB.ENV.APP;
 			} else {
 				const classList = item.classList;
 
-				if(classList.contains('video-feed-item') || classList.contains('three-column-item'))
-				{
+				if(classList.contains('video-feed-item') || classList.contains('three-column-item')) {
 					currentMode = TTDB.MODE.GRID;
-				} else if(classList.contains('feed-item-content'))
-				{
+				} else if(classList.contains('feed-item-content')) {
 					currentMode = TTDB.MODE.FEED;
-				} else if(classList.contains('browse-mode') || classList.contains('video-card-big'))
-				{
+				} else if(classList.contains('browse-mode') || classList.contains('video-card-big')) {
 					currentMode = TTDB.MODE.BROWSER;
-				} else if(classList.contains('swiper-slide'))
-				{
+				} else if(classList.contains('swiper-slide')) {
 					currentMode = TTDB.MODE.SWIPER_SLIDE;
-				} else if(item.querySelector('div.no-controls > video'))
-				{
+				} else if(item.querySelector('div.no-controls > video')) {
 					currentMode = TTDB.MODE.BASIC_PLAYER;
 				}
 	
-				if(currentMode !== null)
-				{
+				if(currentMode !== null) {
 					currentEnvironment = TTDB.ENV.__NEXT;
 				}
 			}
 
-			if(currentMode)
-			{
+			if(currentMode) {
 				/** Set default environment if nothing has been detected */
-				if(currentEnvironment === null)
-				{
+				if(currentEnvironment === null) {
 					currentEnvironment = TTDB.DEFAULT_ENV;
 				}
 	
 				/** Data that we're sending downstream */
-				let data = {
+				if(itemSetup.set(currentMode, item, {
 					mode: currentMode,
 					env: currentEnvironment,
 					container: item
-				};
-	
-				if(itemSetup.set(currentMode, item, data))
-				{
+				})) {
 					processed++;
 				}
 			}
@@ -2218,14 +1978,12 @@
 	};
 	
 	/**
-		* Adds download buttons to video elements
-		*/
-	const updatePage = () =>
-	{
-		let processedItems = updateItems();
+	* Adds download buttons to video elements
+	*/
+	const updatePage = () => {
+		const processedItems = updateItems();
 	
-		if(processedItems > 0)
-		{
+		if(processedItems > 0) {
 			pipe(`Processed ${processedItems} item${processedItems !== 1 ? 's' : ''}!`);
 		}
 	};
@@ -2233,12 +1991,10 @@
 	/**
 		* Check for updates on `scroll`
 		*/
-	document.addEventListener('scroll', () =>
-	{
+	document.addEventListener('scroll', () => {
 		clearTimeout(TTDB.timers.scrollBreak);
 	
-		TTDB.timers.scrollBreak = setTimeout(() =>
-		{
+		TTDB.timers.scrollBreak = setTimeout(() => {
 			TTDB.setInterval(20);
 		}, 250);
 	});
@@ -2246,36 +2002,26 @@
 	/**
 	* Check for updates on `click`
 	*/
-	window.addEventListener('click', () =>
-	{
+	window.addEventListener('click', () => {
 		TTDB.setInterval(10);
 	});
 	
-	let observeApp = (container) =>
-	{
-		if(TTDB.observers.main)
-		{
+	const observeApp = (container) => {
+		if(TTDB.observers.main) {
 			TTDB.observers.main.disconnect();
 		}
-	
-		let callback = (mutationsList) =>
-		{
-			for(let mutation of mutationsList)
-			{
-				if(mutation.type === 'childList')
-				{
+		
+		TTDB.observers.main = new MutationObserver((mutationsList) => {
+			for(let mutation of mutationsList) {
+				if(mutation.type === 'childList') {
 					clearTimeout(TTDB.timers.appUpdated);
-	
-					TTDB.timers.appUpdated = setTimeout(() =>
-					{
+					TTDB.timers.appUpdated = setTimeout(() => {
 						TTDB.setInterval(15);
 					}, 500);
 				}
 			}
-		};
+		});
 		
-		TTDB.observers.main = new MutationObserver(callback);
-	
 		TTDB.observers.main.observe(container, {
 			childList: true,
 			subtree: true
@@ -2286,39 +2032,30 @@
 	
 	let appContainer = getAppContainer();
 	
-	if(appContainer)
-	{
+	if(appContainer) {
 		observeApp(appContainer);
 	} else {
 		let checks = 0;
 	
-		TTDB.timers.appCreationWatcher = setInterval(() =>
-		{
+		TTDB.timers.appCreationWatcher = setInterval(() => {
 			appContainer = getAppContainer();
 	
-			if(appContainer || checks === 10)
-			{
+			if(appContainer || checks === 10) {
 				clearInterval(TTDB.timers.appCreationWatcher);
 	
-				if(appContainer)
-				{
+				if(appContainer) {
 					observeApp(appContainer);
 				}
-			}
-	
-			checks++;
+			} checks++;
 		}, 1000);
 	}
 	
 	/**
 	* Tracks and does item checks on the page
 	*/
-	setInterval(() =>
-	{
-		if(TTDB.interval.counter > 0)
-		{
+	setInterval(() => {
+		if(TTDB.interval.counter > 0) {
 			updatePage();
-			
 			TTDB.interval.counter--;
 		}
 	}, TTDB.interval.delay);
