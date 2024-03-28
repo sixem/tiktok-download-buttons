@@ -38,7 +38,7 @@ const options = {
 /** Set default storage values */
 Object.keys(options).forEach((key) => {
 	chrome.storage.local.get(key, (result) => {
-		if(!result.hasOwnProperty(key)) {
+		if(result && !result.hasOwnProperty(key)) {
 			let value = new Object();
 			value[key] = options[key].default;
 			chrome.storage.local.set(value);
