@@ -304,9 +304,9 @@
 	/**
 	 * API variables
 	 */
-	API.AID = 1180;
-	API.APP_NAME = 'trill';
-	API.HOSTNAME = 'api22-normal-c-useast2a.tiktokv.com';
+	API.AID = 0;
+	API.APP_NAME = 'musical_ly';
+	API.HOSTNAME = 'api22-normal-c-alisg.tiktokv.com';
 	API.API_V = 'v1';
 	API.VERSION_WORKING = false;
 	
@@ -346,8 +346,10 @@
 			'_rticket': ts * 1000,
 			'ts': ts,
 			'device_brand': 'Google',
-			'device_type': 'Pixel 4',
+			'device_type': 'ASUS_Z01QD',
 			'device_platform': 'android',
+			"iid": "7318518857994389254",
+			"device_id": "7318517321748022790",
 			'resolution': '1080*1920',
 			'dpi': 420,
 			'os_version': '10',
