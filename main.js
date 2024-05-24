@@ -31,10 +31,8 @@
 	 * 
 	 * @param {integer} count 
 	 */
-	TTDB.setInterval = (count) =>
-	{
-		if(TTDB.interval.counter < count)
-		{
+	TTDB.setInterval = (count) => {
+		if (TTDB.interval.counter < count) {
 			TTDB.interval.counter = count
 		}
 	};
@@ -44,8 +42,7 @@
 	 * 
 	 * @param  {...any} args 
 	 */
-	const pipe = (...args) =>
-	{
+	const pipe = (...args) => {
 		console.info('[TTDB]', ...args)
 	};
 	
@@ -56,10 +53,8 @@
 	 * @param {class}       eventType 
 	 * @param {string}      event 
 	 */
-	UTIL.dispatchEvent = (element, eventType, event) =>
-	{
-		element.dispatchEvent(new eventType(event,
-		{
+	UTIL.dispatchEvent = (element, eventType, event) => {
+		element.dispatchEvent(new eventType(event, {
 			bubbles: true,
 			cancelable: true,
 			view: window
@@ -72,8 +67,7 @@
 	 * @param {string}  string 
 	 * @param {integer} n 
 	 */
-	UTIL.truncateString = (string, n) =>
-	{
+	UTIL.truncateString = (string, n) => {
 		return (string.length > n) ? string.substr(0, n - 1) : string;
 	};
 	
@@ -83,17 +77,23 @@
 	 * @param {string}  characters 
 	 * @param {integer} length 
 	 */
-	UTIL.ranGen = (charSet, length = 16) =>
-	{
+	UTIL.ranGen = (charSet, length = 16) => {
 		let result = '';
-		let setLength = charSet.length;
+		const setLength = charSet.length;
 	
-		for(let i = 0; i < length; i++)
-		{
+		for(let i = 0; i < length; i++) {
 			result += charSet.charAt(Math.floor(Math.random() *  setLength));
-		}
-	
-		return result;
+		} return result;
+	};
+
+	/**
+	 * Generates a random integer between min and max
+	 * 
+	 * @param {integer} min 
+	 * @param {integer} max 
+	 */
+	UTIL.ranInt = (min, max) => {
+		return Math.floor(Math.random() * (max - min + 1) + min);
 	};
 	
 	/**
@@ -101,8 +101,7 @@
 	 * 
 	 * @param {string} string 
 	 */
-	UTIL.sanitizeFilename = (string) =>
-	{
+	UTIL.sanitizeFilename = (string) => {
 		/**
 		 * Regex ranges and characters:
 		 * 
@@ -120,13 +119,12 @@
 			/[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\wа-я0-9a-zA-Z-._ #()\[\]]/g, ''
 		).replace(/\s\s+/g, ' ').trim();
 
-		/** Remove any leading dots */
-		while(string[0] === '.')
-		{
+		// Remove any leading dots
+		while(string[0] === '.') {
 			string = string.substring(1);
 		}
 
-		/** Filename limit is about 250, so we'll shorten any super long filenames. */
+		// Filename limit is about 250, so we'll shorten any super long filenames
 		return (string.length - 4) >= 246 ? `${string.replace('.mp4', '').substring(0, 246).trim()}.mp4` : string;
 	}
 	
@@ -138,32 +136,59 @@
 	 * @param {...any}  rest 
 	 * @returns 
 	 */
-	UTIL.checkNested = (obj, level, ...rest) =>
-	{
-		if(obj === undefined)
-		{
+	UTIL.checkNested = (obj, level, ...rest) => {
+		if (obj === undefined) {
 			return false;
 		}
 	
-		if(rest.length == 0 && obj.hasOwnProperty(level))
-		{
+		if (rest.length == 0 && obj.hasOwnProperty(level)) {
 			return true;
 		}
 	
 		return UTIL.checkNested(obj[level], ...rest);
 	};
+
+	/**
+	 * Traverses an object for a key, then gets that value
+	 * 
+	 * Returns an undefined value if not found
+	 * 
+	 * @param {object} obj 
+	 * @param {string} needle 
+	 */
+	UTIL.traverseObj = (obj, needles, index = 0) => {
+		if (obj !== null && typeof obj === "object" && index < needles.length) {
+			const needle = needles[index];
+
+			for (const key of Object.keys(obj)) {
+				if (key === needle) {
+					if (index === needles.length - 1) {
+						return obj[key];
+					}
+					return UTIL.traverseObj(obj[key], needles, index + 1);
+				}
+			}
+
+			for (const key of Object.keys(obj)) {
+				const result = UTIL.traverseObj(obj[key], needles, index);
+				if (result !== undefined) {
+					return result;
+				}
+			}
+		}
+		
+		return undefined;
+	}
 	
 	/**
 	 * Fetches a stored setting
 	 * 
 	 * @param {string} key 
 	 */
-	const getStoredSetting = async (key) =>
-	{
+	const getStoredSetting = async (key) => {
 		const stored = await chrome.storage.local.get(key);
 	
-		if(stored && stored.hasOwnProperty(key))
-		{
+		if (stored && stored.hasOwnProperty(key)) {
 			return stored[key];
 		}
 	
@@ -171,11 +196,10 @@
 	};
 	
 	/** Matches `https://www.tiktok.com/@user/video/123456789` URLs */
-	EXPR.vanillaVideoUrl = (haystack, options = {}) =>
-	{
+	EXPR.vanillaVideoUrl = (haystack, options = {}) => {
 		let expression = ('https?:\/\/(?:www\.)?tiktok\.com\/@([^\/]+)\/video\/([0-9]+)');
 	
-		if(options.strict) {
+		if (options.strict) {
 			expression = ('^' + expression + '$');
 		}
 	
@@ -186,37 +210,29 @@
 	/**
 	 * Create splash elements
 	 */
-	SPLASH.create = () =>
-	{
+	SPLASH.create = () => {
 		const body = document.body;
 	
-		/** Create splash elements */
+		// Create splash elements
 		const wrapper = document.createElement('div');
 		const content = document.createElement('div');
 	
-		/** Add classes */
 		wrapper.classList.add('ttdb_splash-wrapper');
 		content.classList.add('ttdb_splash-content');
 	
 		content.textContent = '';
 	
-		/** Wrap the content */
 		wrapper.appendChild(content);
 	
-		if(body)
-		{
-			/** Append splash content to body */
+		if (body) {
 			body.appendChild(wrapper);
 	
-			/** Store references */
+			// Store references
 			SPLASH.wrapper = wrapper;
 			SPLASH.content = content;
 	
-			/** Click listener */
-			SPLASH.content.addEventListener('click', (e) =>
-			{
-				chrome.runtime.sendMessage(chrome.runtime.id,
-				{
+			SPLASH.content.addEventListener('click', (_) => {
+				chrome.runtime.sendMessage(chrome.runtime.id, {
 					task: 'fileShow'
 				});
 			});
@@ -231,25 +247,23 @@
 	 * @param {string}  message 
 	 * @param {integer} duration 
 	 */
-	SPLASH.message = (message, options = {}, callback = null) =>
-	{
+	SPLASH.message = (message, options = {}, callback = null) => {
 		const state = options.state ? options.state : 0;
 	
-		if(SPLASH.wrapper && SPLASH.content) {
+		if (SPLASH.wrapper && SPLASH.content) {
 			clearTimeout(TTDB.timers.splash);
 	
-			if(state === 0 || state === 1) {
-				if(SPLASH.content.classList.contains('state-warn'))
+			if (state === 0 || state === 1) {
+				if (SPLASH.content.classList.contains('state-warn'))
 					SPLASH.content.classList.remove('state-warn');
 	
-				if(!SPLASH.content.classList.contains('state-success'))
+				if (!SPLASH.content.classList.contains('state-success'))
 					SPLASH.content.classList.add('state-success');
-			} else if(state > 1)
-			{
-				if(SPLASH.content.classList.contains('state-success'))
+			} else if (state > 1) {
+				if (SPLASH.content.classList.contains('state-success'))
 					SPLASH.content.classList.remove('state-success');
 	
-				if(!SPLASH.content.classList.contains('state-warn'))
+				if (!SPLASH.content.classList.contains('state-warn'))
 					SPLASH.content.classList.add('state-warn');
 			}
 	
@@ -266,7 +280,7 @@
 					'pointer-events': 'none'
 				});
 	
-				if(callback) {
+				if (callback) {
 					callback();
 				}
 			}, options.duration || 3000);
@@ -306,9 +320,8 @@
 	 */
 	API.AID = 0;
 	API.APP_NAME = 'musical_ly';
-	API.HOSTNAME = 'api22-normal-c-alisg.tiktokv.com';
+	API.HOSTNAME = 'api22-normal-c-useast2a.tiktokv.com';
 	API.API_V = 'v1';
-	API.VERSION_WORKING = false;
 	
 	API.FORMATS = [
 		'play_addr',
@@ -317,30 +330,22 @@
 		'download_addr'
 	];
 
-	API.VERSIONS = [
-		['26.1.3', '260103'],
-		['26.1.2', '260102'],
-		['26.1.1', '260101'],
-		['25.6.2', '250602'],
-		['24.1.5', '240105']
-	];
-	
 	/**
 	 * Builds an API query URL
 	 * 
 	 * @param {string} videoId 
 	 */
-	API.constructApiQuery = (videoId, appVersion, manifestAppVersion) => {
+	API.constructApiQuery = (videoId) => {
 		const fetchType = 'feed';
 		const ts = Math.round(Date.now() / 1000);
 	
 		const parameters = {
 			'aweme_id': videoId,
-			'version_name': appVersion,
-			'version_code': manifestAppVersion,
-			'build_number': appVersion,
-			'manifest_version_code': manifestAppVersion,
-			'update_version_code': manifestAppVersion,
+			'version_name': '34.1.2',
+			'version_code': '2023401020',
+			'build_number': '34.1.2',
+			'manifest_version_code': '2023401020',
+			'update_version_code': '2023401020',
 			'openudid': UTIL.ranGen('0123456789abcdef', 16),
 			'uuid': UTIL.ranGen('0123456789', 16),
 			'_rticket': ts * 1000,
@@ -349,7 +354,7 @@
 			'device_type': 'ASUS_Z01QD',
 			'device_platform': 'android',
 			"iid": "7318518857994389254",
-			"device_id": "7318517321748022790",
+			"device_id": UTIL.ranInt(7250000000000000000, 7351147085025500000),
 			'resolution': '1080*1920',
 			'dpi': 420,
 			'os_version': '10',
@@ -358,7 +363,9 @@
 			'sys_region': 'US',
 			'region': 'US',
 			'app_name': API.APP_NAME,
+			'app_version': '34.1.2',
 			'app_language': 'en',
+			'manifest_app_version': '2023401020',
 			'language': 'en',
 			'timezone_name': 'America/New_York',
 			'timezone_offset': '-14400',
@@ -386,18 +393,18 @@
 		let id = { user: null, description: null };
 	
 		/** Attempt to get the video description */
-		if(UTIL.checkNested(data, 'aweme_detail', 'desc')) {
+		if (UTIL.checkNested(data, 'aweme_detail', 'desc')) {
 			id.description = data.aweme_detail.desc;
 		}
 	
 		/** Attempt to get the channel of the video */
 		(['unique_id', 'nickname', 'ins_id']).forEach((key) => {
-			if(!id.user && UTIL.checkNested(data, 'aweme_detail', 'author', key)) {
+			if (!id.user && UTIL.checkNested(data, 'aweme_detail', 'author', key)) {
 				id.user = data.aweme_detail.author[key];
 			}
 		});
 	
-		if(!id.description) {
+		if (!id.description) {
 			id = {
 				user: id.user,
 				description: fallback
@@ -412,11 +419,11 @@
 	API.extractVideoUrls = (data) => {
 		const urls = [];
 
-		/** Iterate over formats */
+		// Iterate over formats
 		(API.FORMATS).forEach((format) =>
 		{
-			/** Check if format is available */
-			if(data.aweme_detail.video.hasOwnProperty(format) &&
+			// Check if format is available
+			if (data.aweme_detail.video.hasOwnProperty(format) &&
 				data.aweme_detail.video[format].hasOwnProperty('data_size') &&
 				data.aweme_detail.video[format].hasOwnProperty('url_list') &&
 				data.aweme_detail.video[format].url_list.length > 0)
@@ -428,18 +435,18 @@
 			}
 		});
 
-		/** Iterate over bit_rate data */
-		if(data.aweme_detail.video.hasOwnProperty('bit_rate') && Array.isArray(data.aweme_detail.video.bit_rate)) {
+		// Iterate over bit_rate data
+		if (data.aweme_detail.video.hasOwnProperty('bit_rate') && Array.isArray(data.aweme_detail.video.bit_rate)) {
 			let bestItem = null, bestQuality = null;
 
 			for(const videoItem of data.aweme_detail.video.bit_rate) {
-				if(bestQuality === null || videoItem.quality_type < bestQuality) {
+				if (bestQuality === null || videoItem.quality_type < bestQuality) {
 					bestItem = videoItem;
 					bestQuality = videoItem.quality_type;
 				}
 			}
 
-			if(bestItem.hasOwnProperty('play_addr') && bestItem.play_addr.hasOwnProperty('url_list')) {
+			if (bestItem.hasOwnProperty('play_addr') && bestItem.play_addr.hasOwnProperty('url_list')) {
 				const videoUrl = bestItem.play_addr.url_list[0];
 				const videoSize = bestItem.play_addr.data_size;
 				const videoRes = bestItem.play_addr.height * bestItem.play_addr.width;
@@ -456,9 +463,8 @@
 	 * Attempts to get a response from the API
 	 * 
 	 * @param {string} videoId 
-	 * @param {array}  version 
 	 */
-	API.getResponse = (videoId, version) => {
+	API.getResponse = (videoId) => {
 		let videoData = {
 			success: false,
 			description: null,
@@ -467,34 +473,25 @@
 		};
 	
 		return new Promise(async (resolve, reject) => {
-			/** Set app version */
-			const [appVersion, manifestAppVersion] = version;
-	
-			/** Create API query URL */
-			const urlQuery = API.constructApiQuery(
-				videoId,
-				appVersion,
-				manifestAppVersion
-			);
+			const urlQuery = API.constructApiQuery(videoId);
 	
 			try {
 				const response = await chrome.runtime.sendMessage(
 					chrome.runtime.id, { task: 'fetch', url: urlQuery }
 				);
 
-				/** Get JSON data */
-				const data = response.data;
+				const data = response.data; // Get JSON data
 
-				if(response.error) {
+				if (response.error) {
 					pipe('API Response failed', '@', urlQuery);
-				} else if(data) {
+				} else if (data) {
 					pipe('API Response:', data);
 				}
 
 				let videoUrl = null;
 
-				/** Extract potential fallback data if available */
-				if(data && UTIL.checkNested(data, 'aweme_list')) {
+				// Extract potential fallback data if available
+				if (data && UTIL.checkNested(data, 'aweme_list')) {
 					const awemeList = data.aweme_list;
 					const awemeEntries = Object.keys(awemeList);
 
@@ -502,18 +499,17 @@
 						const item = awemeList[awemeEntries[index]];
 						const awemeId = item.aweme_id ? parseInt(item.aweme_id) : null;
 
-						if(awemeId === parseInt(videoId)) {
-							/** Set list item as `aweme_detail` because the structure is the same as the default fetch method */
+						if (awemeId === parseInt(videoId)) {
+							// Set list item as `aweme_detail` because the structure is the same as the default fetch method
 							data.aweme_detail = { ...item }; break;
 						}
 					}
 				}
 	
-				/** Check JSON data */
-				if(data && UTIL.checkNested(data, 'aweme_detail', 'video')) {
+				if (data && UTIL.checkNested(data, 'aweme_detail', 'video')) {
 					const extractedUrls = API.extractVideoUrls(data);
 
-					if(extractedUrls.length > 0) {
+					if (extractedUrls.length > 0) {
 						pipe("Extracted URLs", extractedUrls);
 						videoUrl = extractedUrls[0][2];
 					} else {
@@ -521,12 +517,10 @@
 					}
 				}
 	
-				/** Break and set data if a video URL has been found */
-				if(videoUrl) {
+				if (videoUrl) {
 					videoData.success = true;
 					videoData.url = videoUrl;
 	
-					/** Set identifier */
 					videoData = {
 						...videoData,
 						...API.extractId({
@@ -553,81 +547,20 @@
 	 */
 	API.getVideoData = async (videoId) => {
 		return new Promise(async (resolve, reject) => {
-			let videoData = {
-				success: false,
-				description: null,
-				user: null,
-				url: null
-			};
-
-			let attemptTimeout = false;
-	
-			/** Get stored working manifest version */
-			const manifest = API.VERSION_WORKING ? {
-				working: API.VERSION_WORKING
-			} : await getStoredSetting('manifest');
-	
-			if(manifest && manifest.updated && manifest.working === false) {
-				/** If a recent failed API attempt has been made — reject the promise */
-				if(((Date.now() / 1000) - manifest.updated) < 900) {
-					attemptTimeout = true;
+			await API.getResponse(videoId).then((response) => {
+				if (response.success) {
+					resolve({ ...{
+						success: false,
+						description: null,
+						user: null,
+						url: null
+					}, ...response })
 				}
-			}
+			}).catch((error) => {
+				pipe('API Attempt failed:', error);
+			});
 
-			if(manifest && manifest.working !== false) {
-				await API.getResponse(videoId, [...manifest.working], true).then((response) => {
-					/** API response was good */
-					if(response.success) {
-						/** Mark that this API version is working */
-						API.VERSION_WORKING = manifest.working;
-						/** Set video data */
-						videoData = { ...videoData, ...response };
-					}
-				}).catch((error) => {
-					pipe('API Attempt failed (using stored manifest):', error);
-				});
-			}
-	
-			if(!videoData.success && !attemptTimeout) {
-				let isComplete = false;
-
-				/** Iterate over API versions */
-				for(let index = 0; index < API.VERSIONS.length; index++) {
-					await API.getResponse(videoId, [...API.VERSIONS[index]], true).then((response) => {
-						pipe(`API Attempt (${index + 1}):`, { response });
-		
-						/** API response was good */
-						if(response.success) {
-							/** Mark that this API version is working */
-							API.VERSION_WORKING = API.VERSIONS[index];
-		
-							/** Set video data */
-							videoData = { ...videoData, ...response };
-							isComplete = true;
-						}
-					}).catch((error) => {
-						pipe('API attempt failed:', error);
-					});
-
-					if(isComplete) break;
-				}
-			}
-
-			if(videoData.success) {
-				chrome.runtime.sendMessage(chrome.runtime.id, {
-					task: 'manifestSave',
-					manifest: API.VERSION_WORKING
-				});
-
-				resolve(videoData);
-			} else {
-				chrome.runtime.sendMessage(chrome.runtime.id, {
-					task: 'manifestSave',
-					manifest: false
-				});
-	
-				reject(null);
-			}
+			reject(null);
 		});
 	};
 
@@ -639,7 +572,7 @@
 	const findVideoUrls = (element) => {
 		let data = false;
 
-		if(element) {
+		if (element) {
 			/** Get shareable `a` elements */
 			const anchors = element.querySelectorAll('a[href]');
 
@@ -647,7 +580,7 @@
 				const matches = EXPR.vanillaVideoUrl(decodeURIComponent(anchors[i].getAttribute('href')));
 
 				/** If any matches */
-				if(matches) {
+				if (matches) {
 					const [, username, videoId] = matches;
 					data = { username, videoId }; break;
 				}
@@ -665,6 +598,50 @@
 			APP: 'div#app', __NEXT: 'div#main'
 		}));
 	};
+
+	/**
+	 * Attempts to fetch the web API data for a video
+	 * 
+	 * @param {object} videoData 
+	 */
+	const getWebApiData = (videoData) => {
+		return new Promise((resolve, reject) => {
+			if (!videoData.videoApiId) {
+				reject('No video ID found in object');
+			}
+
+			const reqUrl = `https://www.tiktok.com/@${videoData.user}/video/${videoData.videoApiId}`;
+
+			fetch(reqUrl).then((res) => res.text()).then((body) => {
+				let status = null, webappDetail = null;
+
+				const webDocument = (new DOMParser()).parseFromString(body, 'text/html');
+				const UDScript = webDocument.querySelector('script#__UNIVERSAL_DATA_FOR_REHYDRATION__');
+
+				if (UDScript) {
+					try {
+						const UD = JSON.parse(UDScript.innerText);
+						status = UTIL.traverseObj(UD, ['webapp.video-detail', 'statusCode']) || 0
+						webappDetail = UTIL.traverseObj(UD, ['webapp.video-detail', 'itemInfo', 'itemStruct']);
+					} catch (error) {
+						reject('Error parsing web data: ' + error);
+					}
+				}
+
+				pipe('Got web API response', { status }, webappDetail);
+
+				if (webappDetail && ![10216].includes(status)) { // Video data is OK
+					resolve(webappDetail);
+				} else if (status === 10216) { // Status indicates a private video
+					reject('Video is private');
+				}
+
+				reject(`Video is not available (status code: ${status})`);
+			}).catch((error) => {
+				reject('Error fetching web data: ' + error);
+			});
+		});
+	}
 	
 	/**
 	 * Downloads a file
@@ -672,12 +649,11 @@
 	 * @param {string} url 
 	 * @param {string} filename 
 	 */
-	const downloadFile = async (url, filename, buttonElement = null, isApi = false) => {
-		/** Sanitize filename */
+	const downloadFile = async (url, filename, buttonElement = null) => {
+		// Sanitize filename
 		filename = UTIL.sanitizeFilename(filename), hasFallbacked = false;
 
-		/** Truncate any super long strings */
-		if(filename.length > 250) {
+		if (filename.length > 250) { // Truncate any super long strings
 			filename = UTIL.truncateString(filename, 250);
 		}
 	
@@ -687,7 +663,7 @@
 		 * @param {HTMLElement} buttonElement 
 		 */
 		const revertState = (buttonElement) => {
-			if(buttonElement) {
+			if (buttonElement) {
 				buttonElement.classList.remove('loading');
 			}
 		}
@@ -699,14 +675,14 @@
 		 * This is a workaround for now.
 		 */
 		const fallback = async (url) => {
-			if(hasFallbacked) {
+			if (hasFallbacked) {
 				return;
 			}
 
 			pipe('File could not be fetched — opening instead.');
 	
 			SPLASH.message(
-				'[fallback] opened video in new tab [reason: fetch not allowed]', {
+				'[Fallback] Opened video in new tab [reason: fetch not allowed]', {
 					duration: 3500, state: 2
 				}
 			);
@@ -718,7 +694,8 @@
 					task: 'windowOpen',
 					url,
 					active: tabActive === null ? true : tabActive
-				});
+				}
+			);
 	
 			revertState(buttonElement);
 			hasFallbacked = true;
@@ -726,59 +703,42 @@
 	
 		let subFolder = await getStoredSetting('download-subfolder-path');
 	
-		if(!(typeof subFolder === 'string' || subFolder instanceof String)) {
+		if (!(typeof subFolder === 'string' || subFolder instanceof String)) {
 			subFolder = '';
 		}
 
-		/** Attempt download using chrome API (@ `service.js`) */
+		// Attempt download using chrome API (@ `service.js`)
 		chrome.runtime.sendMessage(
 			chrome.runtime.id, {
 				task: 'fileDownload',
-				filename,
-				url,
-				subFolder
+				filename, url, subFolder
 		}).then((response) => {
-			if(response.success) {
+			if (response.success) {
 				pipe(`Downloaded ${url}`);
 				revertState(buttonElement);
 	
-				/** Show splash message */
-				SPLASH.message(
-					`[success] downloaded file (id: ${response.itemId}) ${isApi ? ' [method: API]' : ''}`, {
-						duration: 2500, state: 1
-					}
-				);
+				SPLASH.message(`[Success] Downloaded file (ID: ${response.itemId})`, {
+					duration: 2500, state: 1
+				});
 			} else {
-				/** Attempt download using .blob() */
+				// Attempt download using .blob()
+				// We can't use a subfolder here since this is not using the browser API
 				fetch(url, TTDB.headers).then((t) => {
-					if(t.ok) {
+					if (t.ok) {
 						return t.blob().then((b) => {
 							const anchor = document.createElement('a');
-		
+
 							anchor.href = URL.createObjectURL(b);
 							anchor.setAttribute('download', filename);
-	
+
 							UTIL.dispatchEvent(anchor, MouseEvent, 'click');
-	
-							anchor.remove();
-				
-							revertState(buttonElement);
-	
-							/** Show splash message */
-							SPLASH.message(
-								`[success] downloaded file [method: blob()${isApi ? ' (API)' : ''}]`, {
-									duration: 2500
-								}
-							);
+							anchor.remove(); revertState(buttonElement);
+							SPLASH.message(`[Success] Downloaded file`, { duration: 2500 });
 						});
 					} else {
-						/** Fallback (open in new tab) */
 						fallback(url);
 					}
-				}).catch(() => {
-					/** Fallback (open in new tab) */
-					fallback(url);
-				});
+				}).catch(() => fallback(url));
 			}
 		});
 	};
@@ -807,7 +767,7 @@
 			elementPolygon.setAttribute('points', values.points.join(' '));
 			elementSvg.appendChild(elementPolygon);
 	
-			if(values.style) {
+			if (values.style) {
 				DOM.setStyle(elementSvg, values.style);
 			}
 	
@@ -846,7 +806,7 @@
 			return Object.keys(values).map((key) => values[key]).join(', ');
 		},
 		selectorNamed: (values) => {
-			for(const [name, value] of Object.entries(values)) {
+			for (const [name, value] of Object.entries(values)) {
 				values[name] = document.querySelector(value) || null;
 			}
 
@@ -861,10 +821,10 @@
 			const container = document.createElement('a');
 			const inner = document.createElement(values.innerType ? values.innerType : 'span');
 	
-			if(values.content) {
+			if (values.content) {
 				const [contentMode, content] = values.content || ['textContent', 'Download'];
 	
-				if(content instanceof Element) {
+				if (content instanceof Element) {
 					inner[contentMode](content);
 				} else {
 					inner[contentMode] = content;
@@ -975,24 +935,24 @@
 		let identifier = null;
 		let extracted = null;
 	
-		if(env === TTDB.ENV.APP) {
+		if (env === TTDB.ENV.APP) {
 			const description = container.querySelector('span[class*="-SpanText "]');
 
-			if(description) {
+			if (description) {
 				extracted = description.parentElement.textContent;
 			}
-		} else if(env === TTDB.ENV.__NEXT) {
+		} else if (env === TTDB.ENV.__NEXT) {
 			const metaTitle = container.querySelector('div[class*="video-meta-caption"]');
 
-			if(metaTitle) {
+			if (metaTitle) {
 				extracted = metaTitle.textContent;
 			}
 		}
 		
-		if(extracted) {
+		if (extracted) {
 			extracted = extracted.replace(/[/\\?%*:|"<>]/g, '-').toLowerCase().trim();
 		
-			if(extracted && extracted.length > 0) {
+			if (extracted && extracted.length > 0) {
 				identifier = extracted;
 			}
 		}
@@ -1015,23 +975,18 @@
 		const shareButton = element.querySelector('button:last-child');
 		const shareButtonSvg = shareButton.querySelector('span > svg');
 
-		/** None of the required elements are defined — return `false` */
-		if(!shareButtonSvg || !shareButton) {
+		// None of the required elements are defined — return `false`
+		if (!shareButtonSvg || !shareButton) {
 			callback(false);
 		}
 	
-		/** Callback wrapper */
+		// Callback wrapper
 		const respond = (response, existing = false) => {
-			if(!existing) {
-				setTimeout(() => {
-					shareButton.classList.remove('extract');
-				}, 500);
-
+			if (!existing) {
+				setTimeout(() => shareButton.classList.remove('extract'), 500);
 				clearTimeout(timer);
 				UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
-			}
-			
-			callback(response);
+			} callback(response);
 		};
 	
 		/**
@@ -1040,36 +995,29 @@
 		 * @param {array} mutationsList 
 		 */
 		const onMutate = (mutationsList) => {
-			for(let mutation of mutationsList) {
-				if(mutation.type === 'childList') {
+			for (let mutation of mutationsList) {
+				if (mutation.type === 'childList') {
 					const attempt = findVideoUrls(element.querySelector('div[class*="-DivContainer "]'));
 					
-					if(attempt) {
-						/** Good attempt — disconnect observer */
-						observer.disconnect();
-	
-						/** Callback */
-						respond(attempt);
-	
-						break;
+					if (attempt) {
+						observer.disconnect(); // Good attempt — disconnect observer	
+						respond(attempt); break;
 					}
 				}
 			}
 		};
 
-		/** Checks if a share menu already is present */
+		// Checks if a share menu already is present
 		let existingShare = element.querySelector('div[class*="-DivContainer "]');
 
-		/** Share menu is present, clone it and extract data */
-		if(existingShare) {
+		// Share menu is present, clone it and extract data
+		if (existingShare) {
 			attempt = findVideoUrls(existingShare.cloneNode(true));
 
-			if(attempt) {
-				/** Good attempt — callback */
-				respond(attempt, true);
+			if (attempt) {
+				respond(attempt, true); // Good attempt, callback
 			} else {
-				/** Attempt failed */
-				existingShare = false;
+				existingShare = false; // Failed attempt
 			}
 		}
 
@@ -1079,25 +1027,21 @@
 		 * It only really already exists if the user hovers the share button prior
 		 * to the actual extraction, which is rare.
 		 */
-		if(!existingShare) {
-			/** Create new observer */
+		if (!existingShare) {
 			observer = new MutationObserver(onMutate);
 			
-			/** Start observing */
 			observer.observe(shareButton, {
 				childList: true,
 				subtree: true
 			});
 		
-			/** Add a temporary class to hide `Share` menu */
+			// Add a temporary class to hide `Share` menu
 			shareButton.classList.add('extract');
 		
-			/** Simulate a click on the share button's `SVG` */
+			// Simulate a click on the share button's `SVG`
 			UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
 		
-			/** If no success within `timeout`, return `false` */
-			timer = setTimeout(() => {
-				/** Stop observing */
+			timer = setTimeout(() => { // If no success within `timeout`, return `false`
 				observer.disconnect();
 				respond(false);
 			}, timeout);
@@ -1119,24 +1063,25 @@
 			__next: 'h3.author-uniqueId'
 		}));
 	
-		if(itemUser) {
+		if (itemUser) {
 			/** Set username */
 			videoData.user = itemUser.textContent;
 		} else {
 			/** Fallback username fetch */
 			itemUser = data.container.querySelector('a[href^="/@"]');
 	
-			if(itemUser) {
+			if (itemUser) {
 				videoData.user = itemUser.getAttribute('href').split('/@')[1];
-				if(videoData.user.includes('?')) {
+				if (videoData.user.includes('?')) {
 					videoData.user = videoData.user.split('?')[0];
 				}
 			}
 		}
 	
-		/** Get alternative id (no ID available here) */
+		// Get alternative id (no ID available here)
 		const descriptionIdentifier = extractDescriptionId(data.container, data.env);
-		/** Set `descriptionIdentifier` or fallback */
+
+		// Set `descriptionIdentifier` or fallback
 		videoData.id = descriptionIdentifier ? descriptionIdentifier : Date.now();
 	
 		return videoData;
@@ -1152,13 +1097,13 @@
 				strict: true
 			});
 	
-			if(matches) {
+			if (matches) {
 				let [, user, id] = matches;
 	
 				videoData.user = user;
 				videoData.id = id;
 	
-				if(/^\d+$/.test(id)) {
+				if (/^\d+$/.test(id)) {
 					videoData.videoApiId = id;
 				}
 			}
@@ -1172,13 +1117,13 @@
 		const videoData = {};
 		let itemUser = null;
 
-		if(data.env === TTDB.ENV.APP) {
+		if (data.env === TTDB.ENV.APP) {
 			/** Get username */
 			itemUser = data.container.querySelector('div[class*="-DivInfoContainer "] a[href*="/@"]');
 
-			if(itemUser) {
+			if (itemUser) {
 				videoData.user = itemUser.getAttribute('href').split('/@')[1];
-				if(videoData.user.includes('?')) {
+				if (videoData.user.includes('?')) {
 					videoData.user = videoData.user.split('?')[0];
 				}
 			}
@@ -1189,14 +1134,14 @@
 				legacyCopyLink: 'p[class*="-PCopyLinkText"]',
 			});
 
-			/** Attempt `xgwrapper` extraction */
-			if(selectors.xgWrapper) {
+			// Attempt `xgwrapper` extraction
+			if (selectors.xgWrapper) {
 				const xgId = selectors.xgWrapper.getAttribute('id').split('-').pop();
 
-				if(parseInt(xgId) > 0) {
+				if (parseInt(xgId) > 0) {
 					videoData.videoApiId = xgId;
 
-					if(selectors.spanUniqueId) {
+					if (selectors.spanUniqueId) {
 						videoData.user = selectors.spanUniqueId.innerText.trim();
 					}
 
@@ -1204,11 +1149,11 @@
 				}
 			}
 
-			/** Attempt location extraction */
-			if(!videoData.videoApiId) {
+			// Attempt location extraction
+			if (!videoData.videoApiId) {
 				const matches = EXPR.vanillaVideoUrl(window.location.href);
 
-				if(matches) {
+				if (matches) {
 					const [, user, videoId] = matches;
 			
 					videoData.videoApiId = videoId;
@@ -1218,9 +1163,9 @@
 				}
 			}
 
-			/** Attempt "Copy link" extraction */
-			if(!videoData.videoApiId && selectors.legacyCopyLink) {
-				/** Get data from copy link URL */
+			// Attempt "Copy link" extraction
+			if (!videoData.videoApiId && selectors.legacyCopyLink) {
+				// Get data from copy link URL
 				const matches = EXPR.vanillaVideoUrl(selectors.legacyCopyLink.textContent);
 				const [, username, videoId] = matches;
 
@@ -1230,30 +1175,31 @@
 				pipe('[BROWSER] Extracted from copy link feature:', videoData);
 			}
 
-			/** Attempt anchor extraction */
-			if(!videoData.videoApiId) {
-				/** Get data from share URLs */
+			// Attempt anchor extraction
+			if (!videoData.videoApiId) {
+				// Get data from share URLs
 				const shareData = findVideoUrls(data.container);
 
-				if(shareData) {
+				if (shareData) {
 					videoData.user = shareData.username;
 					videoData.videoApiId = shareData.videoId;
 
 					pipe('[BROWSER] Extracted from share URLs:', videoData);
 				}
 			}
-		} else if(data.env === TTDB.ENV.__NEXT) {
-			/** Get username */
+		} else if (data.env === TTDB.ENV.__NEXT) {
+			// Extract username
 			itemUser = data.container.querySelector('div.user-info a > h2.user-username');
-			if(itemUser) {
+
+			if (itemUser) {
 				videoData.user = itemUser.textContent.trim();
 			}
 		}
 	
-		/** Get alternative id (no ID available here) */
+		// Get alternative id (no ID available here)
 		const descriptionIdentifier = extractDescriptionId(data.container, data.env);
 	
-		if(descriptionIdentifier) {
+		if (descriptionIdentifier) {
 			videoData.id = descriptionIdentifier;
 		}
 	
@@ -1264,24 +1210,23 @@
 		const videoData = {};
 		const parent = data.container.closest('div[class*="-DivLeftContainer "]');
 	
-		if(parent) {
+		if (parent) {
 			const userId = parent.querySelectorAll(
 				'span[class*="-SpanUniqueId "], span[data-e2e="browse-username"]'
 			);
 	
-			if(userId[0]) {
+			if (userId[0]) {
 				videoData.user = userId[0].textContent.trim();
 			} else {
-				/** User ID fallback */
+				// User ID fallback
 				const authorElement = parent.querySelector('div[class*="-DivAuthorContainer "]');
 	
-				if(authorElement)
-				{
+				if (authorElement) {
 					const userHref = authorElement.querySelectorAll('a[href^="/@"]');
 	
-					if(userHref[0]) {
+					if (userHref[0]) {
 						videoData.user = userHref[0].getAttribute('href').split('/@')[1].trim();
-						if(videoData.user.includes('?')) {
+						if (videoData.user.includes('?')) {
 							videoData.user = videoData.user.split('?')[0];
 						}
 					} else {
@@ -1295,8 +1240,7 @@
 				strong[class*="-StrongText "]'
 			);
 	
-			if(videoTags)
-			{
+			if (videoTags) {
 				videoTags = [...videoTags].map((e) => {
 					return e.textContent ? e.textContent.trim() : false;
 				});
@@ -1306,10 +1250,10 @@
 			}
 		}
 	
-		/** Get user and video id from URL */
+		// Get user and video id from URL
 		const matches = EXPR.vanillaVideoUrl(window.location.href);
 		
-		if(matches) {
+		if (matches) {
 			const [, user, videoId] = matches;
 	
 			videoData.videoApiId = videoId;
@@ -1334,8 +1278,8 @@
 	
 		const videoElement = container.querySelector('video');
 	
-		if(videoElement && itemData.extract[data.mode]) {
-			/** Get actual video download URL */
+		if (videoElement && itemData.extract[data.mode]) {
+			// Get actual video download URL (as it's played in the browser)
 			videoData.url = videoElement.getAttribute('src');
 	
 			videoData = {
@@ -1343,7 +1287,7 @@
 				...itemData.extract[data.mode](data)
 			};
 	
-			if(!videoData.id) {
+			if (!videoData.id) {
 				videoData.id = Date.now();
 			}
 		}
@@ -1373,7 +1317,7 @@
 	 * Object getter using dot notation
 	 */
 	const _get = (obj, path, defValue) => {
-		if(!path) {
+		if (!path) {
 			return undefined;
 		}
 
@@ -1392,66 +1336,56 @@
 	 * @param {object} data 
 	 * @param {string} template 
 	 */
-	const getFileNameTemplate = (data, template = '{uploader} - {desc}') => {
-		const [apiData] = [data.apiFullResponse];
+	const getFileNameTemplate = (data, apiData, template = '{uploader} - {desc}') => {
 		const templateValues = {};
 
-		/**
-		 * Desired template data of the keys
-		 */
+		// Desired template data of the keys
 		const templateKeys = {
-			/** User ID (their @ID) */
-			uploader: [data.user, ['aweme_detail', 'author', 'unique_id']],
-			/** User nickname (full username), not their @ID */
-			nickname: [['aweme_detail', 'author', 'nickname']],
-			/** Video description */
-			desc: [data.description, ['aweme_detail', 'author', 'unique_id']],
-			/** User ID */
-			uid: [['aweme_detail', 'author', 'uid'], ['aweme_detail', 'author_user_id']],
-			/** Video ID */
-			id: [data.videoId],
-			/** Video region */
+			// User ID (their @ID)
+			uploader: [['author', 'uniqueId'], data.user, ['aweme_detail', 'author', 'unique_id']],
+			// User nickname (full username), not their @ID
+			nickname: [['author', 'nickname'], ['aweme_detail', 'author', 'nickname']],
+			// Video description
+			desc: [['desc'], data.description, ['aweme_detail', 'author', 'unique_id']],
+			// User ID
+			uid: [['author', 'id'], ['aweme_detail', 'author', 'uid'], ['aweme_detail', 'author_user_id']],
+			// Video ID
+			id: [['id'], data.videoApiId, data.videoId],
+			// Video region
 			region: [['aweme_detail', 'region']],
-			/** Video language */
+			// Video language
 			language: [['aweme_detail', 'author', 'language']],
-			/** Uploaders signature (their profile description) */
-			signature: [['aweme_detail', 'author', 'signature']],
-			/** Upload timestamp (Unix) */
-			uploaded: [['aweme_detail', 'create_time']],
-			/** Current timestamp (Unix) */
+			// Uploaders signature (their profile description essentially)
+			signature: [['author', 'signature'], ['aweme_detail', 'author', 'signature']],
+			// Upload timestamp (Unix)
+			uploaded: [['createTime'], ['aweme_detail', 'create_time']],
+			// Current timestamp (Unix)
 			timestamp: [Math.round(Date.now() / 1000)]
 		};
 
-		/**
-		 * Get template options from the API data
-		 */
-		for(const [key, value] of Object.entries(templateKeys)) {
-			if(!templateValues.hasOwnProperty(key))
-			{
-				let keyData = null;
-
-				for(const item of value) {
-					if(!Array.isArray(item) && item) {
+		// Get template options from the API data
+		for (const [key, value] of Object.entries(templateKeys)) {
+			if (!templateValues.hasOwnProperty(key)) {
+				let keyData = null; for(const item of value) {
+					if (!Array.isArray(item) && item) {
 						keyData = item; break;
-					} else if(Array.isArray(item) && UTIL.checkNested(apiData, ...item)) {
+					} else if (Array.isArray(item) && UTIL.checkNested(apiData, ...item)) {
 						keyData = _get(apiData, item.join('.')); break;
 					}
 				}
 
-				/** Set template key value, revert to a nulled string */
+				// Set template key value, revert to a nulled string
 				templateValues[key] = keyData || '';
 			}
 		}
 
-		/**
-		 * Create readable timestamps
-		 */
-		for(const timestamp of ['uploaded', 'timestamp']) {
-			if(Number.isInteger(templateValues[timestamp]) && templateValues[timestamp] > 0) {
-				/** Convert to `Date` object */
-				const ts = new Date(templateValues[timestamp] * 1000);
+		// Create readable timestamps
+		for (const timestamp of ['uploaded', 'timestamp']) {
+			// Make sure it's an integer
+			templateValues[timestamp] = parseInt(templateValues[timestamp]);
 
-				/** Get required date values */
+			if (Number.isInteger(templateValues[timestamp]) && templateValues[timestamp] > 0) {
+				const ts = new Date(templateValues[timestamp] * 1000);
 				const tsData = {
 					year: ts.getFullYear(),
 					month: ts.getMonth() + 1,
@@ -1461,38 +1395,31 @@
 					second: ts.getSeconds()
 				};
 
-				/** Pad any values under ten */
-				for(const [key, value] of Object.entries(tsData)) {
-					if(value < 10) tsData[key] = `0${value}`;
+				for (const [key, value] of Object.entries(tsData)) { // Pad any values under ten
+					if (value < 10) tsData[key] = `0${value}`;
 				}
 
-				/** Format date */
-				const tsDate = `${tsData.year}${tsData.month}${tsData.day}`;
+				const tsDate = `${tsData.year}${tsData.month}${tsData.day}`; // Format date
+				const tsTime = `${tsData.hour}${tsData.minute}${tsData.second}`; // Format time
 
-				/** Format time */
-				const tsTime = `${tsData.hour}${tsData.minute}${tsData.second}`;
-
-				/** Set template key value */
+				// Set template key value
 				templateValues[`${timestamp}_s`] = `${tsDate}_${tsTime}`;
 			}
 		}
 
+		pipe('Template values', templateValues);
+
 		let filename = template;
 
-		/**
-		 * Replace template options with actual values
-		 */
-		for(const [key, value] of Object.entries(templateValues))
-		{
+		// Replace template options with actual values
+		for (const [key, value] of Object.entries(templateValues)) {
 			filename = filename.replace(`{${key}}`, value);
 		}
 
-		/**
-		 * Remove any remaining template options
-		 */
+		// Remove any remaining template options
 		filename = filename.replace(/({[^}]+})/g, '');
 
-		if(!filename.endsWith('.mp4')) {
+		if (!filename.endsWith('.mp4')) {
 			filename = `${filename}.mp4`;
 		}
 
@@ -1508,71 +1435,71 @@
 			'filename': `${fileName.trim()}.mp4`,
 			'download': fileName
 		});
-	
-		if(videoData.videoApiId) {
+
+		if (videoData.videoApiId) {
 			button.setAttribute('video-id', videoData.videoApiId);
 		}
 	
-		if(!button.hasListener) {
+		if (!button.hasListener) {
 			button.addEventListener('click', async (e) => {
-				/** Override default click behavior */
 				e.preventDefault();
 
-				if(button.classList.contains('loading')) {
-					/** It's already loading */
-					return false;
+				if (button.classList.contains('loading')) {
+					return false; // Download is already in progress
 				} else {
-					/** Set loading state */
-					button.classList.add('loading');
+					button.classList.add('loading'); // Set loading state
 				}
 
-				let attrUrl = button.getAttribute('href') || null;
-				let attrFilename = button.getAttribute('filename') || null;
-				let attrApiId = button.getAttribute('video-id') || null;
+				const attrUrl = button.getAttribute('href') || null;
+				const attrFilename = button.getAttribute('filename') || null;
+				const attrApiId = button.getAttribute('video-id') || null;
 
-				/** TikTok generated blob() URLs can't be downloaded, so force API on those, otherwise get value from settings */
-				let useApi = attrUrl.startsWith('blob:') ? true : await getStoredSetting('download-prioritize-api');
-	
-				/** If a video ID is present and `useApi` is enabled, attempt to get API data */
-				if(useApi && attrApiId) {
-					/** Attempt to download non-watermarked version by using the API */
+				let nameTemplate = await getStoredSetting('download-naming-template');
+
+				if (!(typeof nameTemplate === 'string' || nameTemplate instanceof String) || nameTemplate.length < 1) {
+					nameTemplate = false;
+				} else {
+					nameTemplate = nameTemplate.trim();
+				}
+				
+				const usageData = {
+					videoUrl: attrUrl,
+					filename: attrFilename
+				};
+
+				await getWebApiData(videoData).then(async (webData) => {
+					if (webData.video && webData.video.playAddr) {
+						usageData.videoUrl = webData.video.playAddr;
+						if (nameTemplate) {
+							usageData.filename = getFileNameTemplate(videoData, webData, nameTemplate);
+						} pipe('Web API data was found.');
+					}
+				}).catch(async (error) => {
+					pipe(`Failed to get web API data (${error}) - trying mobile API instead.`);
+
 					await API.getVideoData(attrApiId).then(async (res) => {
-						let fileName = (
-							`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
+						const templated = getFileNameTemplate(
+							{...res, ...{ videoId: attrApiId }}, res.apiFullResponse, nameTemplate
 						);
 
-						try {
-							const nameTemplate = await getStoredSetting('download-naming-template');
-
-							if(nameTemplate && nameTemplate.length >= 1) {
-								/** Get template file name */
-								const templateFilename = getFileNameTemplate(
-									{...res, ...{ videoId: attrApiId }}, nameTemplate
-								);
-	
-								/** Set template file name if accepted */
-								fileName = templateFilename ? templateFilename : fileName;
-	
-								pipe('Using template:', { template: nameTemplate, filename: fileName });
-							}
-						} catch(e) {
-							pipe('Failed to use template', e);
+						if (res.url) {
+							usageData.videoUrl = res.url;
+							usageData.filename = templated ? templated : (
+								`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
+							); pipe('Mobile API data was found.');
 						}
-
-						downloadFile(res.url, fileName, button, true);
-					}).catch(() =>
-					{
-						/** Attempt to download watermarked video as fallback */
-						if(attrUrl && attrFilename) {
-							downloadFile(attrUrl, attrFilename, button);
-						}
+					}).catch((_) => {
+						pipe('Failed to get API data.');
 					});
-				} else {
-					/** Download watermarked video */
-					if(attrUrl && attrFilename) {
-						downloadFile(attrUrl, attrFilename, button);
+				}).finally((_) => {
+					if (!usageData.filename) {
+						usageData.filename = attrFilename;
 					}
-				}
+				});
+
+				pipe('Attempting to download using data: ', usageData);
+
+				downloadFile(usageData.videoUrl, usageData.filename, button);
 			});
 	
 			button.hasListener = true;
@@ -1594,39 +1521,40 @@
 	itemSetup.setters[TTDB.MODE.BROWSER] = (item, data) => {
 		let linkContainer = null;
 
-		if(data.env === TTDB.ENV.APP) {
+		if (data.env === TTDB.ENV.APP) {
 			linkContainer = document.querySelector(DOM.multiSelector({
 				legacyCopyLink: 'div[class*="-DivCopyLinkContainer"]',
 				newMainContent: 'div[class*="-DivTabMenuContainer"]'
 			}));
-		} else if(data.env === TTDB.ENV.__NEXT) {
+		} else if (data.env === TTDB.ENV.__NEXT) {
 			linkContainer = item.querySelector('div.video-infos-container > div.action-container');
 		}
 	
-		if(linkContainer) {
-			/** Mark container as handled */
+		if (linkContainer) {
+			// Mark container as handled (download hook as been set up)
 			item.setAttribute('is-downloadable', 'true');
 
-			/** Create download button */
+			// Create download button
 			const button = createButton.BROWSER();
 			const videoData = itemData.get(item, data);
 	
-			if(data.env === TTDB.ENV.APP) {
+			if (data.env === TTDB.ENV.APP) {
 				linkContainer.before(button);
-			} else if(data.env === TTDB.ENV.__NEXT) {
+			} else if (data.env === TTDB.ENV.__NEXT) {
 				linkContainer.after(button);
 			}
 			
 			button.setAttribute('ttdb_mode', data.env === TTDB.ENV.__NEXT ? '__NEXT' : 'APP');
+
 			downloadHook(button, videoData);
 	
-			if(TTDB.observers.browserObserver) {
+			if (TTDB.observers.browserObserver) {
 				TTDB.observers.browserObserver.disconnect();
 			}
 	
 			const callback = (mutationsList) => {
 				for(let mutation of mutationsList) {
-					if(mutation.type === 'childList') {
+					if (mutation.type === 'childList') {
 						clearTimeout(TTDB.timers.browserObserver);
 						TTDB.timers.browserObserver = setTimeout(() => {
 							downloadHook(button, itemData.get(item, data));
@@ -1637,7 +1565,7 @@
 	
 			TTDB.observers.browserObserver = new MutationObserver(callback);
 	
-			/** Observe any changes when navigating through items */
+			// Observe any changes when navigating through items
 			TTDB.observers.browserObserver.observe(item, {
 				childList: true,
 				subtree: true
@@ -1652,14 +1580,14 @@
 	itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
 		item.setAttribute('is-downloadable', 'true');
 	
-		/** Create download button */
+		// Create download button
 		const button = createButton.GRID();
 
 		const setButton = (videoData, button) => {
 			pipe('Found video data:', videoData);
 
-			/** We have a valid video URL — set download data */
-			if(videoData.url && !button.ttIsProcessed)
+			// Valid video URL — set download data
+			if (videoData.url && !button.ttIsProcessed)
 			{
 				downloadHook(button, videoData);
 				button.ttIsProcessed = true;
@@ -1667,38 +1595,36 @@
 		}
 
 		item.addEventListener('mouseleave', () => {
-			/** Clear any active timers on `mouseleave` */
+			// Clear any active timers on `mouseleave`
 			clearInterval(TTDB.timers.gridAwaitVideoData);
 		});
 	
 		item.addEventListener('mouseenter', () => {
-			if(!button.ttIsProcessed) {
+			if (!button.ttIsProcessed) {
 				clearInterval(TTDB.timers.gridAwaitVideoData);
 
 				let videoData = itemData.get(item, data);
 	
-				/** No URL was found on the initial attempt */
-				if(!videoData.url) {
-					/** Check for existing video URLs */
+				// No URL was found on the initial attempt
+				if (!videoData.url) {
+					// Check for existing video URLs
 					TTDB.timers.gridAwaitVideoData = setInterval(() => {
 						videoData = itemData.get(item, data);
 	
-						/** We have a valid video URL — set download data and clear interval */
-						if(videoData.url) {
+						// We have a valid video URL — set download data and clear interval
+						if (videoData.url) {
 							setButton(videoData, button);
 							clearInterval(TTDB.timers.gridAwaitVideoData);
 						}
 					}, 20);
 				} else {
-					/** We have a valid video URL — set download data */
+					// We have a valid video URL — set download data
 					setButton(videoData, button);
 				}
 			}
 		});
 	
-		DOM.setStyle(item, {
-			'position': 'relative'
-		});
+		DOM.setStyle(item, { 'position': 'relative' });
 	
 		item.appendChild(button);
 	
@@ -1713,19 +1639,19 @@
 			'div[class*="video-card"] > span[class$="mask"]'
 		);
 	
-		if(videoPreview) {
+		if (videoPreview) {
 			item.setAttribute('is-downloadable', 'true');
 	
-			/** Create download button */
+			// Create download button
 			const button = createButton.FEED();
 	
-			/** Container for existing buttons (like, comment and share) */
+			// Container for existing buttons (like, comment and share)
 			const actionContainer = item.querySelector(data.env === TTDB.ENV.APP ?
 				'div[class*="-DivActionItemContainer "]' :
 				'div[class*="-action-bar"].vertical'
 			);
 	
-			if(!actionContainer) {
+			if (!actionContainer) {
 				return false;
 			} else {
 				actionContainer.prepend(button);
@@ -1733,53 +1659,48 @@
 	
 			const videoDataOnSetup = itemData.get(item, data);
 	
-			if(videoDataOnSetup.url && !button.ttIsProcessed) {
-				/** Attempt to get video id (for API support) */
+			if (videoDataOnSetup.url && !button.ttIsProcessed) {
+				// Attempt to get video id (for API support)
 				feedShareExtractId(actionContainer, (res) => {
-					if(res.videoId) {
+					if (res.videoId) {
 						button.setAttribute('video-id', res.videoId);
 					}
 				});
 	
 				setTimeout(() => { button.style.opacity = 1; }, 50);
 	
-				/** Item has already loaded when being set up, so set up download button */
+				// Item has already loaded when being set up, so set up download button
 				downloadHook(button, videoDataOnSetup);
 	
 				button.ttIsProcessed = true;
 			} else {
-				/** Item has not loaded, so we'll prepare and watch for it */
+				// Item has not loaded, so we'll prepare and watch for it
 				const container = videoPreview.parentElement;
 	
 				const callback = (mutationsList, observer) => {
 					for(let mutation of mutationsList) {
-						if(mutation.type === 'childList') {
+						if (mutation.type === 'childList') {
 							const videoData = itemData.get(item, data);
 	
-							/** We have a valid video URL, so set download data */
-							if(videoData.url && !button.ttIsProcessed) {
-								/** Attempt to get video id (for API support) */
+							// We have a valid video URL, so set download data
+							if (videoData.url && !button.ttIsProcessed) {
+								// Attempt to get video id (for API support)
 								feedShareExtractId(actionContainer, (res) => {
-									if(res.videoId) {
+									if (res.videoId) {
 										button.setAttribute('video-id', res.videoId);
 									}
 								});
 	
-								/** Stop observing */
 								observer.disconnect();
-	
 								setTimeout(() => { button.style.opacity = 1; }, 50);
-	
-								/** Set up download button */
 								downloadHook(button, videoData);
-	
 								button.ttIsProcessed = true;
 							}
 						}
 					}
 				};
 				
-				let observer = new MutationObserver(callback);
+				const observer = new MutationObserver(callback);
 		
 				observer.observe(container, {
 					childList: true,
@@ -1799,22 +1720,20 @@
 		const videoWrapper = item.querySelector('div[class*="VideoWrapperForSwiper"]');
 		let videoElement = item.querySelector('video');
 	
-		if((videoElement || videoPreview) && videoWrapper) {
+		if ((videoElement || videoPreview) && videoWrapper) {
 			item.setAttribute('is-downloadable', 'true');
 	
-			/** Create download button */
+			// Create download button
 			const button = createButton.SWIPER_SLIDE();
 			videoWrapper.prepend(button);
 	
-			/** We already have a video element */
-			if(videoElement) {
-				let videoData = itemData.get(item, data);
+			// We already have a valid video element
+			if (videoElement) {
+				const videoData = itemData.get(item, data);
 	
-				/** We have a valid video URL, so set download data */
-				if(videoData.url && !button.ttIsProcessed) {
+				// We have a valid video URL, so set download data
+				if (videoData.url && !button.ttIsProcessed) {
 					setTimeout(() => button.style.opacity = 1, 50);
-	
-					/** Set up download button */
 					downloadHook(button, videoData);
 					button.ttIsProcessed = true;
 				} else {
@@ -1822,33 +1741,26 @@
 				}
 			}
 	
-			/** Only preview, no video yet */
-			if(videoPreview && !videoElement) {
-				/** Item has not loaded, so we'll prepare and watch for it */
-				let observer = null, container = videoWrapper;
-	
-				const callback = (mutationsList, observer) => {
+			// Only preview, no video has loaded yet
+			if (videoPreview && !videoElement) {
+				// Item has not loaded, so we'll prepare and watch for it
+				const container = videoWrapper;
+				
+				const observer = new MutationObserver((mutationsList, observer) => {
 					for(let mutation of mutationsList) {
-						if(mutation.type === 'childList') {
-							let videoData = itemData.get(item, data);
+						if (mutation.type === 'childList') {
+							const videoData = itemData.get(item, data);
 		
-							/** We have a valid video URL, so set download data */
-							if(videoData.url && !button.ttIsProcessed) {
-								/** Stop observing */
+							// We have a valid video URL, so set download data
+							if (videoData.url && !button.ttIsProcessed) {
 								observer.disconnect();
-	
 								setTimeout(() => button.style.opacity = 1, 50);
-	
-								/** Set up download button */
 								downloadHook(button, videoData);
-	
 								button.ttIsProcessed = true;
 							}
 						}
 					}
-				};
-				
-				observer = new MutationObserver(callback);
+				});
 		
 				observer.observe(container, {
 					childList: true,
@@ -1866,17 +1778,17 @@
 	itemSetup.setters[TTDB.MODE.BASIC_PLAYER] = (item, data) => {
 		let videoElement = item.querySelector('video');
 	
-		if(videoElement) {
+		if (videoElement) {
 			item.setAttribute('is-downloadable', 'true');
 	
-			/** Create download button */
+			// Create download button
 			let button = createButton.BASIC_PLAYER();
 			let parent = data.container.closest('div[class*="-DivLeftContainer "]');
 	
-			if(parent) {
+			if (parent) {
 				let existingButton = parent.querySelector(`.${button.classList[0]}`);
 			
-				if(existingButton) {
+				if (existingButton) {
 					existingButton.remove();
 				}
 
@@ -1892,18 +1804,15 @@
 					'width': `${widthTarget ? widthTarget.offsetWidth : 320}px`
 				});
 	
-				/** We already have a video element */
-				if(videoElement) {
+				// We already have a video element
+				if (videoElement) {
 					let videoData = itemData.get(item, data);
 	
-					/** We have a valid video URL, so set download data */
-					if(videoData.url && !button.ttIsProcessed) {
+					// We have a valid video URL, so set download data
+					if (videoData.url && !button.ttIsProcessed) {
 						button.parentNode.style.display = 'inherit';
 						setTimeout(() => button.style.opacity = 1, 50);
-	
-						/** Set up download button */
 						downloadHook(button, videoData);
-	
 						button.ttIsProcessed = true;
 					} else {
 						videoElement = null;
@@ -1914,19 +1823,17 @@
 	};
 	
 	/**
-		* Set up item (get data, create download button and hooks)
-		* 
-		* @param {string}      itemType 
-		* @param {HTMLElement} item 
-		* @param {object}      data 
-		*/
+	* Set up item (get data, create download button and hooks)
+	* 
+	* @param {string}      itemType 
+	* @param {HTMLElement} item 
+	* @param {object}      data 
+	*/
 	itemSetup.set = (itemType, item, data) => {
 		return itemSetup.setters[itemType](item, data);
 	};
 	
-	/**
-		* Updates video items
-		*/
+	// Updates video items
 	const updateItems = () => {
 		let processed = 0;
 
@@ -1936,37 +1843,37 @@
 
 			const modeElement = item.querySelector('div[mode]');
 
-			if(modeElement) {
+			if (modeElement) {
 				currentMode = modeElement.getAttribute('mode');
 				currentEnvironment = TTDB.ENV.APP;
 			} else {
 				const classList = item.classList;
 
-				if(classList.contains('video-feed-item') || classList.contains('three-column-item')) {
+				if (classList.contains('video-feed-item') || classList.contains('three-column-item')) {
 					currentMode = TTDB.MODE.GRID;
-				} else if(classList.contains('feed-item-content')) {
+				} else if (classList.contains('feed-item-content')) {
 					currentMode = TTDB.MODE.FEED;
-				} else if(classList.contains('browse-mode') || classList.contains('video-card-big')) {
+				} else if (classList.contains('browse-mode') || classList.contains('video-card-big')) {
 					currentMode = TTDB.MODE.BROWSER;
-				} else if(classList.contains('swiper-slide')) {
+				} else if (classList.contains('swiper-slide')) {
 					currentMode = TTDB.MODE.SWIPER_SLIDE;
-				} else if(item.querySelector('div.no-controls > video')) {
+				} else if (item.querySelector('div.no-controls > video')) {
 					currentMode = TTDB.MODE.BASIC_PLAYER;
 				}
 	
-				if(currentMode !== null) {
+				if (currentMode !== null) {
 					currentEnvironment = TTDB.ENV.__NEXT;
 				}
 			}
 
-			if(currentMode) {
-				/** Set default environment if nothing has been detected */
-				if(currentEnvironment === null) {
+			if (currentMode) {
+				// Set default environment if nothing has been detected
+				if (currentEnvironment === null) {
 					currentEnvironment = TTDB.DEFAULT_ENV;
 				}
 	
-				/** Data that we're sending downstream */
-				if(itemSetup.set(currentMode, item, {
+				// Data that we're sending downstream
+				if (itemSetup.set(currentMode, item, {
 					mode: currentMode,
 					env: currentEnvironment,
 					container: item
@@ -1979,20 +1886,16 @@
 		return processed;
 	};
 	
-	/**
-	* Adds download buttons to video elements
-	*/
+	// Adds download buttons to video elements
 	const updatePage = () => {
 		const processedItems = updateItems();
 	
-		if(processedItems > 0) {
+		if (processedItems > 0) {
 			pipe(`Processed ${processedItems} item${processedItems !== 1 ? 's' : ''}!`);
 		}
 	};
 	
-	/**
-		* Check for updates on `scroll`
-		*/
+	// Check for updates on `scroll`
 	document.addEventListener('scroll', () => {
 		clearTimeout(TTDB.timers.scrollBreak);
 	
@@ -2001,21 +1904,19 @@
 		}, 250);
 	});
 	
-	/**
-	* Check for updates on `click`
-	*/
+	// Check for updates on `click`
 	window.addEventListener('click', () => {
 		TTDB.setInterval(10);
 	});
 	
 	const observeApp = (container) => {
-		if(TTDB.observers.main) {
+		if (TTDB.observers.main) {
 			TTDB.observers.main.disconnect();
 		}
 		
 		TTDB.observers.main = new MutationObserver((mutationsList) => {
 			for(let mutation of mutationsList) {
-				if(mutation.type === 'childList') {
+				if (mutation.type === 'childList') {
 					clearTimeout(TTDB.timers.appUpdated);
 					TTDB.timers.appUpdated = setTimeout(() => {
 						TTDB.setInterval(15);
@@ -2034,7 +1935,7 @@
 	
 	let appContainer = getAppContainer();
 	
-	if(appContainer) {
+	if (appContainer) {
 		observeApp(appContainer);
 	} else {
 		let checks = 0;
@@ -2042,26 +1943,24 @@
 		TTDB.timers.appCreationWatcher = setInterval(() => {
 			appContainer = getAppContainer();
 	
-			if(appContainer || checks === 10) {
+			if (appContainer || checks === 10) {
 				clearInterval(TTDB.timers.appCreationWatcher);
 	
-				if(appContainer) {
+				if (appContainer) {
 					observeApp(appContainer);
 				}
 			} checks++;
 		}, 1000);
 	}
 	
-	/**
-	* Tracks and does item checks on the page
-	*/
+	// Tracks and does item checks on the page
 	setInterval(() => {
-		if(TTDB.interval.counter > 0) {
+		if (TTDB.interval.counter > 0) {
 			updatePage();
 			TTDB.interval.counter--;
 		}
 	}, TTDB.interval.delay);
 	
-	/** Create splash elements */
+	// Create splash elements
 	SPLASH.create();
 })();
