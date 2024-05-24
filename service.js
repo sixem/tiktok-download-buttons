@@ -13,11 +13,6 @@
 
 /** Default options for the addon to use */
 const options = {
-	'download-prioritize-api': {
-		type: 'toggle',
-		default: true,
-		current: null
-	},
 	'download-fallback-tab-focus': {
 		type: 'toggle',
 		default: true,
@@ -88,17 +83,17 @@ const fileDownload = (args) => {
 					console.log('[TTDB]', delta);
 
 					if(delta.endTime || (delta.state && delta.state.current === 'complete')) {
-						/** Successful download */
+						// Successful download
 						args.sendResponse({ itemId: itemId, success: true });
 					} else if(delta.error) {
-						/** Error encountered */
+						// Error encountered
 						args.sendResponse({ success: false });
 					}
 				}      
 			});
 		});
 	} catch(error) {
-		/** Error encountered */
+		// Error encountered
 		args.sendResponse({ success: false });
 	}
 };
@@ -127,24 +122,6 @@ const windowOpen = (args) => {
 };
 
 /**
- * Store manifest data
- * 
- * @param {object} args 
- */
-const manifestSave = (args) => {
-	const manifest = args.data.manifest, ts = (Date.now() / 1000);
-
-	chrome.storage.local.set({
-		manifest: {
-			working: manifest,
-			updated: ts
-		}
-	}, () => {
-		args.sendResponse({ success: true });
-	});
-};
-
-/**
  * Fetching function
  */
 const serviceFetch = async (args) => {
@@ -165,20 +142,18 @@ const serviceFetch = async (args) => {
  * `onMessage` listener
  */
 chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
-	/** Task IDs and their corresponding functions */
+	// Task IDs and their corresponding methods
 	const tasks = {
 		'fileDownload': fileDownload,
 		'windowOpen': windowOpen,
 		'fileShow': showDefaultFolder,
-		'manifestSave': manifestSave,
 		'optionsGet': optionsGet,
 		'fetch': serviceFetch
 	};
 
 	if(tasks[data.task])
 	{
-		/** Perform task */
-		tasks[data.task]({
+		tasks[data.task]({ // Perform task
 			data,
 			sender,
 			sendResponse
