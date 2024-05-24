@@ -14,6 +14,6 @@ browser.webRequest.onBeforeSendHeaders.addListener((request) => {
 
 	return { requestHeaders: request.requestHeaders };
 }, {
-	urls: ['*://api22-normal-c-alisg.tiktokv.com/*']
+	urls: ['*://api22-normal-c-useast2a.tiktokv.com/*']
 }, ['requestHeaders', 'blocking']);
 
