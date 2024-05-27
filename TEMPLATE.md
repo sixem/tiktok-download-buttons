@@ -1,7 +1,7 @@
 <h1 align="center">Templating</h1>
 <p align="center">This page contains the current available templating options.</p>
 
-## Usage:
+## Usage
 You can edit the naming template in the options menu of the addon (*pin it, then click on it*).
 
 This only works when utilizing the API because the available data from non-API requests isn't sufficient enough to cover templating.
@@ -11,7 +11,7 @@ Example usage:
 * `video_{uploader}_{uploaded_s}` → `video_randomusername_20230101_000000.mp4`
 * `tiktokVideo_{nickname}_{desc}-{id}` → `tiktokVideo_Random Username_This is a description-7217247845525540139.mp4`
 
-## Options:
+## Options
 
 ### `{uploader}`
 * Uploader username (their `tiktok.com/@ID`)
@@ -32,10 +32,10 @@ Example usage:
 * Video ID
 
 ### `{region}`
-* Video region
+* Video region  (**PS: This may not work correctly as of May 2024**)
 
 ### `{language}`
-* Video language
+* Video language  (**PS: This may not work correctly as of May 2024**)
 
 ### `{uploaded}`
 * A unix timestamp of when the video was uploaded
