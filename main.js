@@ -1467,7 +1467,9 @@
 					filename: attrFilename
 				};
 
-				await getWebApiData(videoData).then(async (webData) => {
+				await getWebApiData({ ...videoData, ...{
+					videoApiId: attrApiId
+				}}).then(async (webData) => {
 					if (webData.video && webData.video.playAddr) {
 						usageData.videoUrl = webData.video.playAddr;
 						if (nameTemplate) {
