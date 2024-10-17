@@ -79,7 +79,7 @@ a.ttdb__button_swiper_slide
     line-height: 48px;
     border-radius: 100%;
     font-size: 1.5em;
-    margin-bottom: 8px;
+    margin-bottom: 14px;
 }
 
 a.ttdb__button_swiper_slide
@@ -227,7 +227,7 @@ a.ttdb__button_grid:hover
 
 div.ttdb__button_basic-player_wrapper
 {
-    margin-top: 18px;
+    margin: 18px auto 10px auto;
     display: none;
 }
 

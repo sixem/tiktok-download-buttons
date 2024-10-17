@@ -390,7 +390,7 @@
 	 * @param {object} data 
 	 */
 	API.extractId = (data, fallback = null) => {
-		let id = { user: null, description: null };
+		const id = { user: null, description: null };
 	
 		/** Attempt to get the video description */
 		if (UTIL.checkNested(data, 'aweme_detail', 'desc')) {
@@ -405,7 +405,7 @@
 		});
 	
 		if (!id.description) {
-			id = {
+			return {
 				user: id.user,
 				description: fallback
 					? fallback
@@ -570,8 +570,6 @@
 	 * @param {HTMLElement} element 
 	 */
 	const findVideoUrls = (element) => {
-		let data = false;
-
 		if (element) {
 			/** Get shareable `a` elements */
 			const anchors = element.querySelectorAll('a[href]');
@@ -582,12 +580,15 @@
 				/** If any matches */
 				if (matches) {
 					const [, username, videoId] = matches;
-					data = { username, videoId }; break;
+
+					return {
+						username, videoId
+					};
 				}
 			}
 		}
 
-		return data;
+		return false;
 	}
 	
 	/**
@@ -959,6 +960,82 @@
 	
 		return identifier;
 	};
+
+	/**
+	 * Injects a button into the action bar of a feed item
+	 * 
+	 * Also monitors the parent for changes, as the action bar is prone to frequently
+	 * updating and clearing its content, thus also the buttons.
+	 * 
+	 * @param {*} data 
+	 */
+	const feedInjectButton = (data) => {
+		const { getActionBar, button, videoData } = data;
+
+		const inject = () => {
+			const actionBar = getActionBar();
+
+			if (!actionBar.querySelector('a.' + [...button.classList].join('.'))) {
+				button.setAttribute('video-id', videoData.id);
+	
+				downloadHook(button, videoData);
+				button.ttIsProcessed = true;
+				actionBar.prepend(button);
+	
+				setTimeout(() => {
+					button.style.opacity = 1;
+				}, 50);
+			}
+		};
+
+		inject();
+
+		let observer, timer = null;
+
+		// Observe container for changes
+		observer = new MutationObserver(() => {
+			inject(); // (Re-)inject to new action bar if needed
+			clearTimeout(timer);
+
+			// Disconnects observer after an idle time
+			timer = setTimeout(() => {
+				observer.disconnect();
+			}, 1E5);
+		});
+
+		// Start observing action bar container for changes
+		observer.observe(getActionBar().parentNode, {
+			childList: true,
+			subtree: true
+		});
+	}
+
+	/**
+	 * Gets the action bar of a feed item
+	 * @param {HTMLElement} element 
+	 */
+	const feedGetActionBar = (item, data) => {
+		return item.querySelector(data.env === TTDB.ENV.APP ?
+			'section[class*="-SectionActionBarContainer"]' :
+			'div[class*="-action-bar"].vertical'
+		);
+	}
+
+	/**
+	 * Extracts the video ID from a feed element
+	 * @param {HTMLElement} element 
+	 */
+	const feedExtractVideoId = (element) => {
+		const xgWrapper = element.querySelector('div.xgplayer-container');
+
+		if (!xgWrapper || !xgWrapper.hasAttribute('id')) {
+			return false;
+		}
+
+		const [, , videoId] = xgWrapper.getAttribute('id').split('-');
+
+		return videoId || false;
+	};
 	
 	/**
 	 * Hacky way of retrieving the videoId of a `For You` item
@@ -969,7 +1046,7 @@
 	 * @param {function}    callback 
 	 * @param {integer}     timeout
 	 */
-	const feedShareExtractId = (element, callback, timeout = 500) => {
+	const feedShareExtractIdLegacy = (element, callback, timeout = 500) => {
 		let timer = null;
 
 		const shareButton = element.querySelector('button:last-child');
@@ -1277,11 +1354,19 @@
 		};
 	
 		const videoElement = container.querySelector('video');
-	
+
 		if (videoElement && itemData.extract[data.mode]) {
 			// Get actual video download URL (as it's played in the browser)
 			videoData.url = videoElement.getAttribute('src');
-	
+
+			if (!videoData.url) { // If we have a <source/> element instead of an attribute
+				const sourceElement = videoElement.querySelector('source');
+
+				if (sourceElement) {
+					videoData.url = sourceElement.getAttribute('src');
+				}
+			}
+
 			videoData = {
 				...videoData,
 				...itemData.extract[data.mode](data)
@@ -1305,11 +1390,12 @@
 			appSwiperSlide: 'div.swiper div.swiper-slide:not([is-downloadable])',
 			appBasicPlayer: 'div[class*="-DivLeftContainer "] div[class*="-DivVideoContainer "] \
 				div[class*="-DivContainer "]:not([is-downloadable])',
+			appFeedArticle: 'article[class*="-ArticleItemContainer"]:not([is-downloadable])',
 			__nextGrid: 'div.video-feed div.video-feed-item:not([is-downloadable])',
 			__nextBig: 'div.video-feed-container div.feed-item-content:not([is-downloadable])',
 			__nextBrowser: 'div.tt-feed div.video-card-big.browse-mode:not([is-downloadable])'
 		});
-	
+
 		return document.querySelectorAll(selectors);
 	};
 
@@ -1606,7 +1692,7 @@
 				clearInterval(TTDB.timers.gridAwaitVideoData);
 
 				let videoData = itemData.get(item, data);
-	
+
 				// No URL was found on the initial attempt
 				if (!videoData.url) {
 					// Check for existing video URLs
@@ -1622,6 +1708,7 @@
 				} else {
 					// We have a valid video URL — set download data
 					setButton(videoData, button);
+					button.ttIsProcessed = true;
 				}
 			}
 		});
@@ -1637,79 +1724,34 @@
 	
 	itemSetup.setters[TTDB.MODE.FEED] = (item, data) => {
 		const videoPreview = item.querySelector(data.env === TTDB.ENV.APP ?
-			'div[class*="-DivContainer "][mode] > img' :
+			':scope > div:first-child' :
 			'div[class*="video-card"] > span[class$="mask"]'
 		);
-	
+
 		if (videoPreview) {
-			item.setAttribute('is-downloadable', 'true');
-	
-			// Create download button
+			if (!feedGetActionBar(item, data)) {
+				return;
+			}
+
+			const videoData = itemData.get(item, data);
 			const button = createButton.FEED();
-	
-			// Container for existing buttons (like, comment and share)
-			const actionContainer = item.querySelector(data.env === TTDB.ENV.APP ?
-				'div[class*="-DivActionItemContainer "]' :
-				'div[class*="-action-bar"].vertical'
-			);
-	
-			if (!actionContainer) {
-				return false;
-			} else {
-				actionContainer.prepend(button);
+
+			if (videoData.url && !button.ttIsProcessed) {
+				videoData.id = feedExtractVideoId(item);
+
+				if (videoData.id) {
+					feedInjectButton({
+						getActionBar: () => {
+							return feedGetActionBar(item, data);
+						},
+						button: button,
+						videoData: videoData
+					});
+					
+					item.setAttribute('is-downloadable', 'true');
+				}
 			}
-	
-			const videoDataOnSetup = itemData.get(item, data);
-	
-			if (videoDataOnSetup.url && !button.ttIsProcessed) {
-				// Attempt to get video id (for API support)
-				feedShareExtractId(actionContainer, (res) => {
-					if (res.videoId) {
-						button.setAttribute('video-id', res.videoId);
-					}
-				});
-	
-				setTimeout(() => { button.style.opacity = 1; }, 50);
-	
-				// Item has already loaded when being set up, so set up download button
-				downloadHook(button, videoDataOnSetup);
-	
-				button.ttIsProcessed = true;
-			} else {
-				// Item has not loaded, so we'll prepare and watch for it
-				const container = videoPreview.parentElement;
-	
-				const callback = (mutationsList, observer) => {
-					for(let mutation of mutationsList) {
-						if (mutation.type === 'childList') {
-							const videoData = itemData.get(item, data);
-	
-							// We have a valid video URL, so set download data
-							if (videoData.url && !button.ttIsProcessed) {
-								// Attempt to get video id (for API support)
-								feedShareExtractId(actionContainer, (res) => {
-									if (res.videoId) {
-										button.setAttribute('video-id', res.videoId);
-									}
-								});
-	
-								observer.disconnect();
-								setTimeout(() => { button.style.opacity = 1; }, 50);
-								downloadHook(button, videoData);
-								button.ttIsProcessed = true;
-							}
-						}
-					}
-				};
-				
-				const observer = new MutationObserver(callback);
-		
-				observer.observe(container, {
-					childList: true,
-					subtree: true
-				});
-			}
-	
+
 			return true;
 		}
 	
