@@ -23,7 +23,8 @@
 		GRID: '1',
 		BROWSER: '2',
 		SWIPER_SLIDE: '3', /** Is this an obsolete mode? */
-		BASIC_PLAYER: '4'
+		BASIC_PLAYER: '4',
+		SHARE_OVERLAY: '-1'
 	};
 	
 	/**
@@ -254,17 +255,14 @@
 			clearTimeout(TTDB.timers.splash);
 	
 			if (state === 0 || state === 1) {
-				if (SPLASH.content.classList.contains('state-warn'))
-					SPLASH.content.classList.remove('state-warn');
-	
-				if (!SPLASH.content.classList.contains('state-success'))
-					SPLASH.content.classList.add('state-success');
-			} else if (state > 1) {
-				if (SPLASH.content.classList.contains('state-success'))
-					SPLASH.content.classList.remove('state-success');
-	
-				if (!SPLASH.content.classList.contains('state-warn'))
-					SPLASH.content.classList.add('state-warn');
+				SPLASH.content.classList.remove('state-warn', 'state-error');
+				SPLASH.content.classList.add('state-success');
+			} else if (state === 2) {
+				SPLASH.content.classList.remove('state-success', 'state-error');
+				SPLASH.content.classList.add('state-warn');
+			} else if (state === 3) {
+				SPLASH.content.classList.remove('state-success', 'state-warn');
+				SPLASH.content.classList.add('state-error');
 			}
 	
 			SPLASH.content.textContent = message;
@@ -1049,14 +1047,14 @@
 	const feedShareExtractIdLegacy = (element, callback, timeout = 500) => {
 		let timer = null;
 
-		const shareButton = element.querySelector('button:last-child');
+		const shareButton = element.querySelector('div[role="button"][data-e2e="share-btn"] > button:not(.attempted)');
 		const shareButtonSvg = shareButton.querySelector('span > svg');
 
 		// None of the required elements are defined — return `false`
 		if (!shareButtonSvg || !shareButton) {
 			callback(false);
 		}
-	
+
 		// Callback wrapper
 		const respond = (response, existing = false) => {
 			if (!existing) {
@@ -1189,7 +1187,7 @@
 		return videoData;
 	};
 	
-	/** Browser items (when opened a video grid item or on the `For You` page) */
+	/** Browser items (when opening a video grid item or on the `For You` page) */
 	itemData.extract[TTDB.MODE.BROWSER] = (data) => {
 		const videoData = {};
 		let itemUser = null;
@@ -1385,12 +1383,13 @@
 	*/
 	const selectAllVideoItems = () => {
 		const selectors = DOM.multiSelector({
+			appShareOverlay: 'div.TUXModal > div[data-e2e="share-group"]:not([is-downloadable])',
 			appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
 			appBrowserMode: 'div[class*="-DivBrowserModeContainer "]:not([is-downloadable])',
-			appSwiperSlide: 'div.swiper div.swiper-slide:not([is-downloadable])',
+			// appSwiperSlide: 'div.swiper div.swiper-slide:not([is-downloadable])',
 			appBasicPlayer: 'div[class*="-DivLeftContainer "] div[class*="-DivVideoContainer "] \
 				div[class*="-DivContainer "]:not([is-downloadable])',
-			appFeedArticle: 'article[class*="-ArticleItemContainer"]:not([is-downloadable])',
+			// appFeedArticle: 'article[class*="-ArticleItemContainer"]:not([is-downloadable])',
 			__nextGrid: 'div.video-feed div.video-feed-item:not([is-downloadable])',
 			__nextBig: 'div.video-feed-container div.feed-item-content:not([is-downloadable])',
 			__nextBrowser: 'div.tt-feed div.video-card-big.browse-mode:not([is-downloadable])'
@@ -1585,8 +1584,15 @@
 					}
 				});
 
-				pipe('Attempting to download using data: ', usageData);
+				if (!usageData.videoUrl) {
+					SPLASH.message('[Error] No video URL was found for download.', {
+						duration: 5000, state: 3
+					});
 
+					return;
+				}
+
+				pipe('Attempting to download using data: ', usageData);
 				downloadFile(usageData.videoUrl, usageData.filename, button);
 			});
 	
@@ -1828,7 +1834,7 @@
 			// Create download button
 			let button = createButton.BASIC_PLAYER();
 			let parent = data.container.closest('div[class*="-DivLeftContainer "]');
-	
+
 			if (parent) {
 				let existingButton = parent.querySelector(`.${button.classList[0]}`);
 			
@@ -1851,11 +1857,11 @@
 				// We already have a video element
 				if (videoElement) {
 					let videoData = itemData.get(item, data);
-	
+
 					// We have a valid video URL, so set download data
 					if (videoData.url && !button.ttIsProcessed) {
 						button.parentNode.style.display = 'inherit';
-						setTimeout(() => button.style.opacity = 1, 50);
+						setTimeout(() => button.style.opacity = '1', 50);
 						downloadHook(button, videoData);
 						button.ttIsProcessed = true;
 					} else {
@@ -1863,6 +1869,37 @@
 					}
 				}
 			}
+		}
+	};
+
+	itemSetup.setters[TTDB.MODE.SHARE_OVERLAY] = (item, _) => {
+		const input = item.querySelector('input[value*="/video/"]');
+		item.setAttribute('is-downloadable', 'true');
+
+		if (!input) {
+			return;
+		}
+
+		const matches = EXPR.vanillaVideoUrl(input.getAttribute('value'));
+
+		if (matches) {
+			const [, username, videoId] = matches;
+
+			let button = createButton.BASIC_PLAYER();
+			item.prepend(button);
+
+			button.classList.add('share');
+			button = button.querySelector('a');
+			button.parentNode.style.display = 'block';
+
+			setTimeout(() => button.style.opacity = '1', 50);
+			
+			downloadHook(button, {
+				id: videoId,
+				videoApiId: videoId,
+				user: username,
+				url: ""
+			});
 		}
 	};
 	
@@ -1901,8 +1938,10 @@
 					currentMode = TTDB.MODE.BROWSER;
 				} else if (classList.contains('swiper-slide')) {
 					currentMode = TTDB.MODE.SWIPER_SLIDE;
-				} else if (item.querySelector('div.no-controls > video')) {
+				} else if (item.querySelector('div.tiktok-web-player > video')) {
 					currentMode = TTDB.MODE.BASIC_PLAYER;
+				} else if (item.querySelector('input[value*="/video/"]')) {
+					currentMode = TTDB.MODE.SHARE_OVERLAY;
 				}
 	
 				if (currentMode !== null) {
@@ -1974,7 +2013,7 @@
 			subtree: true
 		});
 	
-		pipe('Watching for DOM changes ..');
+		pipe('Watching for DOM changes ...');
 	};
 	
 	let appContainer = getAppContainer();

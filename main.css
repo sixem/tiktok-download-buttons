@@ -269,6 +269,20 @@ div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player.loading::aft
     left: 6px!important;
 }
 
+div.ttdb__button_basic-player_wrapper.share,
+div.ttdb__button_basic-player_wrapper.share > a {
+    width: 100%;
+}
+
+div.ttdb__button_basic-player_wrapper.share {
+    margin: 0 auto 10px;
+    text-align: center;
+}
+
+div.ttdb__button_basic-player_wrapper.share > a {
+    width: 90%;
+}
+
 body > div.ttdb_splash-wrapper
 {
     transition: bopacity 0.35s!important;;
@@ -306,6 +320,11 @@ body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-success
 body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-warn
 {
     background-color: #df5c3ef0;
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-error
+{
+    background-color: #df3e3ef0;
 }
 
 button.extract
