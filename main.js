@@ -1,10 +1,9 @@
-(async () =>
-{
+(async () => {
 	const TTDB = {}, API = {}, EXPR = {}, UTIL = {}, SPLASH = {};
 
 	TTDB.timers = {};
 	TTDB.observers = {};
-	
+
 	/**
 	 * Interval object
 	 * 
@@ -14,7 +13,7 @@
 		counter: 50,
 		delay: 250
 	};
-	
+
 	/**
 	 * Different item modes (mode="X")
 	 */
@@ -26,7 +25,7 @@
 		BASIC_PLAYER: '4',
 		SHARE_OVERLAY: '-1'
 	};
-	
+
 	/**
 	 * Sets the amount of item checks to do
 	 * 
@@ -37,7 +36,7 @@
 			TTDB.interval.counter = count
 		}
 	};
-	
+
 	/**
 	 * Log to console
 	 * 
@@ -46,7 +45,7 @@
 	const pipe = (...args) => {
 		console.info('[TTDB]', ...args)
 	};
-	
+
 	/**
 	 * Dipatches an event on an element
 	 * 
@@ -71,7 +70,7 @@
 	UTIL.truncateString = (string, n) => {
 		return (string.length > n) ? string.substr(0, n - 1) : string;
 	};
-	
+
 	/**
 	 * Generates a random string from a character set
 	 * 
@@ -81,9 +80,9 @@
 	UTIL.ranGen = (charSet, length = 16) => {
 		let result = '';
 		const setLength = charSet.length;
-	
-		for(let i = 0; i < length; i++) {
-			result += charSet.charAt(Math.floor(Math.random() *  setLength));
+
+		for (let i = 0; i < length; i++) {
+			result += charSet.charAt(Math.floor(Math.random() * setLength));
 		} return result;
 	};
 
@@ -96,7 +95,7 @@
 	UTIL.ranInt = (min, max) => {
 		return Math.floor(Math.random() * (max - min + 1) + min);
 	};
-	
+
 	/**
 	 * Attempts to sanitize a filename
 	 * 
@@ -121,14 +120,14 @@
 		).replace(/\s\s+/g, ' ').trim();
 
 		// Remove any leading dots
-		while(string[0] === '.') {
+		while (string[0] === '.') {
 			string = string.substring(1);
 		}
 
 		// Filename limit is about 250, so we'll shorten any super long filenames
 		return (string.length - 4) >= 246 ? `${string.replace('.mp4', '').substring(0, 246).trim()}.mp4` : string;
 	}
-	
+
 	/**
 	 * Checks the existance of a key in an object
 	 * 
@@ -141,11 +140,11 @@
 		if (obj === undefined) {
 			return false;
 		}
-	
+
 		if (rest.length == 0 && obj.hasOwnProperty(level)) {
 			return true;
 		}
-	
+
 		return UTIL.checkNested(obj[level], ...rest);
 	};
 
@@ -177,10 +176,10 @@
 				}
 			}
 		}
-		
+
 		return undefined;
 	}
-	
+
 	/**
 	 * Fetches a stored setting
 	 * 
@@ -188,60 +187,60 @@
 	 */
 	const getStoredSetting = async (key) => {
 		const stored = await chrome.storage.local.get(key);
-	
+
 		if (stored && stored.hasOwnProperty(key)) {
 			return stored[key];
 		}
-	
+
 		return null;
 	};
-	
+
 	/** Matches `https://www.tiktok.com/@user/video/123456789` URLs */
 	EXPR.vanillaVideoUrl = (haystack, options = {}) => {
 		let expression = ('https?:\/\/(?:www\.)?tiktok\.com\/@([^\/]+)\/video\/([0-9]+)');
-	
+
 		if (options.strict) {
 			expression = ('^' + expression + '$');
 		}
-	
+
 		const matches = new RegExp(expression).exec(haystack);
 		return matches ? matches : null;
 	};
-	
+
 	/**
 	 * Create splash elements
 	 */
 	SPLASH.create = () => {
 		const body = document.body;
-	
+
 		// Create splash elements
 		const wrapper = document.createElement('div');
 		const content = document.createElement('div');
-	
+
 		wrapper.classList.add('ttdb_splash-wrapper');
 		content.classList.add('ttdb_splash-content');
-	
+
 		content.textContent = '';
-	
+
 		wrapper.appendChild(content);
-	
+
 		if (body) {
 			body.appendChild(wrapper);
-	
+
 			// Store references
 			SPLASH.wrapper = wrapper;
 			SPLASH.content = content;
-	
+
 			SPLASH.content.addEventListener('click', (_) => {
 				chrome.runtime.sendMessage(chrome.runtime.id, {
 					task: 'fileShow'
 				});
 			});
 		}
-	
+
 		return wrapper;
 	};
-	
+
 	/**
 	 * Display a splash message
 	 * 
@@ -250,10 +249,10 @@
 	 */
 	SPLASH.message = (message, options = {}, callback = null) => {
 		const state = options.state ? options.state : 0;
-	
+
 		if (SPLASH.wrapper && SPLASH.content) {
 			clearTimeout(TTDB.timers.splash);
-	
+
 			if (state === 0 || state === 1) {
 				SPLASH.content.classList.remove('state-warn', 'state-error');
 				SPLASH.content.classList.add('state-success');
@@ -264,29 +263,29 @@
 				SPLASH.content.classList.remove('state-success', 'state-warn');
 				SPLASH.content.classList.add('state-error');
 			}
-	
+
 			SPLASH.content.textContent = message;
 
 			DOM.setStyle(SPLASH.wrapper, {
 				'opacity': 1,
 				'pointer-events': 'auto'
 			});
-	
+
 			TTDB.timers.splash = setTimeout(() => {
 				DOM.setStyle(SPLASH.wrapper, {
 					'opacity': 0,
 					'pointer-events': 'none'
 				});
-	
+
 				if (callback) {
 					callback();
 				}
 			}, options.duration || 3000);
-	
+
 			return true;
 		}
 	};
-	
+
 	/**
 	 * Different environments
 	 * 
@@ -297,9 +296,9 @@
 		APP: Symbol(true),
 		__NEXT: Symbol(true),
 	};
-	
+
 	TTDB.DEFAULT_ENV = TTDB.ENV.APP;
-	
+
 	/**
 	 * `fetch` headers for requests
 	 * 
@@ -312,7 +311,7 @@
 		credentials: 'include',
 		redirect: 'follow'
 	};
-	
+
 	/**
 	 * API variables
 	 */
@@ -320,7 +319,7 @@
 	API.APP_NAME = 'musical_ly';
 	API.HOSTNAME = 'api22-normal-c-useast2a.tiktokv.com';
 	API.API_V = 'v1';
-	
+
 	API.FORMATS = [
 		'play_addr',
 		'play_addr_h264',
@@ -336,7 +335,7 @@
 	API.constructApiQuery = (videoId) => {
 		const fetchType = 'feed';
 		const ts = Math.round(Date.now() / 1000);
-	
+
 		const parameters = {
 			'aweme_id': videoId,
 			'version_name': '34.1.2',
@@ -376,7 +375,7 @@
 			'as': 'a1qwert123',
 			'cp': 'cbfhckdckkde1'
 		};
-	
+
 		return `https://${API.HOSTNAME}/aweme/${API.API_V}/${fetchType}/` + Object.keys(parameters).map(
 			(key, index) => `${index > 0 ? '&' : '?'}${key}=${parameters[key]}`
 		).join('');
@@ -389,19 +388,19 @@
 	 */
 	API.extractId = (data, fallback = null) => {
 		const id = { user: null, description: null };
-	
+
 		/** Attempt to get the video description */
 		if (UTIL.checkNested(data, 'aweme_detail', 'desc')) {
 			id.description = data.aweme_detail.desc;
 		}
-	
+
 		/** Attempt to get the channel of the video */
 		(['unique_id', 'nickname', 'ins_id']).forEach((key) => {
 			if (!id.user && UTIL.checkNested(data, 'aweme_detail', 'author', key)) {
 				id.user = data.aweme_detail.author[key];
 			}
 		});
-	
+
 		if (!id.description) {
 			return {
 				user: id.user,
@@ -410,7 +409,7 @@
 					: (data.videoId ? data.videoId : Date.now())
 			};
 		}
-	
+
 		return id;
 	};
 
@@ -418,14 +417,12 @@
 		const urls = [];
 
 		// Iterate over formats
-		(API.FORMATS).forEach((format) =>
-		{
+		(API.FORMATS).forEach((format) => {
 			// Check if format is available
 			if (data.aweme_detail.video.hasOwnProperty(format) &&
 				data.aweme_detail.video[format].hasOwnProperty('data_size') &&
 				data.aweme_detail.video[format].hasOwnProperty('url_list') &&
-				data.aweme_detail.video[format].url_list.length > 0)
-			{
+				data.aweme_detail.video[format].url_list.length > 0) {
 				const videoUrl = data.aweme_detail.video[format].url_list[0];
 				const videoSize = data.aweme_detail.video[format].data_size;
 				const videoRes = data.aweme_detail.video[format].height * data.aweme_detail.video[format].width;
@@ -437,7 +434,7 @@
 		if (data.aweme_detail.video.hasOwnProperty('bit_rate') && Array.isArray(data.aweme_detail.video.bit_rate)) {
 			let bestItem = null, bestQuality = null;
 
-			for(const videoItem of data.aweme_detail.video.bit_rate) {
+			for (const videoItem of data.aweme_detail.video.bit_rate) {
 				if (bestQuality === null || videoItem.quality_type < bestQuality) {
 					bestItem = videoItem;
 					bestQuality = videoItem.quality_type;
@@ -456,7 +453,7 @@
 
 		return urls;
 	}
-	
+
 	/**
 	 * Attempts to get a response from the API
 	 * 
@@ -469,10 +466,10 @@
 			user: null,
 			url: null
 		};
-	
+
 		return new Promise(async (resolve, reject) => {
 			const urlQuery = API.constructApiQuery(videoId);
-	
+
 			try {
 				const response = await chrome.runtime.sendMessage(
 					chrome.runtime.id, { task: 'fetch', url: urlQuery }
@@ -493,7 +490,7 @@
 					const awemeList = data.aweme_list;
 					const awemeEntries = Object.keys(awemeList);
 
-					for(let index = 0; index < awemeEntries.length; index++) {
+					for (let index = 0; index < awemeEntries.length; index++) {
 						const item = awemeList[awemeEntries[index]];
 						const awemeId = item.aweme_id ? parseInt(item.aweme_id) : null;
 
@@ -503,7 +500,7 @@
 						}
 					}
 				}
-	
+
 				if (data && UTIL.checkNested(data, 'aweme_detail', 'video')) {
 					const extractedUrls = API.extractVideoUrls(data);
 
@@ -514,11 +511,11 @@
 						pipe("No URLs could be extracted from the response.");
 					}
 				}
-	
+
 				if (videoUrl) {
 					videoData.success = true;
 					videoData.url = videoUrl;
-	
+
 					videoData = {
 						...videoData,
 						...API.extractId({
@@ -532,12 +529,12 @@
 				} else {
 					reject('No `videoUrl` was found in the API response.');
 				}
-			} catch(error) {
+			} catch (error) {
 				reject(error);
 			}
 		});
 	}
-	
+
 	/**
 	 * Attempts to fetch video URL through the API
 	 * 
@@ -547,12 +544,14 @@
 		return new Promise(async (resolve, reject) => {
 			await API.getResponse(videoId).then((response) => {
 				if (response.success) {
-					resolve({ ...{
-						success: false,
-						description: null,
-						user: null,
-						url: null
-					}, ...response })
+					resolve({
+						...{
+							success: false,
+							description: null,
+							user: null,
+							url: null
+						}, ...response
+					})
 				}
 			}).catch((error) => {
 				pipe('API Attempt failed:', error);
@@ -572,7 +571,7 @@
 			/** Get shareable `a` elements */
 			const anchors = element.querySelectorAll('a[href]');
 
-			for(let i = 0; i < anchors.length; i++) {
+			for (let i = 0; i < anchors.length; i++) {
 				const matches = EXPR.vanillaVideoUrl(decodeURIComponent(anchors[i].getAttribute('href')));
 
 				/** If any matches */
@@ -588,7 +587,7 @@
 
 		return false;
 	}
-	
+
 	/**
 	 * Attempts to get the `app` container
 	 */
@@ -641,7 +640,7 @@
 			});
 		});
 	}
-	
+
 	/**
 	 * Downloads a file
 	 * 
@@ -655,7 +654,7 @@
 		if (filename.length > 250) { // Truncate any super long strings
 			filename = UTIL.truncateString(filename, 250);
 		}
-	
+
 		/**
 		 * Reverts the state of the progress button
 		 * 
@@ -666,7 +665,7 @@
 				buttonElement.classList.remove('loading');
 			}
 		}
-	
+
 		/**
 		 * TikTok will sometimes return an invalid response (`TCP_MISS` || Code: 416)
 		 * This causes the downloaded items to be 0 bytes.
@@ -679,29 +678,29 @@
 			}
 
 			pipe('File could not be fetched — opening instead.');
-	
+
 			SPLASH.message(
 				'[Fallback] Opened video in new tab [reason: fetch not allowed]', {
-					duration: 3500, state: 2
-				}
+				duration: 3500, state: 2
+			}
 			);
-	
+
 			const tabActive = await getStoredSetting('download-fallback-tab-focus');
-	
+
 			chrome.runtime.sendMessage(
 				chrome.runtime.id, {
-					task: 'windowOpen',
-					url,
-					active: tabActive === null ? true : tabActive
-				}
+				task: 'windowOpen',
+				url,
+				active: tabActive === null ? true : tabActive
+			}
 			);
-	
+
 			revertState(buttonElement);
 			hasFallbacked = true;
 		};
-	
+
 		let subFolder = await getStoredSetting('download-subfolder-path');
-	
+
 		if (!(typeof subFolder === 'string' || subFolder instanceof String)) {
 			subFolder = '';
 		}
@@ -709,8 +708,8 @@
 		// Attempt download using chrome API (@ `service.js`)
 		chrome.runtime.sendMessage(
 			chrome.runtime.id, {
-				task: 'fileDownload',
-				filename, url, subFolder
+			task: 'fileDownload',
+			filename, url, subFolder
 		}).then((response) => {
 			if (response.success) {
 				pipe(`Downloaded ${url}`);
@@ -749,7 +748,7 @@
 			}
 		});
 	};
-	
+
 	/**
 	 * DOM manipulation functions
 	 */
@@ -762,22 +761,22 @@
 		createPolygonSvg: (values) => {
 			const w3Url = 'http://www.w3.org/2000/svg';
 			const [width, height] = values.dimensions;
-	
+
 			const elementSvg = document.createElementNS(w3Url, 'svg');
 			const elementPolygon = document.createElementNS(w3Url, 'polygon');
-	
+
 			DOM.setAttributes(elementSvg, {
 				width, height,
 				viewBox: `0 0 ${width} ${height}`
 			});
-	
+
 			elementPolygon.setAttribute('points', values.points.join(' '));
 			elementSvg.appendChild(elementPolygon);
-	
+
 			if (values.style) {
 				DOM.setStyle(elementSvg, values.style);
 			}
-	
+
 			return elementSvg;
 		},
 		/**
@@ -801,7 +800,7 @@
 			Object.keys(attributes).forEach((key) => {
 				element.setAttribute(key, attributes[key]);
 			});
-	
+
 			return element;
 		},
 		/**
@@ -827,24 +826,24 @@
 		createButton: (values) => {
 			const container = document.createElement('a');
 			const inner = document.createElement(values.innerType ? values.innerType : 'span');
-	
+
 			if (values.content) {
 				const [contentMode, content] = values.content || ['textContent', 'Download'];
-	
+
 				if (content instanceof Element) {
 					inner[contentMode](content);
 				} else {
 					inner[contentMode] = content;
 				}
 			}
-		
+
 			container.appendChild(inner);
 			container.setAttribute('class', values.class || '');
-		
+
 			return container;
 		}
 	};
-	
+
 	/**
 	 * Creates different buttons for the different modes
 	 */
@@ -853,19 +852,19 @@
 		BASIC_PLAYER: () => {
 			const wrapper = document.createElement('div');
 			wrapper.classList.add('ttdb__button_basic-player_wrapper');
-	
+
 			/** Create download button */
 			const button = DOM.createButton({
 				content: ['textContent', 'Download'],
 				class: 'ttdb__button_basic-player'
 			});
-	
+
 			/** Set directly, as this makes it more compatible with dark mode addons */
 			DOM.setStyle(button, {
 				'border': '1px solid rgba(254, 44, 85, 1.0)',
 				'background-color': 'rgba(254, 44, 85, 0.08)'
 			});
-	
+
 			wrapper.appendChild(button);
 			return wrapper;
 		},
@@ -888,13 +887,13 @@
 				innerType: 'div',
 				class: 'ttdb__button_swiper_slide'
 			});
-	
+
 			/** Set directly, as this makes it more compatible with dark mode addons */
 			DOM.setStyle(button, {
 				'background-color': 'rgba(0, 0, 0, 0.25)',
 				'color': '#000'
 			});
-	
+
 			return button;
 		},
 		/** Browser items (full-view items) */
@@ -931,7 +930,7 @@
 			});
 		}
 	};
-	
+
 	/**
 	 * Attempts to extract the description/tags to use as an ID (for when no number ID is available)
 	 * 
@@ -941,7 +940,7 @@
 	const extractDescriptionId = (container, env = TTDB.ENV.APP) => {
 		let identifier = null;
 		let extracted = null;
-	
+
 		if (env === TTDB.ENV.APP) {
 			const description = container.querySelector('span[class*="-SpanText "]');
 
@@ -955,15 +954,15 @@
 				extracted = metaTitle.textContent;
 			}
 		}
-		
+
 		if (extracted) {
 			extracted = extracted.replace(/[/\\?%*:|"<>]/g, '-').toLowerCase().trim();
-		
+
 			if (extracted && extracted.length > 0) {
 				identifier = extracted;
 			}
 		}
-	
+
 		return identifier;
 	};
 
@@ -983,11 +982,11 @@
 
 			if (!actionBar.querySelector('a.' + [...button.classList].join('.'))) {
 				button.setAttribute('video-id', videoData.id);
-	
+
 				downloadHook(button, videoData);
 				button.ttIsProcessed = true;
 				actionBar.prepend(button);
-	
+
 				setTimeout(() => {
 					button.style.opacity = 1;
 				}, 50);
@@ -1042,7 +1041,7 @@
 
 		return videoId || false;
 	};
-	
+
 	/**
 	 * Hacky way of retrieving the videoId of a `For You` item
 	 * 
@@ -1071,7 +1070,7 @@
 				UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
 			} callback(response);
 		};
-	
+
 		/**
 		 * Called on mutation
 		 * 
@@ -1081,7 +1080,7 @@
 			for (let mutation of mutationsList) {
 				if (mutation.type === 'childList') {
 					const attempt = findVideoUrls(element.querySelector('div[class*="-DivContainer "]'));
-					
+
 					if (attempt) {
 						observer.disconnect(); // Good attempt — disconnect observer	
 						respond(attempt); break;
@@ -1112,31 +1111,31 @@
 		 */
 		if (!existingShare) {
 			observer = new MutationObserver(onMutate);
-			
+
 			observer.observe(shareButton, {
 				childList: true,
 				subtree: true
 			});
-		
+
 			// Add a temporary class to hide `Share` menu
 			shareButton.classList.add('extract');
-		
+
 			// Simulate a click on the share button's `SVG`
 			UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
-		
+
 			timer = setTimeout(() => { // If no success within `timeout`, return `false`
 				observer.disconnect();
 				respond(false);
 			}, timeout);
 		}
-	
+
 		return false;
 	};
-	
+
 	const itemData = {
 		extract: {}
 	};
-	
+
 	/** Feed items (`For Your` page etc.) */
 	itemData.extract[TTDB.MODE.FEED] = (data) => {
 		const videoData = {};
@@ -1145,14 +1144,14 @@
 			app: 'a > [class*="AuthorTitle "]',
 			__next: 'h3.author-uniqueId'
 		}));
-	
+
 		if (itemUser) {
 			/** Set username */
 			videoData.user = itemUser.textContent;
 		} else {
 			/** Fallback username fetch */
 			itemUser = data.container.querySelector('a[href^="/@"]');
-	
+
 			if (itemUser) {
 				videoData.user = itemUser.getAttribute('href').split('/@')[1];
 				if (videoData.user.includes('?')) {
@@ -1160,41 +1159,41 @@
 				}
 			}
 		}
-	
+
 		// Get alternative id (no ID available here)
 		const descriptionIdentifier = extractDescriptionId(data.container, data.env);
 
 		// Set `descriptionIdentifier` or fallback
 		videoData.id = descriptionIdentifier ? descriptionIdentifier : Date.now();
-	
+
 		return videoData;
 	};
-	
+
 	/** Grid items (videos from user page, liked videos etc.) */
 	itemData.extract[TTDB.MODE.GRID] = (data) => {
 		const videoData = {};
 		const itemLinks = data.container.querySelectorAll('a[href*="com/@"]');
-	
+
 		(itemLinks).forEach((link) => {
 			const matches = EXPR.vanillaVideoUrl(link.getAttribute('href'), {
 				strict: true
 			});
-	
+
 			if (matches) {
 				let [, user, id] = matches;
-	
+
 				videoData.user = user;
 				videoData.id = id;
-	
+
 				if (/^\d+$/.test(id)) {
 					videoData.videoApiId = id;
 				}
 			}
 		});
-	
+
 		return videoData;
 	};
-	
+
 	/** Browser items (when opening a video grid item or on the `For You` page) */
 	itemData.extract[TTDB.MODE.BROWSER] = (data) => {
 		const videoData = {};
@@ -1238,7 +1237,7 @@
 
 				if (matches) {
 					const [, user, videoId] = matches;
-			
+
 					videoData.videoApiId = videoId;
 					videoData.user = user;
 
@@ -1278,35 +1277,35 @@
 				videoData.user = itemUser.textContent.trim();
 			}
 		}
-	
+
 		// Get alternative id (no ID available here)
 		const descriptionIdentifier = extractDescriptionId(data.container, data.env);
-	
+
 		if (descriptionIdentifier) {
 			videoData.id = descriptionIdentifier;
 		}
-	
+
 		return videoData;
 	};
-	
+
 	itemData.extract[TTDB.MODE.BASIC_PLAYER] = (data) => {
 		const videoData = {};
 		const parent = data.container.closest('div[class*="-DivLeftContainer "]');
-	
+
 		if (parent) {
 			const userId = parent.querySelectorAll(
 				'span[class*="-SpanUniqueId "], span[data-e2e="browse-username"]'
 			);
-	
+
 			if (userId[0]) {
 				videoData.user = userId[0].textContent.trim();
 			} else {
 				// User ID fallback
 				const authorElement = parent.querySelector('div[class*="-DivAuthorContainer "]');
-	
+
 				if (authorElement) {
 					const userHref = authorElement.querySelectorAll('a[href^="/@"]');
-	
+
 					if (userHref[0]) {
 						videoData.user = userHref[0].getAttribute('href').split('/@')[1].trim();
 						if (videoData.user.includes('?')) {
@@ -1317,35 +1316,35 @@
 					}
 				}
 			}
-	
+
 			let videoTags = parent.querySelectorAll(
 				'span[class*="-SpanText "], a[href^="/tag/"] \
 				strong[class*="-StrongText "]'
 			);
-	
+
 			if (videoTags) {
 				videoTags = [...videoTags].map((e) => {
 					return e.textContent ? e.textContent.trim() : false;
 				});
-	
+
 				videoTags = videoTags.filter((e) => e);
 				videoData.id = videoTags.join(' ');
 			}
 		}
-	
+
 		// Get user and video id from URL
 		const matches = EXPR.vanillaVideoUrl(window.location.href);
-		
+
 		if (matches) {
 			const [, user, videoId] = matches;
-	
+
 			videoData.videoApiId = videoId;
 			videoData.user = user;
 		}
-	
+
 		return videoData;
 	};
-	
+
 	/**
 	* Get video data from an item
 	* 
@@ -1358,7 +1357,7 @@
 			user: null,
 			url: null
 		};
-	
+
 		const videoElement = container.querySelector('video');
 
 		if (videoElement && itemData.extract[data.mode]) {
@@ -1377,15 +1376,15 @@
 				...videoData,
 				...itemData.extract[data.mode](data)
 			};
-	
+
 			if (!videoData.id) {
 				videoData.id = Date.now();
 			}
 		}
-	
+
 		return videoData;
 	};
-	
+
 	/**
 	* Fetches video items
 	*/
@@ -1459,7 +1458,7 @@
 		// Get template options from the API data
 		for (const [key, value] of Object.entries(templateKeys)) {
 			if (!templateValues.hasOwnProperty(key)) {
-				let keyData = null; for(const item of value) {
+				let keyData = null; for (const item of value) {
 					if (!Array.isArray(item) && item) {
 						keyData = item; break;
 					} else if (Array.isArray(item) && UTIL.checkNested(apiData, ...item)) {
@@ -1518,11 +1517,11 @@
 
 		return filename.length >= 5 ? filename : null;
 	};
-	
+
 	const downloadHook = async (button, videoData) => {
 		const videoIdentifier = videoData.id ? videoData.id : Date.now();
 		let fileName = `${videoData.user ? videoData.user + ' - ' : ''}${videoIdentifier}`;
-	
+
 		DOM.setAttributes(button, {
 			'href': videoData.url,
 			'filename': `${fileName.trim()}.mp4`,
@@ -1532,7 +1531,7 @@
 		if (videoData.videoApiId) {
 			button.setAttribute('video-id', videoData.videoApiId);
 		}
-	
+
 		if (!button.hasListener) {
 			button.addEventListener('click', async (e) => {
 				e.preventDefault();
@@ -1554,15 +1553,17 @@
 				} else {
 					nameTemplate = nameTemplate.trim();
 				}
-				
+
 				const usageData = {
 					videoUrl: attrUrl,
 					filename: attrFilename
 				};
 
-				await getWebApiData({ ...videoData, ...{
-					videoApiId: attrApiId
-				}}).then(async (webData) => {
+				await getWebApiData({
+					...videoData, ...{
+						videoApiId: attrApiId
+					}
+				}).then(async (webData) => {
 					if (webData.video && webData.video.playAddr) {
 						usageData.videoUrl = webData.video.playAddr;
 						if (nameTemplate) {
@@ -1574,7 +1575,7 @@
 
 					await API.getVideoData(attrApiId).then(async (res) => {
 						const templated = getFileNameTemplate(
-							{...res, ...{ videoId: attrApiId }}, res.apiFullResponse, nameTemplate
+							{ ...res, ...{ videoId: attrApiId } }, res.apiFullResponse, nameTemplate
 						);
 
 						if (res.url) {
@@ -1603,23 +1604,23 @@
 				pipe('Attempting to download using data: ', usageData);
 				downloadFile(usageData.videoUrl, usageData.filename, button);
 			});
-	
+
 			button.hasListener = true;
 		}
-	
+
 		/** Download data has been set, make element interactable again */
 		DOM.setStyle(button, {
 			'cursor': 'pointer',
 			'pointer-events': 'auto'
 		});
-	
+
 		return button;
 	};
-	
+
 	const itemSetup = {
 		setters: {}
 	};
-	
+
 	itemSetup.setters[TTDB.MODE.BROWSER] = (item, data) => {
 		let linkContainer = null;
 
@@ -1631,7 +1632,7 @@
 		} else if (data.env === TTDB.ENV.__NEXT) {
 			linkContainer = item.querySelector('div.video-infos-container > div.action-container');
 		}
-	
+
 		if (linkContainer) {
 			// Mark container as handled (download hook as been set up)
 			item.setAttribute('is-downloadable', 'true');
@@ -1639,23 +1640,23 @@
 			// Create download button
 			const button = createButton.BROWSER();
 			const videoData = itemData.get(item, data);
-	
+
 			if (data.env === TTDB.ENV.APP) {
 				linkContainer.before(button);
 			} else if (data.env === TTDB.ENV.__NEXT) {
 				linkContainer.after(button);
 			}
-			
+
 			button.setAttribute('ttdb_mode', data.env === TTDB.ENV.__NEXT ? '__NEXT' : 'APP');
 
 			downloadHook(button, videoData);
-	
+
 			if (TTDB.observers.browserObserver) {
 				TTDB.observers.browserObserver.disconnect();
 			}
-	
+
 			const callback = (mutationsList) => {
-				for(let mutation of mutationsList) {
+				for (let mutation of mutationsList) {
 					if (mutation.type === 'childList') {
 						clearTimeout(TTDB.timers.browserObserver);
 						TTDB.timers.browserObserver = setTimeout(() => {
@@ -1664,24 +1665,24 @@
 					}
 				}
 			};
-	
+
 			TTDB.observers.browserObserver = new MutationObserver(callback);
-	
+
 			// Observe any changes when navigating through items
 			TTDB.observers.browserObserver.observe(item, {
 				childList: true,
 				subtree: true
 			});
-	
+
 			return true;
 		}
-	
+
 		return false;
 	};
-	
+
 	itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
 		item.setAttribute('is-downloadable', 'true');
-	
+
 		// Create download button
 		const button = createButton.GRID();
 
@@ -1689,8 +1690,7 @@
 			pipe('Found video data:', videoData);
 
 			// Valid video URL — set download data
-			if (videoData.url && !button.ttIsProcessed)
-			{
+			if (videoData.url && !button.ttIsProcessed) {
 				downloadHook(button, videoData);
 				button.ttIsProcessed = true;
 			}
@@ -1700,7 +1700,7 @@
 			// Clear any active timers on `mouseleave`
 			clearInterval(TTDB.timers.gridAwaitVideoData);
 		});
-	
+
 		item.addEventListener('mouseenter', () => {
 			if (!button.ttIsProcessed) {
 				clearInterval(TTDB.timers.gridAwaitVideoData);
@@ -1712,7 +1712,7 @@
 					// Check for existing video URLs
 					TTDB.timers.gridAwaitVideoData = setInterval(() => {
 						videoData = itemData.get(item, data);
-	
+
 						// We have a valid video URL — set download data and clear interval
 						if (videoData.url) {
 							setButton(videoData, button);
@@ -1726,16 +1726,16 @@
 				}
 			}
 		});
-	
+
 		DOM.setStyle(item, { 'position': 'relative' });
-	
+
 		item.appendChild(button);
-	
+
 		setTimeout(() => { button.style.opacity = 1; }, 100);
-	
+
 		return true;
 	};
-	
+
 	itemSetup.setters[TTDB.MODE.FEED] = (item, data) => {
 		const videoPreview = item.querySelector(data.env === TTDB.ENV.APP ?
 			':scope > div:first-child' :
@@ -1761,34 +1761,34 @@
 						button: button,
 						videoData: videoData
 					});
-					
+
 					item.setAttribute('is-downloadable', 'true');
 				}
 			}
 
 			return true;
 		}
-	
+
 		return false;
 	};
-	
+
 	/** Set up swiper slide item (may be obsolete) */
 	itemSetup.setters[TTDB.MODE.SWIPER_SLIDE] = (item, data) => {
 		const videoPreview = item.querySelector('img');
 		const videoWrapper = item.querySelector('div[class*="VideoWrapperForSwiper"]');
 		let videoElement = item.querySelector('video');
-	
+
 		if ((videoElement || videoPreview) && videoWrapper) {
 			item.setAttribute('is-downloadable', 'true');
-	
+
 			// Create download button
 			const button = createButton.SWIPER_SLIDE();
 			videoWrapper.prepend(button);
-	
+
 			// We already have a valid video element
 			if (videoElement) {
 				const videoData = itemData.get(item, data);
-	
+
 				// We have a valid video URL, so set download data
 				if (videoData.url && !button.ttIsProcessed) {
 					setTimeout(() => button.style.opacity = 1, 50);
@@ -1798,17 +1798,17 @@
 					videoElement = null;
 				}
 			}
-	
+
 			// Only preview, no video has loaded yet
 			if (videoPreview && !videoElement) {
 				// Item has not loaded, so we'll prepare and watch for it
 				const container = videoWrapper;
-				
+
 				const observer = new MutationObserver((mutationsList, observer) => {
-					for(let mutation of mutationsList) {
+					for (let mutation of mutationsList) {
 						if (mutation.type === 'childList') {
 							const videoData = itemData.get(item, data);
-		
+
 							// We have a valid video URL, so set download data
 							if (videoData.url && !button.ttIsProcessed) {
 								observer.disconnect();
@@ -1819,33 +1819,33 @@
 						}
 					}
 				});
-		
+
 				observer.observe(container, {
 					childList: true,
 					subtree: true
 				});
 			}
-	
+
 			return true;
 		}
-	
+
 		return false;
 	};
-	
+
 	/** Set up basic player item ("theater" mode) */
 	itemSetup.setters[TTDB.MODE.BASIC_PLAYER] = (item, data) => {
 		let videoElement = item.querySelector('video');
-	
+
 		if (videoElement) {
 			item.setAttribute('is-downloadable', 'true');
-	
+
 			// Create download button
 			let button = createButton.BASIC_PLAYER();
 			let parent = data.container.closest('div[class*="-DivLeftContainer "]');
 
 			if (parent) {
 				let existingButton = parent.querySelector(`.${button.classList[0]}`);
-			
+
 				if (existingButton) {
 					existingButton.remove();
 				}
@@ -1853,15 +1853,15 @@
 				parent.children[0].parentNode.insertBefore(
 					button, parent.children[0].nextSibling
 				);
-	
+
 				button = button.querySelector('a');
-	
+
 				const widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]');
-	
+
 				DOM.setStyle(button, {
 					'width': `${widthTarget ? widthTarget.offsetWidth : 320}px`
 				});
-	
+
 				// We already have a video element
 				if (videoElement) {
 					let videoData = itemData.get(item, data);
@@ -1901,7 +1901,7 @@
 			button.parentNode.style.display = 'block';
 
 			setTimeout(() => button.style.opacity = '1', 50);
-			
+
 			downloadHook(button, {
 				id: videoId,
 				videoApiId: videoId,
@@ -1910,7 +1910,7 @@
 			});
 		}
 	};
-	
+
 	/**
 	* Set up item (get data, create download button and hooks)
 	* 
@@ -1921,7 +1921,7 @@
 	itemSetup.set = (itemType, item, data) => {
 		return itemSetup.setters[itemType](item, data);
 	};
-	
+
 	// Updates video items
 	const updateItems = () => {
 		let processed = 0;
@@ -1951,7 +1951,7 @@
 				} else if (item.querySelector('input[value*="/video/"]')) {
 					currentMode = TTDB.MODE.SHARE_OVERLAY;
 				}
-	
+
 				if (currentMode !== null) {
 					currentEnvironment = TTDB.ENV.__NEXT;
 				}
@@ -1962,7 +1962,7 @@
 				if (currentEnvironment === null) {
 					currentEnvironment = TTDB.DEFAULT_ENV;
 				}
-	
+
 				// Data that we're sending downstream
 				if (itemSetup.set(currentMode, item, {
 					mode: currentMode,
@@ -1973,40 +1973,40 @@
 				}
 			}
 		});
-	
+
 		return processed;
 	};
-	
+
 	// Adds download buttons to video elements
 	const updatePage = () => {
 		const processedItems = updateItems();
-	
+
 		if (processedItems > 0) {
 			pipe(`Processed ${processedItems} item${processedItems !== 1 ? 's' : ''}!`);
 		}
 	};
-	
+
 	// Check for updates on `scroll`
 	document.addEventListener('scroll', () => {
 		clearTimeout(TTDB.timers.scrollBreak);
-	
+
 		TTDB.timers.scrollBreak = setTimeout(() => {
 			TTDB.setInterval(20);
 		}, 250);
 	});
-	
+
 	// Check for updates on `click`
 	window.addEventListener('click', () => {
 		TTDB.setInterval(10);
 	});
-	
+
 	const observeApp = (container) => {
 		if (TTDB.observers.main) {
 			TTDB.observers.main.disconnect();
 		}
-		
+
 		TTDB.observers.main = new MutationObserver((mutationsList) => {
-			for(let mutation of mutationsList) {
+			for (let mutation of mutationsList) {
 				if (mutation.type === 'childList') {
 					clearTimeout(TTDB.timers.appUpdated);
 					TTDB.timers.appUpdated = setTimeout(() => {
@@ -2015,35 +2015,35 @@
 				}
 			}
 		});
-		
+
 		TTDB.observers.main.observe(container, {
 			childList: true,
 			subtree: true
 		});
-	
+
 		pipe('Watching for DOM changes ...');
 	};
-	
+
 	let appContainer = getAppContainer();
-	
+
 	if (appContainer) {
 		observeApp(appContainer);
 	} else {
 		let checks = 0;
-	
+
 		TTDB.timers.appCreationWatcher = setInterval(() => {
 			appContainer = getAppContainer();
-	
+
 			if (appContainer || checks === 10) {
 				clearInterval(TTDB.timers.appCreationWatcher);
-	
+
 				if (appContainer) {
 					observeApp(appContainer);
 				}
 			} checks++;
 		}, 1000);
 	}
-	
+
 	// Tracks and does item checks on the page
 	setInterval(() => {
 		if (TTDB.interval.counter > 0) {
@@ -2051,7 +2051,7 @@
 			TTDB.interval.counter--;
 		}
 	}, TTDB.interval.delay);
-	
+
 	// Create splash elements
 	SPLASH.create();
 })();

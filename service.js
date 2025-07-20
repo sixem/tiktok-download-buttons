@@ -65,20 +65,21 @@ const fileDownload = async (args) => {
 	}
 
 	try {
-		const probeResponse = await fetch(url, {
+		const probe = await fetch(url, {
 			method: 'HEAD',
 			mode: 'cors',
 			credentials: 'include',
 			referrerPolicy: 'strict-origin-when-cross-origin'
 		});
 
-		const contentType = probeResponse.headers.get('Content-Type') || '';
-		const isValid = probeResponse.ok // Status 200-299
+		const contentType = probe.headers.get('Content-Type') || '';
+
+		const isValid = probe.ok
 			&& (contentType.includes('video/') || contentType.includes('application/octet-stream'))
-			&& arseInt(probeResponse.headers.get('Content-Length') || '0') > 1000;
+			&& arseInt(probe.headers.get('Content-Length') || '0') > 1000;
 
 		if (!isValid) {
-			console.warn('[TTDB] Probe failed for', url, '- Status:', probeResponse.status, '- Type:', contentType);
+			console.warn(`Blob fallback probe failed for ${url} (${contentType} - ${probe.status})`, contentType);
 			args.sendResponse({ success: false, error: 'Invalid video response' });
 			return;
 		}
@@ -104,10 +105,9 @@ const fileDownload = async (args) => {
 			chrome.downloads.onChanged.addListener((delta) => {
 				if (itemId === delta.id) {
 					console.log('[TTDB]', delta);
-					
+
 					if (delta.endTime || (delta.state && delta.state.current === 'complete')) {
-						// Successful download
-						args.sendResponse({ itemId: itemId, success: true });
+						args.sendResponse({ itemId: itemId, success: true }); // Successful download
 					} else if (delta.error) {
 						args.sendResponse({ success: false });
 					}
