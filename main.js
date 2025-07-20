@@ -715,26 +715,34 @@
 			if (response.success) {
 				pipe(`Downloaded ${url}`);
 				revertState(buttonElement);
-	
-				SPLASH.message(`[Success] Downloaded file (ID: ${response.itemId})`, {
+				SPLASH.message(`[OK] Downloaded video`, {
 					duration: 2500, state: 1
 				});
 			} else {
 				// Attempt download using .blob()
 				// We can't use a subfolder here since this is not using the browser API
 				fetch(url, TTDB.headers).then((t) => {
-					if (t.ok) {
+					const contentType = t.headers.get('Content-Type') || '';
+					const isValid = t.ok // Probe for valid content type
+						&& (contentType.includes('video/')
+							|| contentType.includes('application/octet-stream'))
+						&& parseInt(t.headers.get('Content-Length') || '0') > 1000;
+
+					if (isValid) {
 						return t.blob().then((b) => {
 							const anchor = document.createElement('a');
-
 							anchor.href = URL.createObjectURL(b);
 							anchor.setAttribute('download', filename);
 
 							UTIL.dispatchEvent(anchor, MouseEvent, 'click');
-							anchor.remove(); revertState(buttonElement);
-							SPLASH.message(`[Success] Downloaded file`, { duration: 2500 });
+							anchor.remove();
+							revertState(buttonElement);
+							SPLASH.message(`[OK] Attempting download ...`, {
+								duration: 2500
+							});
 						});
 					} else {
+						pipe(`Blob fallback probe failed for ${url} (${contentType} - ${t.status})`, contentType);
 						fallback(url);
 					}
 				}).catch(() => fallback(url));

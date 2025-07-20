@@ -33,7 +33,7 @@ const options = {
 /** Set default storage values */
 Object.keys(options).forEach((key) => {
 	chrome.storage.local.get(key, (result) => {
-		if(result && !result.hasOwnProperty(key)) {
+		if (result && !result.hasOwnProperty(key)) {
 			let value = new Object();
 			value[key] = options[key].default;
 			chrome.storage.local.set(value);
@@ -44,24 +44,48 @@ Object.keys(options).forEach((key) => {
 /**
  * Options getter
  */
- const optionsGet = (args) => {
+const optionsGet = (args) => {
 	return args.sendResponse(options);
- };
+};
 
 /**
  * Attempts to download a file using `chrome.downloads.download`
  * 
  * @param {object} args 
  */
-const fileDownload = (args) => {
+const fileDownload = async (args) => {
 	let [filename, url, subFolder] = [
 		args.data.filename,
 		args.data.url,
 		args.data.subFolder
 	];
 
-	if(subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
-		subFolder = (subFolder + '/');
+	if (subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
+		subFolder = subFolder + '/';
+	}
+
+	try {
+		const probeResponse = await fetch(url, {
+			method: 'HEAD',
+			mode: 'cors',
+			credentials: 'include',
+			referrerPolicy: 'strict-origin-when-cross-origin'
+		});
+
+		const contentType = probeResponse.headers.get('Content-Type') || '';
+		const isValid = probeResponse.ok // Status 200-299
+			&& (contentType.includes('video/') || contentType.includes('application/octet-stream'))
+			&& arseInt(probeResponse.headers.get('Content-Length') || '0') > 1000;
+
+		if (!isValid) {
+			console.warn('[TTDB] Probe failed for', url, '- Status:', probeResponse.status, '- Type:', contentType);
+			args.sendResponse({ success: false, error: 'Invalid video response' });
+			return;
+		}
+	} catch (probeError) {
+		console.error('[TTDB] Probe error:', probeError);
+		args.sendResponse({ success: false, error: 'Probe failed' });
+		return;
 	}
 
 	try {
@@ -76,24 +100,21 @@ const fileDownload = (args) => {
 			url: url,
 			method: 'GET',
 			saveAs: false
-		}, (itemId) =>
-		{
+		}, (itemId) => {
 			chrome.downloads.onChanged.addListener((delta) => {
-				if(itemId === delta.id) {
+				if (itemId === delta.id) {
 					console.log('[TTDB]', delta);
-
-					if(delta.endTime || (delta.state && delta.state.current === 'complete')) {
+					
+					if (delta.endTime || (delta.state && delta.state.current === 'complete')) {
 						// Successful download
 						args.sendResponse({ itemId: itemId, success: true });
-					} else if(delta.error) {
-						// Error encountered
+					} else if (delta.error) {
 						args.sendResponse({ success: false });
 					}
-				}      
+				}
 			});
 		});
-	} catch(error) {
-		// Error encountered
+	} catch (error) {
 		args.sendResponse({ success: false });
 	}
 };
@@ -118,7 +139,7 @@ const windowOpen = (args) => {
 		args.sendResponse({
 			success: true
 		});
-	}); 
+	});
 };
 
 /**
@@ -151,8 +172,7 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 		'fetch': serviceFetch
 	};
 
-	if(tasks[data.task])
-	{
+	if (tasks[data.task]) {
 		tasks[data.task]({ // Perform task
 			data,
 			sender,
