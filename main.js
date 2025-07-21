@@ -1864,7 +1864,7 @@
 							setButton(videoData, button);
 							clearInterval(TTDB.timers.gridAwaitVideoData);
 						}
-					}, 20);
+					}, 100);
 				} else {
 					// We have a valid video URL — set download data
 					setButton(videoData, button);

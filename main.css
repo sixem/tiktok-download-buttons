@@ -319,7 +319,7 @@ button.extract div[class*="-DivContainer "] {
 body>div.ttdb_downloading-active {
     position: fixed;
     inset: auto 4px 4px auto;
-    z-index: 999;
+    z-index: 99999;
 
     pointer-events: none;
     display: flex;
