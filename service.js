@@ -139,9 +139,7 @@ const windowOpen = (args) => {
 		url: args.data.url,
 		active: args.data.active ? args.data.active : false
 	}, () => { // May wanna handle errors here, not a priority for now however
-		args.sendResponse({
-			success: true
-		});
+		args.sendResponse({ success: true });
 	});
 };
 
@@ -173,7 +171,7 @@ const blobChunkDownload = async ({ data, sendResponse }) => {
 	const { sessionId, filename, subFolder = '', chunk, done } = data;
 	const sessions = globalThis.downloadSessions;
 
-	const ok = extra => sendResponse({ success: true, ...extra });
+	const ok   = extra => sendResponse({ success: true, ...extra });
 	const fail = error => sendResponse({ success: false, error });
 
 	if (!sessions.has(sessionId) && chunk === null && !done) {
@@ -188,10 +186,7 @@ const blobChunkDownload = async ({ data, sendResponse }) => {
 	}
 
 	if (chunk !== null) {
-		session.chunks.push(
-			Uint8Array.from(atob(chunk), c => c.charCodeAt(0)).buffer
-		);
-		
+		session.chunks.push(Uint8Array.from(atob(chunk), c => c.charCodeAt(0)).buffer);
 		return ok();
 	}
 
@@ -239,7 +234,6 @@ const blobChunkDownload = async ({ data, sendResponse }) => {
 		sessions.delete(sessionId);
 	}
 };
-
 
 /**
  * `onMessage` listener

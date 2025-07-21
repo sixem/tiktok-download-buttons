@@ -1,29 +1,28 @@
-a.ttdb__button_feed > div > svg,
-a.ttdb__button_swiper_slide > div > svg
-{
-    transition: background-color 0.35s, color 0.35s, opacity 1s!important;
-    -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
-    -moz-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
-    -o-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap');
+
+a.ttdb__button_feed>div>svg,
+a.ttdb__button_swiper_slide>div>svg {
+    transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+    -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+    -moz-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+    -o-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
 }
 
 a.ttdb__button_feed,
 a.ttdb__button_swiper_slide,
 a.ttdb__button_grid,
-a.ttdb__button_basic-player
-{
-    transition: background-color 0.35s, color 0.35s, opacity 1s!important;
-    -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
-    -moz-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
-    -o-transition: background-color 0.35s, color 0.35s, opacity 1s!important;
+a.ttdb__button_basic-player {
+    transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+    -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+    -moz-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+    -o-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
 
     cursor: not-allowed;
     opacity: 0;
     outline: none;
 }
 
-a.ttdb__button_browser
-{
+a.ttdb__button_browser {
     padding: 5px 8px 4px 8px;
     font-weight: bold;
     letter-spacing: 1px;
@@ -35,43 +34,37 @@ a.ttdb__button_browser
     position: relative;
 }
 
-a.ttdb__button_browser.loading::after
-{
+a.ttdb__button_browser.loading::after {
     position: absolute;
     left: 4px;
     top: 4px;
-    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E")!important;
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
 }
 
 a.ttdb__button_feed.loading,
 a.ttdb__button_swiper_slide.loading,
 a.ttdb__button_grid.loading,
 a.ttdb__button_basic-player.loading,
-a.ttdb__button_browser.loading
-{
-    cursor: progress!important;
+a.ttdb__button_browser.loading {
+    cursor: progress !important;
 }
 
-a.ttdb__button_grid.loading > span::after
-{
-    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='white' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E")!important;
+a.ttdb__button_grid.loading>span::after {
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='white' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
 }
 
-a.ttdb__button_browser[ttdb_mode="__NEXT"]
-{
-    margin-bottom: 10px!important;
-    margin-top: -12px!important;
-    padding: 4px 8px 6px 8px!important;
+a.ttdb__button_browser[ttdb_mode="__NEXT"] {
+    margin-bottom: 10px !important;
+    margin-top: -12px !important;
+    padding: 4px 8px 6px 8px !important;
 }
 
-a.ttdb__button_browser[ttdb_mode="APP"]
-{
-    margin: 10px 0px 10px 0px!important;
+a.ttdb__button_browser[ttdb_mode="APP"] {
+    margin: 10px 0px 10px 0px !important;
 }
 
 a.ttdb__button_feed,
-a.ttdb__button_swiper_slide
-{
+a.ttdb__button_swiper_slide {
     text-align: center;
     width: 48px;
     height: 48px;
@@ -81,16 +74,14 @@ a.ttdb__button_swiper_slide
     margin-bottom: 14px;
 }
 
-a.ttdb__button_swiper_slide
-{
+a.ttdb__button_swiper_slide {
     position: absolute;
     top: 5px;
     left: 5px;
     z-index: 1;
 }
 
-a.ttdb__button_feed
-{
+a.ttdb__button_feed {
     padding: 0;
     position: relative;
     display: -webkit-box;
@@ -107,18 +98,15 @@ a.ttdb__button_feed
     flex-direction: column;
 }
 
-a.ttdb__button_feed:hover
-{
+a.ttdb__button_feed:hover {
     color: purple;
 }
 
-a.ttdb__button_feed.loading > div
-{
-    display: none!important;
+a.ttdb__button_feed.loading>div {
+    display: none !important;
 }
 
-a.ttdb__button_feed.loading::after
-{
+a.ttdb__button_feed.loading::after {
     width: 100%;
     height: 100%;
     background-repeat: no-repeat;
@@ -132,22 +120,20 @@ a.ttdb__button_feed.loading::after
     content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E");
 }
 
-a.ttdb__button_grid
-{
-	position: absolute;
-	z-index: 1;
-	top: 4px;
-	right: 4px;
-	background-color: #0000007d;
-	border-radius: 4px;
-	color: #fff!important;
+a.ttdb__button_grid {
+    position: absolute;
+    z-index: 1;
+    top: 4px;
+    right: 4px;
+    background-color: #0000007d;
+    border-radius: 4px;
+    color: #fff !important;
 
     box-shadow: 0 0 4px rgb(0 0 0 / 50%);
     backdrop-filter: blur(2px);
 }
 
-a.ttdb__button_grid > span
-{
+a.ttdb__button_grid>span {
     display: block;
     margin-left: auto;
     margin-right: auto;
@@ -157,8 +143,7 @@ a.ttdb__button_grid > span
     width: 18px;
 }
 
-a.ttdb__button_feed > div
-{
+a.ttdb__button_feed>div {
     width: 100%;
     height: 100%;
     background-repeat: no-repeat;
@@ -169,16 +154,14 @@ a.ttdb__button_feed > div
     justify-content: center;
 }
 
-a.ttdb__button_feed > div > svg
-{
+a.ttdb__button_feed>div>svg {
     fill: currentColor;
     width: 55%;
     margin-left: 1px;
     margin-top: -1px;
 }
 
-a.ttdb__button_swiper_slide > div
-{
+a.ttdb__button_swiper_slide>div {
     width: 100%;
     height: 100%;
     background-repeat: no-repeat;
@@ -189,52 +172,44 @@ a.ttdb__button_swiper_slide > div
     justify-content: center;
 }
 
-a.ttdb__button_swiper_slide > div > svg
-{
+a.ttdb__button_swiper_slide>div>svg {
     fill: currentColor;
     width: 55%;
     margin-left: 1px;
     margin-top: -1px;
 }
 
-a.ttdb__button_grid:not(.loading) > span::after
-{
+a.ttdb__button_grid:not(.loading)>span::after {
     content: '\01F853';
-    font-size: 16px!important;
+    font-size: 16px !important;
 }
 
-a.ttdb__button_grid.loading > span::after
-{
+a.ttdb__button_grid.loading>span::after {
     margin-left: -2px;
 }
 
-a.ttdb__button_browser:hover
-{
-    color: #fe4569!important;
-	text-decoration: none;
+a.ttdb__button_browser:hover {
+    color: #fe4569 !important;
+    text-decoration: none;
 }
 
-a.ttdb__button_feed:hover > div > svg,
-a.ttdb__button_swiper_slide:hover > div > svg
-{
-    color: #fe4569!important;
+a.ttdb__button_feed:hover>div>svg,
+a.ttdb__button_swiper_slide:hover>div>svg {
+    color: #fe4569 !important;
 }
 
-a.ttdb__button_grid:hover
-{
-	background-color: #000000b5;
-	color: #00ff80!important;
-	text-decoration: none;
+a.ttdb__button_grid:hover {
+    background-color: #000000b5;
+    color: #00ff80 !important;
+    text-decoration: none;
 }
 
-div.ttdb__button_basic-player_wrapper
-{
+div.ttdb__button_basic-player_wrapper {
     margin: 18px auto 10px auto;
     display: none;
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player
-{
+div.ttdb__button_basic-player_wrapper>a.ttdb__button_basic-player {
     padding: 8px 10px 6px 10px;
     border-radius: 4px;
     text-align: center;
@@ -244,19 +219,16 @@ div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player
     position: relative;
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player,
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:visited
-{
+div.ttdb__button_basic-player_wrapper>a.ttdb__button_basic-player,
+div.ttdb__button_basic-player_wrapper>a.ttdb__button_basic-player:visited {
     color: rgba(254, 44, 85, 1.0);
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:hover
-{
-    background-color: rgba(254, 44, 85, 0.15)!important;
+div.ttdb__button_basic-player_wrapper>a.ttdb__button_basic-player:hover {
+    background-color: rgba(254, 44, 85, 0.15) !important;
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player::after
-{
+div.ttdb__button_basic-player_wrapper>a.ttdb__button_basic-player::after {
     content: "🡓";
     position: absolute;
     left: 10px;
@@ -264,15 +236,14 @@ div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player::after
     top: 4px;
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player.loading::after
-{
-    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgba(254, 44, 85, 1.0)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E")!important;
-    top: 6px!important;
-    left: 6px!important;
+div.ttdb__button_basic-player_wrapper>a.ttdb__button_basic-player.loading::after {
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgba(254, 44, 85, 1.0)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
+    top: 6px !important;
+    left: 6px !important;
 }
 
 div.ttdb__button_basic-player_wrapper.share,
-div.ttdb__button_basic-player_wrapper.share > a {
+div.ttdb__button_basic-player_wrapper.share>a {
     width: 100%;
 }
 
@@ -281,16 +252,22 @@ div.ttdb__button_basic-player_wrapper.share {
     text-align: center;
 }
 
-div.ttdb__button_basic-player_wrapper.share > a {
+div.ttdb__button_basic-player_wrapper.share>a {
     width: 90%;
 }
 
-body > div.ttdb_splash-wrapper
-{
-    transition: bopacity 0.35s!important;;
-    -webkit-transition: opacity 0.35s!important;;
-    -moz-transition: opacity 0.35s!important;;
-    -o-transition: opacity 0.35s!important;;
+body>div.ttdb_downloading-active>div.item,
+body>div.ttdb_splash-wrapper {
+    font-family: "Noto Sans JP", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+body>div.ttdb_splash-wrapper {
+    transition: opacity 0.35s !important;
+    -webkit-transition: opacity 0.35s !important;
+    -moz-transition: opacity 0.35s !important;
+    -o-transition: opacity 0.35s !important;
 
     position: fixed;
     top: 0px;
@@ -300,8 +277,7 @@ body > div.ttdb_splash-wrapper
     pointer-events: none;
 }
 
-body > div.ttdb_splash-wrapper > div.ttdb_splash-content
-{
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content {
     width: auto;
     margin: 10px auto;
     padding: 5px 10px 3px 10px;
@@ -317,80 +293,117 @@ body > div.ttdb_splash-wrapper > div.ttdb_splash-content
     font-size: 0.9em;
 }
 
-body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-success
-{
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-success {
     background-color: #00000096;
     color: #fff;
 }
 
-body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-warn
-{
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-warn {
     background-color: #ffc800d9;
-    color: #333333;
+    color: #fff;
 }
 
-body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-error
-{
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-error {
     background-color: #ff0000c7;
     color: #fff;
 }
 
-button.extract
-{
-    pointer-events: none!important;
+button.extract {
+    pointer-events: none !important;
 }
 
-button.extract div[class*="-DivContainer "]
-{
-    display: none!important;
-    pointer-events: none!important;
+button.extract div[class*="-DivContainer "] {
+    display: none !important;
+}
+
+body>div.ttdb_downloading-active {
+    position: fixed;
+    inset: auto 4px 4px auto;
+    z-index: 999;
+
+    pointer-events: none;
+    display: flex;
+    justify-content: end;
+    gap: 6px;
+}
+
+body>div.ttdb_downloading-active>div.item {
+    background-color: #000000bf;
+    padding: 9px 8px 4px 8px;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 1s;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+
+body>div.ttdb_downloading-active>div.item>div.progress {
+    background-color: #00ff66;
+    min-width: 0px;
+    max-width: 100%;
+    min-height: 3px;
+    max-height: 2px;
+    display: inline-block;
+    position: absolute;
+    inset: 0 auto auto 0;
+    transition: width 0.1s;
 }
 
 /* Light mode colors */
 
+html:not([data-theme]) body>div.ttdb_downloading-active>div.item,
+html:not([data-theme="dark"]) body>div.ttdb_downloading-active>div.item,
+html[data-theme="light"] body>div.ttdb_downloading-active>div.item {
+    color: #fff;
+}
+
+
 html:not([data-theme]) a.ttdb__button_feed,
 html:not([data-theme="dark"]) a.ttdb__button_feed,
-html[data-theme="light"] a.ttdb__button_feed
-{
+html[data-theme="light"] a.ttdb__button_feed {
     background-color: #f1f1f2;
     color: #000;
 }
 
 html:not([data-theme]) a.ttdb__button_feed svg,
 html:not([data-theme="dark"]) a.ttdb__button_feed svg,
-html[data-theme="light"] a.ttdb__button_feed svg
-{
+html[data-theme="light"] a.ttdb__button_feed svg {
     color: #161823;
 }
 
 html:not([data-theme]) a.ttdb__button_browser,
 html:not([data-theme="dark"]) a.ttdb__button_browser,
-html[data-theme="light"] a.ttdb__button_browser
-{
+html[data-theme="light"] a.ttdb__button_browser {
     background-color: #f1f1f2;
     color: #000;
 }
 
 /* Dark mode colors */
 
-html[data-theme="dark"] a.ttdb__button_feed
-{
+html[data-theme="dark"] a.ttdb__button_feed {
     background-color: #2f2f2f;
     color: #fff;
 }
 
-html[data-theme="dark"] a.ttdb__button_feed:hover
-{
+html[data-theme="dark"] a.ttdb__button_feed:hover {
     background-color: #252525;
 }
 
-html[data-theme="dark"] a.ttdb__button_feed svg
-{
+html[data-theme="dark"] a.ttdb__button_feed svg {
     color: #fff;
 }
 
-html[data-theme="dark"] a.ttdb__button_browser
-{
+html[data-theme="dark"] a.ttdb__button_browser {
     background-color: rgb(41, 41, 41);
     color: #fff;
 }

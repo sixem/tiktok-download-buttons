@@ -1,8 +1,8 @@
 (async () => {
-	const TTDB = {}, API = {}, EXPR = {}, UTIL = {}, SPLASH = {};
+	const TTDB = {}, API = {}, EXPR = {}, UTIL = {}, SPLASH = {}, ACTIVE = {};
 
-	TTDB.timers = {};
 	TTDB.observers = {};
+	TTDB.timers = {};
 
 	/**
 	 * Interval object
@@ -36,6 +36,8 @@
 			TTDB.interval.counter = count
 		}
 	};
+
+	ACTIVE.running = {};
 
 	/**
 	 * Log to console
@@ -208,6 +210,125 @@
 	};
 
 	/**
+	 * Creates a numerical hash for a given input
+	 * 
+	 * @param {string} input 
+	 */
+	ACTIVE.hash = (input) => {
+		return input.split('').reduce((hash, char) => (hash * 33) ^ char.charCodeAt(0), 5381) >>> 0
+	};
+
+
+	/**
+	 * Creates a new download UI container
+	 */
+	ACTIVE.create = () => {
+		if (document.body) {
+			const container = document.createElement('div');
+
+			container.classList.add('ttdb_downloading-active');
+			container.textContent = '';
+
+			document.body.appendChild(container);
+
+			return container;
+		}
+	};
+
+	/**
+	 * Gets and returns the current download UI container
+	 * If one does not exist, it will be created
+	 */
+	ACTIVE.getContainer = () => {
+		const container = document.body.querySelector('div.ttdb_downloading-active');
+		return container ? container : ACTIVE.create();
+	};
+
+	/**
+	 * Helper function that creates a new download UI item
+	 */
+	ACTIVE.createItem = (hash, item) => {
+		const element = document.createElement('div');
+		const progress = document.createElement('div');
+
+		element.classList.add('item');
+		progress.classList.add('progress');
+
+		element.setAttribute('id', hash);
+		element.innerText = item.name;
+		element.appendChild(progress);
+
+		ACTIVE.getContainer().appendChild(element);
+
+		element.style.opacity = '1';
+
+		return element;
+	}
+
+	/**
+	 * Refreshes the download items in the UI (updating percentages etc.)
+	 */
+	ACTIVE.refreshUi = () => {
+		const activeHashes = Object.keys(ACTIVE.running);
+		const container    = ACTIVE.getContainer();
+
+		// Clear or hide container if no active downloads
+		if (!activeHashes.length) {
+			container.innerHTML = '';
+			return DOM.setStyle(container, { opacity: '0' });
+		}
+
+		DOM.setStyle(container, { opacity: '1' });
+
+		for (const hash of activeHashes) {
+			const { item }   = ACTIVE.running[hash];
+			const element    = container.querySelector(`:scope > div[id="${hash}"]`) || ACTIVE.createItem(hash, item);
+			const progress   = element.querySelector(':scope > div.progress');
+			const percentage = Math.ceil(item.percentage);
+
+			if (progress) {
+				progress.style.minWidth = `${percentage}%`;
+			}
+
+			if (percentage >= 100 && !element.dataset.completing) {
+				element.dataset.completing = true;
+				setTimeout(() => {
+					element.style.opacity = '0';
+					setTimeout(() => {
+						delete ACTIVE.running[hash];
+						ACTIVE.refreshUi();
+					}, 1250);
+				}, 1000);
+			}
+		}
+	};
+
+	/**
+	 * Adds (if new), otherwise updates the state of a download item
+	 */
+	ACTIVE.ping = (item) => {
+		const hash = ACTIVE.hash(item.id);
+
+		if (!ACTIVE.running.hasOwnProperty(hash) && item.percentage === 0) {
+			ACTIVE.running[hash] = {
+				item, timeout: setTimeout(() => ACTIVE.remove(hash), 1E4)
+			};
+
+			if (!document.body.querySelector('div.ttdb_downloading-active')) {
+				ACTIVE.create();
+			}
+
+			return ACTIVE.refreshUi();
+		}
+
+		clearTimeout(ACTIVE.running[hash].timeout);
+
+		ACTIVE.running[hash].item.percentage = item.percentage;
+		ACTIVE.running[hash].timeout = setTimeout(() => ACTIVE.remove(item.id), 1E3);
+		ACTIVE.refreshUi();
+	};
+
+	/**
 	 * Create splash elements
 	 */
 	SPLASH.create = () => {
@@ -219,7 +340,6 @@
 
 		wrapper.classList.add('ttdb_splash-wrapper');
 		content.classList.add('ttdb_splash-content');
-
 		content.textContent = '';
 
 		wrapper.appendChild(content);
@@ -572,15 +692,14 @@
 			const anchors = element.querySelectorAll('a[href]');
 
 			for (let i = 0; i < anchors.length; i++) {
-				const matches = EXPR.vanillaVideoUrl(decodeURIComponent(anchors[i].getAttribute('href')));
+				const matches = EXPR.vanillaVideoUrl(
+					decodeURIComponent(anchors[i].getAttribute('href'))
+				);
 
 				/** If any matches */
 				if (matches) {
 					const [, username, videoId] = matches;
-
-					return {
-						username, videoId
-					};
+					return { username, videoId };
 				}
 			}
 		}
@@ -680,7 +799,7 @@
 			pipe('File could not be fetched — opening instead.');
 
 			SPLASH.message(
-				'[Fallback] Opened video in new tab [reason: fetch not allowed]', {
+				'Opened video in new tab (reason: fetch not allowed)', {
 				duration: 3500, state: 2
 			}
 			);
@@ -715,31 +834,44 @@
 				pipe(`Downloaded ${url}`);
 				revertState(buttonElement);
 
-				SPLASH.message(`✓ Downloaded video`, {
+				SPLASH.message(`✓ Downloaded video (fetched)`, {
 					duration: 2500, state: 1
 				});
 			} else {
 				// Attempt stream/blob chunk send to background for download (supports subfolder)
 				fetch(url, TTDB.headers).then(async (t) => {
+					const downloadId = `${subFolder}/${filename}`;
 					const contentType = t.headers.get('Content-Type') || '';
+					const downloadName = filename.substring(0, 23) + '...';
 
-					const isValid = t.ok 
-						&& (contentType.includes('video/') 
-							|| contentType.includes('application/octet-stream'))
-						&& parseInt(t.headers.get('Content-Length') || '0') > 1000;
+					const isValid = t.ok
+						&& (contentType.includes('video/')
+							|| contentType.includes('application/octet-stream')
+						) && parseInt(t.headers.get('Content-Length') || '0') > 1000;
 
 					if (isValid && t.body) {
 						const sessionId = UTIL.ranGen('0123456789abcdef', 16);
-						const reader    = t.body.getReader();
+						const reader = t.body.getReader();
 
 						await chrome.runtime.sendMessage(chrome.runtime.id, {
 							task: 'blobChunkDownload',
 							sessionId, filename, subFolder, chunk: null, done: false
 						});
 
+						ACTIVE.ping({ id: downloadId, name: downloadName, percentage: 0 });
+
 						try {
+							const bytes = { total: +t.headers.get('Content-Length') || 0, loaded: 0 };
+
 							while (true) {
 								const { done, value } = await reader.read();
+
+								if (value !== undefined) {
+									bytes.loaded += value?.byteLength || 0;
+									bytes.percentage = bytes.total ? (bytes.loaded / bytes.total * 100) | 0 : 0;
+								}
+
+								ACTIVE.ping({ id: downloadId, name: downloadName, percentage: bytes.percentage });
 
 								if (done) {
 									await chrome.runtime.sendMessage(chrome.runtime.id, {
@@ -754,7 +886,7 @@
 									}); break;
 								}
 
-								const uint8  = new Uint8Array(value.buffer);
+								const uint8 = new Uint8Array(value.buffer);
 								const binary = new Array(uint8.length);
 
 								for (let i = 0; i < uint8.length; i++) {
@@ -776,7 +908,10 @@
 						pipe(`Blob fallback probe failed for ${url} (${contentType} - ${t.status})`);
 						fallback(url);
 					}
-				}).catch(() => fallback(url));
+				}).catch((err) => {
+					pipe(err);
+					fallback(url);
+				});
 			}
 		});
 	};
@@ -1140,11 +1275,7 @@
 		 */
 		if (!existingShare) {
 			observer = new MutationObserver(onMutate);
-
-			observer.observe(shareButton, {
-				childList: true,
-				subtree: true
-			});
+			observer.observe(shareButton, { childList: true, subtree: true });
 
 			// Add a temporary class to hide `Share` menu
 			shareButton.classList.add('extract');
@@ -1161,9 +1292,7 @@
 		return false;
 	};
 
-	const itemData = {
-		extract: {}
-	};
+	const itemData = { extract: {} };
 
 	/** Feed items (`For Your` page etc.) */
 	itemData.extract[TTDB.MODE.FEED] = (data) => {
@@ -1226,7 +1355,7 @@
 	/** Browser items (when opening a video grid item or on the `For You` page) */
 	itemData.extract[TTDB.MODE.BROWSER] = (data) => {
 		const videoData = {};
-		
+
 		let itemUser = null;
 
 		if (data.env === TTDB.ENV.APP) {
@@ -1566,8 +1695,8 @@
 				}
 
 				const attrFilename = button.getAttribute('filename') || null;
-				const attrApiId    = button.getAttribute('video-id') || null;
-				const attrUrl      = button.getAttribute('href')     || null;
+				const attrApiId = button.getAttribute('video-id') || null;
+				const attrUrl = button.getAttribute('href') || null;
 
 				let nameTemplate = await getStoredSetting('download-naming-template');
 
@@ -1821,7 +1950,7 @@
 			if (videoPreview && !videoElement) {
 				// Item has not loaded, so we'll prepare and watch for it
 				const container = videoWrapper;
-				const observer  = new MutationObserver((mutationsList, observer) => {
+				const observer = new MutationObserver((mutationsList, observer) => {
 					for (const mutation of mutationsList) {
 						if (mutation.type === 'childList') {
 							const videoData = itemData.get(item, data);
@@ -1904,7 +2033,7 @@
 		if (matches) {
 			const [, username, videoId] = matches;
 			const button = createButton.BASIC_PLAYER();
-			
+
 			item.prepend(button);
 
 			button.classList.add('share');
