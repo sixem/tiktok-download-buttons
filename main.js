@@ -729,8 +729,8 @@
 						&& parseInt(t.headers.get('Content-Length') || '0') > 1000;
 
 					if (isValid && t.body) {
-						const reader = t.body.getReader();
 						const sessionId = UTIL.ranGen('0123456789abcdef', 16);
+						const reader    = t.body.getReader();
 
 						await chrome.runtime.sendMessage(chrome.runtime.id, {
 							task: 'blobChunkDownload',
@@ -754,7 +754,7 @@
 									}); break;
 								}
 
-								const uint8 = new Uint8Array(value.buffer);
+								const uint8  = new Uint8Array(value.buffer);
 								const binary = new Array(uint8.length);
 
 								for (let i = 0; i < uint8.length; i++) {
@@ -1591,7 +1591,7 @@
 						usageData.videoUrl = webData.video.playAddr;
 						if (nameTemplate) {
 							usageData.filename = getFileNameTemplate(videoData, webData, nameTemplate);
-						} pipe('Web API data was found.');
+						} pipe('Web API data was found:', { response: webData });
 					}
 				}).catch(async (error) => {
 					pipe(`Failed to get web API data (${error}) - trying mobile API instead.`);
@@ -1605,7 +1605,7 @@
 							usageData.videoUrl = res.url;
 							usageData.filename = templated ? templated : (
 								`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
-							); pipe('Mobile API data was found.');
+							); pipe('Mobile API data was found.', res);
 						}
 					}).catch((_) => {
 						pipe('Failed to get API data.');
