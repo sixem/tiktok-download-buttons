@@ -841,7 +841,6 @@
 				fetch(url, TTDB.headers).then(async (t) => {
 					const downloadId = `${subFolder}/${filename}`;
 					const contentType = t.headers.get('Content-Type') || '';
-					const downloadName = filename.substring(0, 25) + ' ...';
 
 					const isValid = t.ok
 						&& (contentType.includes('video/')
@@ -857,7 +856,7 @@
 							sessionId, filename, subFolder, chunk: null, done: false
 						});
 
-						ACTIVE.ping({ id: downloadId, name: downloadName, percentage: 0 });
+						ACTIVE.ping({ id: downloadId, name: filename, percentage: 0 });
 
 						try {
 							const bytes = { total: +t.headers.get('Content-Length') || 0, loaded: 0 };
@@ -870,7 +869,7 @@
 									bytes.percentage = bytes.total ? (bytes.loaded / bytes.total * 100) | 0 : 0;
 								}
 
-								ACTIVE.ping({ id: downloadId, name: downloadName, percentage: bytes.percentage });
+								ACTIVE.ping({ id: downloadId, name: filename, percentage: bytes.percentage });
 
 								if (done) {
 									await chrome.runtime.sendMessage(chrome.runtime.id, {
