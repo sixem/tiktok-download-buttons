@@ -344,7 +344,7 @@ body>div.ttdb_downloading-active>div.item {
     overflow: hidden;
 
     flex: 0 1 auto;
-    max-width: 100%;
+    max-width: 20vw;
 }
 
 body>div.ttdb_downloading-active>div.item>div.progress {

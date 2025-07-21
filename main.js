@@ -2134,21 +2134,29 @@
 	// Check for updates on `click`
 	window.addEventListener('click', () => TTDB.setInterval(10));
 
+	const debounce = (f, ms) => {
+		let timeout;
+
+		return (...args) => {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => f.apply(this, args), ms);
+		};
+	};
+
 	const observeApp = (container) => {
 		if (TTDB.observers.main) {
 			TTDB.observers.main.disconnect();
 		}
 
-		TTDB.observers.main = new MutationObserver((mutationsList) => {
+		const debouncedCallback = debounce((mutationsList) => {
 			for (let mutation of mutationsList) {
 				if (mutation.type === 'childList') {
-					clearTimeout(TTDB.timers.appUpdated);
-					TTDB.timers.appUpdated = setTimeout(() => {
-						TTDB.setInterval(15);
-					}, 500);
+					TTDB.setInterval(15); break;
 				}
 			}
-		});
+		}, 2000);
+
+		TTDB.observers.main = new MutationObserver(debouncedCallback);
 
 		TTDB.observers.main.observe(container, {
 			childList: true,
