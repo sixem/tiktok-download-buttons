@@ -64,6 +64,35 @@
 	};
 
 	/**
+	 * Validates that a response is video content
+	 * 
+	 * @param {Response} t 
+	 */
+	UTIL.validateVideoRequest = (t) => {
+		const contentType = t.headers.get('Content-Type') || '';
+
+		return t.ok && (contentType.includes('video/')
+				|| contentType.includes('application/octet-stream'))
+				&& +t.headers.get('Content-Length') > 1000;
+	};
+
+	/**
+	 * Checks whether the current browser environment is Chromium or not
+	 */
+	UTIL.isChromium = () => {
+		const rt = (globalThis.browser ?? globalThis.chrome)?.runtime;
+
+		if (rt?.getBrowserInfo) return false;
+		if (navigator.userAgentData?.brands) {
+			return navigator.userAgentData.brands
+				.some(b => /Chrom(e|ium)|Edge|Opera/i.test(b.brand));
+		}
+
+		return /Chrome|Chromium|Edg|OPR|Brave|Vivaldi/i.test(navigator.userAgent);
+	};
+
+
+	/**
 	 * Truncates a string
 	 * 
 	 * @param {string}  string 
@@ -270,7 +299,7 @@
 	 */
 	ACTIVE.refreshUi = () => {
 		const activeHashes = Object.keys(ACTIVE.running);
-		const container    = ACTIVE.getContainer();
+		const container = ACTIVE.getContainer();
 
 		// Clear or hide container if no active downloads
 		if (!activeHashes.length) {
@@ -281,9 +310,9 @@
 		DOM.setStyle(container, { opacity: '1' });
 
 		for (const hash of activeHashes) {
-			const { item }   = ACTIVE.running[hash];
-			const element    = container.querySelector(`:scope > div[id="${hash}"]`) || ACTIVE.createItem(hash, item);
-			const progress   = element.querySelector(':scope > div.progress');
+			const { item } = ACTIVE.running[hash];
+			const element = container.querySelector(`:scope > div[id="${hash}"]`) || ACTIVE.createItem(hash, item);
+			const progress = element.querySelector(':scope > div.progress');
 			const percentage = Math.ceil(item.percentage);
 
 			if (progress) {
@@ -785,32 +814,24 @@
 		}
 
 		/**
-		 * TikTok will sometimes return an invalid response (`TCP_MISS` || Code: 416)
-		 * This causes the downloaded items to be 0 bytes.
-		 * 
-		 * This is a workaround for now.
+		 * Fallback for when fetching is not allowed
 		 */
 		const fallback = async (url) => {
-			if (hasFallbacked) {
-				return;
-			}
-
-			pipe('File could not be fetched — opening instead.');
+			if (hasFallbacked) return;
+			pipe('✘ File could not be fetched — attempting to open instead.');
 
 			SPLASH.message(
-				'Opened video in new tab (reason: fetch not allowed)', {
-				duration: 3500, state: 2
-			}
+				'✘ Opened video in new tab (fetch was not allowed)', {
+					duration: 3500, state: 2
+				}
 			);
 
 			const tabActive = await getStoredSetting('download-fallback-tab-focus');
 
 			chrome.runtime.sendMessage(
 				chrome.runtime.id, {
-				task: 'windowOpen',
-				url,
-				active: tabActive === null ? true : tabActive
-			}
+					task: 'windowOpen', url, active: tabActive === null ? true : tabActive
+				}
 			);
 
 			revertState(buttonElement);
@@ -818,100 +839,42 @@
 		};
 
 		let subFolder = await getStoredSetting('download-subfolder-path');
-
 		if (!(typeof subFolder === 'string' || subFolder instanceof String)) {
 			subFolder = '';
 		}
 
-		// Attempt download using chrome API (@ `service.js`)
-		chrome.runtime.sendMessage(
-			chrome.runtime.id, {
-			task: 'fileDownload',
-			filename, url, subFolder
-		}).then((response) => {
-			if (response.success) {
-				pipe(`Downloaded ${url}`);
-				revertState(buttonElement);
-
-				SPLASH.message(`✓ Downloaded video (fetched)`, {
-					duration: 2500, state: 1
-				});
-			} else {
-				// Attempt stream/blob chunk send to background for download (supports subfolder)
-				fetch(url, TTDB.headers).then(async (t) => {
-					const downloadId = `${subFolder}/${filename}`;
-					const contentType = t.headers.get('Content-Type') || '';
-
-					const isValid = t.ok
-						&& (contentType.includes('video/')
-							|| contentType.includes('application/octet-stream')
-						) && parseInt(t.headers.get('Content-Length') || '0') > 1000;
-
-					if (isValid && t.body) {
-						const sessionId = UTIL.ranGen('0123456789abcdef', 16);
-						const reader = t.body.getReader();
-
-						await chrome.runtime.sendMessage(chrome.runtime.id, {
-							task: 'blobChunkDownload',
-							sessionId, filename, subFolder, chunk: null, done: false
-						});
-
-						ACTIVE.ping({ id: downloadId, name: filename, percentage: 0 });
-
-						try {
-							const bytes = { total: +t.headers.get('Content-Length') || 0, loaded: 0 };
-
-							while (true) {
-								const { done, value } = await reader.read();
-
-								if (value !== undefined) {
-									bytes.loaded += value?.byteLength || 0;
-									bytes.percentage = bytes.total ? (bytes.loaded / bytes.total * 100) | 0 : 0;
-								}
-
-								ACTIVE.ping({ id: downloadId, name: filename, percentage: bytes.percentage });
-
-								if (done) {
-									await chrome.runtime.sendMessage(chrome.runtime.id, {
-										task: 'blobChunkDownload', sessionId, chunk: null, done: true
-									});
-
-									pipe(`Downloaded ${url} (chunked blob fallback)`);
-									revertState(buttonElement);
-
-									SPLASH.message(`✓ Downloaded video (blob:${sessionId})`, {
-										duration: 2500, state: 1
-									}); break;
-								}
-
-								const uint8 = new Uint8Array(value.buffer);
-								const binary = new Array(uint8.length);
-
-								for (let i = 0; i < uint8.length; i++) {
-									binary[i] = String.fromCharCode(uint8[i]);
-								}
-
-								await chrome.runtime.sendMessage(chrome.runtime.id, {
-									task: 'blobChunkDownload',
-									sessionId,
-									chunk: btoa(binary.join('')),
-									done: false
-								});
-							}
-						} catch (err) {
-							pipe(`Chunk send error: ${err}`);
-							fallback(url);
-						}
-					} else {
-						pipe(`Blob fallback probe failed for ${url} (${contentType} - ${t.status})`);
-						fallback(url);
-					}
-				}).catch((err) => {
-					pipe(err);
-					fallback(url);
-				});
+		// Attempt download using chrome API (@ service.js)
+		fetch(url, TTDB.headers).then(async (t) => {
+			if (!UTIL.validateVideoRequest(t) || !t.body) { // Check if the content type is invalid
+				pipe(`✘ Probe failed for ${url} (${t.headers.get('Content-Type') || ''} - ${t.status})`, t);
+				return fallback(url);
 			}
+
+			pipe('✓ Probe is valid', t);
+
+			// Create blob from response and send its URL to backend worker
+			const chromium = UTIL.isChromium()
+			const videoUrl = chromium ? URL.createObjectURL(await t.blob()) : url;
+			const response = await chrome.runtime.sendMessage({
+				task: 'fileDownload', url: videoUrl, filename, subFolder
+			});
+
+			if (response.success) {
+				pipe(`✓ Downloaded ${url}`);
+				SPLASH.message('✓ Downloaded video', { duration: 2500, state: 1 });
+			} else {
+				pipe(`✘ Downloading failed`, response);
+				fallback(url);
+			}
+
+			// Reset download state and clear blob
+			revertState(buttonElement);
+			if (chromium) URL.revokeObjectURL(videoUrl);
+		}).catch((error) => {
+			pipe(error);
+			fallback(url);
 		});
+
 	};
 
 	/**
@@ -1693,8 +1656,8 @@
 				}
 
 				const attrFilename = button.getAttribute('filename') || null;
-				const attrApiId = button.getAttribute('video-id') || null;
-				const attrUrl = button.getAttribute('href') || null;
+				const attrApiId    = button.getAttribute('video-id') || null;
+				const attrUrl      = button.getAttribute('href')     || null;
 
 				let nameTemplate = await getStoredSetting('download-naming-template');
 
@@ -1716,6 +1679,7 @@
 				}).then(async (webData) => {
 					if (webData.video && webData.video.playAddr) {
 						usageData.videoUrl = webData.video.playAddr;
+
 						if (nameTemplate) {
 							usageData.filename = getFileNameTemplate(videoData, webData, nameTemplate);
 						} pipe('Web API data was found:', { response: webData });

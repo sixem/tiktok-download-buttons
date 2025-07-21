@@ -52,7 +52,7 @@ const optionsGet = (args) => {
 };
 
 /**
- * Attempts to download a file using `chrome.downloads.download`
+ * Attempts to download a file using `browser.downloads.download`
  * 
  * @param {object} args 
  */
@@ -68,41 +68,15 @@ const fileDownload = async (args) => {
 	}
 
 	try {
-		const probe = await fetch(url, {
-			method: 'HEAD',
-			mode: 'cors',
-			credentials: 'include',
-			referrerPolicy: 'strict-origin-when-cross-origin'
-		});
-
-		const contentType = probe.headers.get('Content-Type') || '';
-
-		const isValid = probe.ok
-			&& (contentType.includes('video/') || contentType.includes('application/octet-stream'))
-			&& parseInt(probe.headers.get('Content-Length') || '0') > 1000;
-
-		if (!isValid) {
-			console.warn(`Blob fallback probe failed for ${url} (${contentType} - ${probe.status})`, contentType);
-			args.sendResponse({ success: false, error: 'Invalid video response' });
-			return;
-		}
-	} catch (probeError) {
-		console.error('[TTDB] Probe error:', probeError);
-		args.sendResponse({ success: false, error: 'Probe failed' });
-		return;
-	}
-
-	try {
 		console.log('[TTDB]', 'Attempting download', {
-			filename: `${subFolder ? subFolder : ''}${filename}`,
-			url: url
+			filename: `${subFolder ? subFolder : ''}${filename}`, url: url
 		});
 
 		chrome.downloads.download({
 			conflictAction: 'uniquify',
 			filename: `${subFolder ? subFolder : ''}${filename}`,
 			url: url,
-			method: 'GET',
+			...(url.startsWith('http') && { method: 'GET' }),
 			saveAs: false
 		}, (itemId) => {
 			chrome.downloads.onChanged.addListener((delta) => {
@@ -112,13 +86,13 @@ const fileDownload = async (args) => {
 					if (delta.endTime || (delta.state && delta.state.current === 'complete')) {
 						args.sendResponse({ itemId: itemId, success: true }); // Successful download
 					} else if (delta.error) {
-						args.sendResponse({ success: false });
+						args.sendResponse({ success: false, error: delta.error });
 					}
 				}
 			});
 		});
 	} catch (error) {
-		args.sendResponse({ success: false });
+		args.sendResponse({ success: false, error });
 	}
 };
 
@@ -163,79 +137,6 @@ const serviceFetch = async (args) => {
 };
 
 /**
- * Handles blob downloads
- *
- * @param {{data: object, sendResponse: Function}} args
- */
-const blobChunkDownload = async ({ data, sendResponse }) => {
-	const { sessionId, filename, subFolder = '', chunk, done } = data;
-	const sessions = globalThis.downloadSessions;
-
-	const ok   = extra => sendResponse({ success: true, ...extra });
-	const fail = error => sendResponse({ success: false, error });
-
-	if (!sessions.has(sessionId) && chunk === null && !done) {
-		sessions.set(sessionId, { chunks: [], filename, subFolder });
-		return ok();
-	}
-
-	const session = sessions.get(sessionId);
-
-	if (!session) {
-		return fail('Invalid download session');
-	}
-
-	if (chunk !== null) {
-		session.chunks.push(Uint8Array.from(atob(chunk), c => c.charCodeAt(0)).buffer);
-		return ok();
-	}
-
-	if (!done) {
-		return fail('Invalid message');
-	}
-
-	try {
-		const blob   = new Blob(session.chunks);
-		const bytes  = new Uint8Array(await blob.arrayBuffer());
-		const binary = new Array(bytes.length);
-
-		for (let i = 0; i < bytes.length; i++) {
-			binary[i] = String.fromCharCode(bytes[i]);
-		}
-
-		const dataUrl  = `data:video/mp4;base64,${btoa(binary.join(''))}`;
-		const fullName = session.subFolder
-			? `${session.subFolder.replace(/\/?$/, '/')}${session.filename}`
-			: session.filename;
-
-		const downloadId = await new Promise((resolve, reject) => {
-			chrome.downloads.download(
-				{ url: dataUrl, filename: fullName, conflictAction: 'uniquify', saveAs: false },
-				id => chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(id)
-			);
-		});
-
-		await new Promise(resolve => {
-			const listener = delta => {
-				if (delta.id === downloadId && delta.state?.current === 'complete') {
-					chrome.downloads.onChanged.removeListener(listener);
-					resolve();
-				}
-			};
-
-			chrome.downloads.onChanged.addListener(listener);
-		});
-
-		ok();
-	} catch (err) {
-		console.error('[TTDB] Blob download error:', err);
-		fail(err.message);
-	} finally {
-		sessions.delete(sessionId);
-	}
-};
-
-/**
  * `onMessage` listener
  */
 chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
@@ -245,8 +146,7 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 		'windowOpen': windowOpen,
 		'fileShow': showDefaultFolder,
 		'optionsGet': optionsGet,
-		'fetch': serviceFetch,
-		'blobChunkDownload': blobChunkDownload
+		'fetch': serviceFetch
 	};
 
 	if (tasks[data.task]) {
