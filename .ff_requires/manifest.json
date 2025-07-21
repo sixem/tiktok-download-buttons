@@ -1,40 +1,55 @@
 {
-	"name": "TikTok Download Buttons",
-	"description": "Adds download buttons to TikTok videos",
-	"author": "emy",
-	"manifest_version": 2,
-	"version": "1.1.91",
-	"homepage_url": "https://github.com/sixem/tiktok-download-buttons",
-	"icons": {
-		"48": "48.png",
-		"128": "128.png"
-	},
-	"browser_action": {
-		"default_title": "TikTok Download Buttons",
-		"default_popup": "popup.html",
-		"default_icon": "128.png"
-	},
-	"background": {
-		"scripts": ["service.js"],
-		"persistent": true
-	},
-	"content_scripts": [{
-		"matches": [
-			"https://tiktok.com/*",
-			"https://www.tiktok.com/*"
-		],
-		"js": ["main.js"],
-		"css": ["main.css"],
-		"run_at": "document_idle"
-	}],
-	"permissions": [
-		"downloads",
-		"storage",
-		"webRequest",
-		"webRequestBlocking",
-		"*://*.tiktok.com/*",
-		"https://tiktok.com/*",
-		"https://*.tiktokcdn.com/*",
-		"https://*.tiktokv.com/*"
-	]
+    "name": "TikTok Download Buttons",
+    "description": "Adds download buttons to TikTok videos",
+    "author": "emy",
+    "manifest_version": 3,
+    "version": "1.1.91",
+    "homepage_url": "https://github.com/sixem/tiktok-download-buttons",
+    "icons": {
+        "48": "48.png",
+        "128": "128.png"
+    },
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "scripts": [
+            "service.js"
+        ]
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://tiktok.com/*",
+                "https://www.tiktok.com/*"
+            ],
+            "js": [
+                "main.js"
+            ],
+            "css": [
+                "main.css"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "permissions": [
+        "downloads",
+        "storage",
+        "declarativeNetRequestWithHostAccess"
+    ],
+    "host_permissions": [
+        "*://*.tiktok.com/*",
+        "https://tiktok.com/*",
+        "https://*.tiktokcdn.com/*",
+        "https://*.tiktokv.com/*"
+    ],
+    "declarative_net_request": {
+        "rule_resources": [
+            {
+                "id": "ruleset_1",
+                "enabled": true,
+                "path": "ruleset.json"
+            }
+        ]
+    }
 }
