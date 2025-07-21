@@ -324,7 +324,6 @@
 		clearTimeout(ACTIVE.running[hash].timeout);
 
 		ACTIVE.running[hash].item.percentage = item.percentage;
-		ACTIVE.running[hash].timeout = setTimeout(() => ACTIVE.remove(item.id), 1E3);
 		ACTIVE.refreshUi();
 	};
 
@@ -842,7 +841,7 @@
 				fetch(url, TTDB.headers).then(async (t) => {
 					const downloadId = `${subFolder}/${filename}`;
 					const contentType = t.headers.get('Content-Type') || '';
-					const downloadName = filename.substring(0, 23) + '...';
+					const downloadName = filename.substring(0, 25) + ' ...';
 
 					const isValid = t.ok
 						&& (contentType.includes('video/')
