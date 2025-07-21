@@ -30,6 +30,9 @@ const options = {
 	}
 };
 
+/** Active download sessions */
+globalThis.downloadSessions = globalThis.downloadSessions || new Map();
+
 /** Set default storage values */
 Object.keys(options).forEach((key) => {
 	chrome.storage.local.get(key, (result) => {
@@ -76,7 +79,7 @@ const fileDownload = async (args) => {
 
 		const isValid = probe.ok
 			&& (contentType.includes('video/') || contentType.includes('application/octet-stream'))
-			&& arseInt(probe.headers.get('Content-Length') || '0') > 1000;
+			&& parseInt(probe.headers.get('Content-Length') || '0') > 1000;
 
 		if (!isValid) {
 			console.warn(`Blob fallback probe failed for ${url} (${contentType} - ${probe.status})`, contentType);
@@ -144,6 +147,8 @@ const windowOpen = (args) => {
 
 /**
  * Fetching function
+ * 
+ * @param {object} args 
  */
 const serviceFetch = async (args) => {
 	const url = args.data.url;
@@ -160,6 +165,83 @@ const serviceFetch = async (args) => {
 };
 
 /**
+ * Handles blob downloads
+ *
+ * @param {{data: object, sendResponse: Function}} args
+ */
+const blobChunkDownload = async ({ data, sendResponse }) => {
+	const { sessionId, filename, subFolder = '', chunk, done } = data;
+	const sessions = globalThis.downloadSessions;
+
+	const ok = extra => sendResponse({ success: true, ...extra });
+	const fail = error => sendResponse({ success: false, error });
+
+	if (!sessions.has(sessionId) && chunk === null && !done) {
+		sessions.set(sessionId, { chunks: [], filename, subFolder });
+		return ok();
+	}
+
+	const session = sessions.get(sessionId);
+
+	if (!session) {
+		return fail('Invalid download session');
+	}
+
+	if (chunk !== null) {
+		session.chunks.push(
+			Uint8Array.from(atob(chunk), c => c.charCodeAt(0)).buffer
+		);
+		
+		return ok();
+	}
+
+	if (!done) {
+		return fail('Invalid message');
+	}
+
+	try {
+		const blob   = new Blob(session.chunks);
+		const bytes  = new Uint8Array(await blob.arrayBuffer());
+		const binary = new Array(bytes.length);
+
+		for (let i = 0; i < bytes.length; i++) {
+			binary[i] = String.fromCharCode(bytes[i]);
+		}
+
+		const dataUrl  = `data:video/mp4;base64,${btoa(binary.join(''))}`;
+		const fullName = session.subFolder
+			? `${session.subFolder.replace(/\/?$/, '/')}${session.filename}`
+			: session.filename;
+
+		const downloadId = await new Promise((resolve, reject) => {
+			chrome.downloads.download(
+				{ url: dataUrl, filename: fullName, conflictAction: 'uniquify', saveAs: false },
+				id => chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(id)
+			);
+		});
+
+		await new Promise(resolve => {
+			const listener = delta => {
+				if (delta.id === downloadId && delta.state?.current === 'complete') {
+					chrome.downloads.onChanged.removeListener(listener);
+					resolve();
+				}
+			};
+
+			chrome.downloads.onChanged.addListener(listener);
+		});
+
+		ok();
+	} catch (err) {
+		console.error('[TTDB] Blob download error:', err);
+		fail(err.message);
+	} finally {
+		sessions.delete(sessionId);
+	}
+};
+
+
+/**
  * `onMessage` listener
  */
 chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
@@ -169,7 +251,8 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 		'windowOpen': windowOpen,
 		'fileShow': showDefaultFolder,
 		'optionsGet': optionsGet,
-		'fetch': serviceFetch
+		'fetch': serviceFetch,
+		'blobChunkDownload': blobChunkDownload
 	};
 
 	if (tasks[data.task]) {

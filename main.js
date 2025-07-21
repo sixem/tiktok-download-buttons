@@ -714,34 +714,66 @@
 			if (response.success) {
 				pipe(`Downloaded ${url}`);
 				revertState(buttonElement);
-				SPLASH.message(`[OK] Downloaded video`, {
+
+				SPLASH.message(`✓ Downloaded video`, {
 					duration: 2500, state: 1
 				});
 			} else {
-				// Attempt download using .blob()
-				// We can't use a subfolder here since this is not using the browser API
-				fetch(url, TTDB.headers).then((t) => {
+				// Attempt stream/blob chunk send to background for download (supports subfolder)
+				fetch(url, TTDB.headers).then(async (t) => {
 					const contentType = t.headers.get('Content-Type') || '';
-					const isValid = t.ok // Probe for valid content type
-						&& (contentType.includes('video/')
+
+					const isValid = t.ok 
+						&& (contentType.includes('video/') 
 							|| contentType.includes('application/octet-stream'))
 						&& parseInt(t.headers.get('Content-Length') || '0') > 1000;
 
-					if (isValid) {
-						return t.blob().then((b) => {
-							const anchor = document.createElement('a');
-							anchor.href = URL.createObjectURL(b);
-							anchor.setAttribute('download', filename);
+					if (isValid && t.body) {
+						const reader = t.body.getReader();
+						const sessionId = UTIL.ranGen('0123456789abcdef', 16);
 
-							UTIL.dispatchEvent(anchor, MouseEvent, 'click');
-							anchor.remove();
-							revertState(buttonElement);
-							SPLASH.message(`[OK] Attempting download ...`, {
-								duration: 2500
-							});
+						await chrome.runtime.sendMessage(chrome.runtime.id, {
+							task: 'blobChunkDownload',
+							sessionId, filename, subFolder, chunk: null, done: false
 						});
+
+						try {
+							while (true) {
+								const { done, value } = await reader.read();
+
+								if (done) {
+									await chrome.runtime.sendMessage(chrome.runtime.id, {
+										task: 'blobChunkDownload', sessionId, chunk: null, done: true
+									});
+
+									pipe(`Downloaded ${url} (chunked blob fallback)`);
+									revertState(buttonElement);
+
+									SPLASH.message(`✓ Downloaded video (blob:${sessionId})`, {
+										duration: 2500, state: 1
+									}); break;
+								}
+
+								const uint8 = new Uint8Array(value.buffer);
+								const binary = new Array(uint8.length);
+
+								for (let i = 0; i < uint8.length; i++) {
+									binary[i] = String.fromCharCode(uint8[i]);
+								}
+
+								await chrome.runtime.sendMessage(chrome.runtime.id, {
+									task: 'blobChunkDownload',
+									sessionId,
+									chunk: btoa(binary.join('')),
+									done: false
+								});
+							}
+						} catch (err) {
+							pipe(`Chunk send error: ${err}`);
+							fallback(url);
+						}
 					} else {
-						pipe(`Blob fallback probe failed for ${url} (${contentType} - ${t.status})`, contentType);
+						pipe(`Blob fallback probe failed for ${url} (${contentType} - ${t.status})`);
 						fallback(url);
 					}
 				}).catch(() => fallback(url));
@@ -999,19 +1031,16 @@
 
 		// Observe container for changes
 		observer = new MutationObserver(() => {
-			inject(); // (Re-)inject to new action bar if needed
-			clearTimeout(timer);
+			// (Re-)inject to new action bar if needed
+			inject(); clearTimeout(timer);
 
 			// Disconnects observer after an idle time
-			timer = setTimeout(() => {
-				observer.disconnect();
-			}, 1E5);
+			timer = setTimeout(() => observer.disconnect(), 1E5);
 		});
 
 		// Start observing action bar container for changes
 		observer.observe(getActionBar().parentNode, {
-			childList: true,
-			subtree: true
+			childList: true, subtree: true
 		});
 	}
 
@@ -1197,6 +1226,7 @@
 	/** Browser items (when opening a video grid item or on the `For You` page) */
 	itemData.extract[TTDB.MODE.BROWSER] = (data) => {
 		const videoData = {};
+		
 		let itemUser = null;
 
 		if (data.env === TTDB.ENV.APP) {
@@ -1352,12 +1382,7 @@
 	* @param {object}      data 
 	*/
 	itemData.get = (container, data) => {
-		let videoData = {
-			id: null,
-			user: null,
-			url: null
-		};
-
+		let videoData = { id: null, user: null, url: null };
 		const videoElement = container.querySelector('video');
 
 		if (videoElement && itemData.extract[data.mode]) {
@@ -1523,9 +1548,7 @@
 		let fileName = `${videoData.user ? videoData.user + ' - ' : ''}${videoIdentifier}`;
 
 		DOM.setAttributes(button, {
-			'href': videoData.url,
-			'filename': `${fileName.trim()}.mp4`,
-			'download': fileName
+			filename: `${fileName.trim()}.mp4`
 		});
 
 		if (videoData.videoApiId) {
@@ -1542,9 +1565,9 @@
 					button.classList.add('loading'); // Set loading state
 				}
 
-				const attrUrl = button.getAttribute('href') || null;
 				const attrFilename = button.getAttribute('filename') || null;
-				const attrApiId = button.getAttribute('video-id') || null;
+				const attrApiId    = button.getAttribute('video-id') || null;
+				const attrUrl      = button.getAttribute('href')     || null;
 
 				let nameTemplate = await getStoredSetting('download-naming-template');
 
@@ -1594,11 +1617,9 @@
 				});
 
 				if (!usageData.videoUrl) {
-					SPLASH.message('[Error] No video URL was found for download.', {
+					SPLASH.message('✘ No video URL was found for download.', {
 						duration: 5000, state: 3
-					});
-
-					return;
+					}); return;
 				}
 
 				pipe('Attempting to download using data: ', usageData);
@@ -1617,9 +1638,7 @@
 		return button;
 	};
 
-	const itemSetup = {
-		setters: {}
-	};
+	const itemSetup = { setters: {} };
 
 	itemSetup.setters[TTDB.MODE.BROWSER] = (item, data) => {
 		let linkContainer = null;
@@ -1656,7 +1675,7 @@
 			}
 
 			const callback = (mutationsList) => {
-				for (let mutation of mutationsList) {
+				for (const mutation of mutationsList) {
 					if (mutation.type === 'childList') {
 						clearTimeout(TTDB.timers.browserObserver);
 						TTDB.timers.browserObserver = setTimeout(() => {
@@ -1728,9 +1747,7 @@
 		});
 
 		DOM.setStyle(item, { 'position': 'relative' });
-
 		item.appendChild(button);
-
 		setTimeout(() => { button.style.opacity = 1; }, 100);
 
 		return true;
@@ -1776,6 +1793,7 @@
 	itemSetup.setters[TTDB.MODE.SWIPER_SLIDE] = (item, data) => {
 		const videoPreview = item.querySelector('img');
 		const videoWrapper = item.querySelector('div[class*="VideoWrapperForSwiper"]');
+
 		let videoElement = item.querySelector('video');
 
 		if ((videoElement || videoPreview) && videoWrapper) {
@@ -1803,9 +1821,8 @@
 			if (videoPreview && !videoElement) {
 				// Item has not loaded, so we'll prepare and watch for it
 				const container = videoWrapper;
-
-				const observer = new MutationObserver((mutationsList, observer) => {
-					for (let mutation of mutationsList) {
+				const observer  = new MutationObserver((mutationsList, observer) => {
+					for (const mutation of mutationsList) {
 						if (mutation.type === 'childList') {
 							const videoData = itemData.get(item, data);
 
@@ -1820,10 +1837,7 @@
 					}
 				});
 
-				observer.observe(container, {
-					childList: true,
-					subtree: true
-				});
+				observer.observe(container, { childList: true, subtree: true });
 			}
 
 			return true;
@@ -1857,14 +1871,11 @@
 				button = button.querySelector('a');
 
 				const widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]');
-
-				DOM.setStyle(button, {
-					'width': `${widthTarget ? widthTarget.offsetWidth : 320}px`
-				});
+				DOM.setStyle(button, { 'width': `${widthTarget ? widthTarget.offsetWidth : 320}px` });
 
 				// We already have a video element
 				if (videoElement) {
-					let videoData = itemData.get(item, data);
+					const videoData = itemData.get(item, data);
 
 					// We have a valid video URL, so set download data
 					if (videoData.url && !button.ttIsProcessed) {
@@ -1892,8 +1903,8 @@
 
 		if (matches) {
 			const [, username, videoId] = matches;
-
-			let button = createButton.BASIC_PLAYER();
+			const button = createButton.BASIC_PLAYER();
+			
 			item.prepend(button);
 
 			button.classList.add('share');
@@ -1906,7 +1917,7 @@
 				id: videoId,
 				videoApiId: videoId,
 				user: username,
-				url: ""
+				url: ''
 			});
 		}
 	};
@@ -1989,16 +2000,11 @@
 	// Check for updates on `scroll`
 	document.addEventListener('scroll', () => {
 		clearTimeout(TTDB.timers.scrollBreak);
-
-		TTDB.timers.scrollBreak = setTimeout(() => {
-			TTDB.setInterval(20);
-		}, 250);
+		TTDB.timers.scrollBreak = setTimeout(() => TTDB.setInterval(20), 250);
 	});
 
 	// Check for updates on `click`
-	window.addEventListener('click', () => {
-		TTDB.setInterval(10);
-	});
+	window.addEventListener('click', () => TTDB.setInterval(10));
 
 	const observeApp = (container) => {
 		if (TTDB.observers.main) {
@@ -2047,8 +2053,7 @@
 	// Tracks and does item checks on the page
 	setInterval(() => {
 		if (TTDB.interval.counter > 0) {
-			updatePage();
-			TTDB.interval.counter--;
+			updatePage(); TTDB.interval.counter--;
 		}
 	}, TTDB.interval.delay);
 
