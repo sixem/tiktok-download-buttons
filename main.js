@@ -818,6 +818,7 @@
 		 */
 		const fallback = async (url) => {
 			if (hasFallbacked) return;
+			
 			pipe('✘ File could not be fetched — attempting to open instead.');
 
 			SPLASH.message(
@@ -852,7 +853,8 @@
 
 			pipe('✓ Probe is valid', t);
 
-			// Create blob from response and send its URL to backend worker
+			// Chrome  : Create blob from response and send its URL to backend worker
+			// Firefox : Pass video URL directly, as that's allowed in this environment
 			const chromium = UTIL.isChromium()
 			const videoUrl = chromium ? URL.createObjectURL(await t.blob()) : url;
 			const response = await chrome.runtime.sendMessage({
@@ -867,9 +869,11 @@
 				fallback(url);
 			}
 
-			// Reset download state and clear blob
 			revertState(buttonElement);
-			if (chromium) URL.revokeObjectURL(videoUrl);
+
+			if (chromium) {
+				URL.revokeObjectURL(videoUrl);
+			}
 		}).catch((error) => {
 			pipe(error);
 			fallback(url);
