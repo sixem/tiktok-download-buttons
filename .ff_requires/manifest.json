@@ -51,5 +51,10 @@
                 "path": "ruleset.json"
             }
         ]
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "{8fea972f-c152-4f9d-b859-845c6d39bb3c}"
+        }
     }
 }
