@@ -10,7 +10,7 @@
 	 * Sets the amount of update attempts that should be done
 	 */
 	TTDB.interval = {
-		counter: 50,
+		counter: 25,
 		delay: 250
 	};
 
@@ -21,7 +21,6 @@
 		FEED: '0',
 		GRID: '1',
 		BROWSER: '2',
-		SWIPER_SLIDE: '3', /** Is this an obsolete mode? */
 		BASIC_PLAYER: '4',
 		SHARE_OVERLAY: '-1'
 	};
@@ -1000,34 +999,6 @@
 			wrapper.appendChild(button);
 			return wrapper;
 		},
-		/** Swiper slide items */
-		SWIPER_SLIDE: () => {
-			/** Create download button */
-			const button = DOM.createButton({
-				content: ['appendChild', DOM.createPolygonSvg({
-					dimensions: [24, 24],
-					points: [
-						'13', '17.586', '13', '4', '11', '4',
-						'11', '17.586', '4.707', '11.293', '3.293',
-						'12.707', '12', '21.414', '20.707', '12.707',
-						'19.293', '11.293', '13', '17.586'
-					],
-					style: {
-						color: '#161823'
-					},
-				})],
-				innerType: 'div',
-				class: 'ttdb__button_swiper_slide'
-			});
-
-			/** Set directly, as this makes it more compatible with dark mode addons */
-			DOM.setStyle(button, {
-				'background-color': 'rgba(0, 0, 0, 0.25)',
-				'color': '#000'
-			});
-
-			return button;
-		},
 		/** Browser items (full-view items) */
 		BROWSER: () => {
 			/** Create download button */
@@ -1884,63 +1855,6 @@
 		return false;
 	};
 
-	/** Set up swiper slide item (may be obsolete) */
-	itemSetup.setters[TTDB.MODE.SWIPER_SLIDE] = (item, data) => {
-		const videoPreview = item.querySelector('img');
-		const videoWrapper = item.querySelector('div[class*="VideoWrapperForSwiper"]');
-
-		let videoElement = item.querySelector('video');
-
-		if ((videoElement || videoPreview) && videoWrapper) {
-			item.setAttribute('is-downloadable', 'true');
-
-			// Create download button
-			const button = createButton.SWIPER_SLIDE();
-			videoWrapper.prepend(button);
-
-			// We already have a valid video element
-			if (videoElement) {
-				const videoData = itemData.get(item, data);
-
-				// We have a valid video URL, so set download data
-				if (videoData.url && !button.ttIsProcessed) {
-					setTimeout(() => button.style.opacity = 1, 50);
-					downloadHook(button, videoData);
-					button.ttIsProcessed = true;
-				} else {
-					videoElement = null;
-				}
-			}
-
-			// Only preview, no video has loaded yet
-			if (videoPreview && !videoElement) {
-				// Item has not loaded, so we'll prepare and watch for it
-				const container = videoWrapper;
-				const observer = new MutationObserver((mutationsList, observer) => {
-					for (const mutation of mutationsList) {
-						if (mutation.type === 'childList') {
-							const videoData = itemData.get(item, data);
-
-							// We have a valid video URL, so set download data
-							if (videoData.url && !button.ttIsProcessed) {
-								observer.disconnect();
-								setTimeout(() => button.style.opacity = 1, 50);
-								downloadHook(button, videoData);
-								button.ttIsProcessed = true;
-							}
-						}
-					}
-				});
-
-				observer.observe(container, { childList: true, subtree: true });
-			}
-
-			return true;
-		}
-
-		return false;
-	};
-
 	/** Set up basic player item ("theater" mode) */
 	itemSetup.setters[TTDB.MODE.BASIC_PLAYER] = (item, data) => {
 		let videoElement = item.querySelector('video');
@@ -1950,14 +1864,14 @@
 
 			// Create download button
 			let button = createButton.BASIC_PLAYER();
-			let parent = data.container.closest('div[class*="-DivLeftContainer "]');
+
+			// Get parent element
+			const parent = data.container.closest('div[class*="-DivLeftContainer "]');
 
 			if (parent) {
 				let existingButton = parent.querySelector(`.${button.classList[0]}`);
 
-				if (existingButton) {
-					existingButton.remove();
-				}
+				if (existingButton) existingButton.remove();
 
 				parent.children[0].parentNode.insertBefore(
 					button, parent.children[0].nextSibling
@@ -1966,7 +1880,7 @@
 				button = button.querySelector('a');
 
 				const widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]');
-				DOM.setStyle(button, { 'width': `${widthTarget ? widthTarget.offsetWidth : 320}px` });
+				DOM.setStyle(button, { 'width': `${Math.min(widthTarget ? widthTarget.offsetWidth : 240, 240)}px` });
 
 				// We already have a video element
 				if (videoElement) {
@@ -1990,9 +1904,7 @@
 		const input = item.querySelector('input[value*="/video/"]');
 		item.setAttribute('is-downloadable', 'true');
 
-		if (!input) {
-			return;
-		}
+		if (!input) return;
 
 		const matches = EXPR.vanillaVideoUrl(input.getAttribute('value'));
 
@@ -2050,8 +1962,6 @@
 					currentMode = TTDB.MODE.FEED;
 				} else if (classList.contains('browse-mode') || classList.contains('video-card-big')) {
 					currentMode = TTDB.MODE.BROWSER;
-				} else if (classList.contains('swiper-slide')) {
-					currentMode = TTDB.MODE.SWIPER_SLIDE;
 				} else if (item.querySelector('div.tiktok-web-player > video')) {
 					currentMode = TTDB.MODE.BASIC_PLAYER;
 				} else if (item.querySelector('input[value*="/video/"]')) {
