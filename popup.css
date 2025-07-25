@@ -1,8 +1,8 @@
 body
 {
-    color: #b8b8b8;
-    background-color: #272727;
-    border: 2px solid #262626;
+    color: #a3a3a3;
+    background-color: #000000;
+    border: 2px solid #181818;
     margin: 0px;
     position: relative;
     width: 320px;
@@ -15,7 +15,7 @@ body > div#version,
 body > a#website
 {
     visibility: hidden;
-    color: #484848;
+    color: #9f9f9f;
 }
 
 body > div#version
@@ -64,11 +64,11 @@ body > div.header
     text-align: center;
     font-style: italic;
     display: block;
-    background-color: #222222;
-    color: #666666;
+    color: #a9a9a9;
     width: 320px;
     padding: 8px 4px 10px 4px;
     border-bottom: 1px solid #1e1e1e;
+    background-color: #181818;
 }
 
 body > div.content
@@ -78,12 +78,14 @@ body > div.content
 
 body > div.content > div.category-divide
 {
-    background-color: #2e2e2e;
-    border-top: 1px solid #363636;
-    border-bottom: 1px solid #363636;
+    background-color: #181818;
+    color: #ffffff;
+    border-top: 2px solid #272727;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #272727;
     padding: 2px 0px 4px 10px;
     margin: 14px -12px 8px -12px;
-    font-weight: bold;
+    font-size: 1.1em;
 }
 
 body > div.content div.textbox-container input
@@ -95,12 +97,12 @@ body > div.content div.textbox-container input
 
     font-family: Consolas, monospace;
     border: 1px solid #2e2e2e;
-    background-color: #222222;
-    border-radius: 2px;
+    background-color: #000000;
+    border-radius: 3px;
     margin-top: 10px;
     display: block;
-    padding: 4px 8px;
-    color: #8d8d8d;
+    padding: 6px 8px;
+    color: #ffffff;
     width: calc(100% - 18px);
 }
 
@@ -158,19 +160,20 @@ body > button#settings-save
     -moz-transition: background-color 0.3s, color 0.3s;
     -o-transition: background-color 0.3s, color 0.3s;
 
-    width: 100%;
-    border: 1px solid #383838;
-    background-color: #323232;
-    padding: 4px 0px 5px;
+    background-color: #181818;
     color: #fff;
-    margin: 0px 0px 1px 0px;
+    margin: 4px;
     border-radius: 2px;
     cursor: pointer;
+    display: block;
+    border: none;
     color: #b8b8b8;
+    padding: 5px 10px;
+    width: calc(100% - 8px);
 }
 
 body > button#settings-save:hover
 {
-    background-color: #282828;
+    background-color: #2a2733;
     color: #fff;
 }
