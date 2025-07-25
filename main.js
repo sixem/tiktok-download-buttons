@@ -11,7 +11,7 @@
 	 */
 	TTDB.interval = {
 		counter: 25,
-		delay: 250
+		delay: 1000
 	};
 
 	/**
@@ -1996,15 +1996,9 @@
 		}
 	};
 
-	// Check for updates on `scroll`
-	document.addEventListener('scroll', () => {
-		clearTimeout(TTDB.timers.scrollBreak);
-		TTDB.timers.scrollBreak = setTimeout(() => TTDB.setInterval(20), 250);
-	});
-
-	// Check for updates on `click`
-	window.addEventListener('click', () => TTDB.setInterval(10));
-
+	/**
+	 * Simple debouncer
+	 */
 	const debounce = (f, ms) => {
 		let timeout;
 
@@ -2028,11 +2022,7 @@
 		}, 2000);
 
 		TTDB.observers.main = new MutationObserver(debouncedCallback);
-
-		TTDB.observers.main.observe(container, {
-			childList: true,
-			subtree: true
-		});
+		TTDB.observers.main.observe(container, { childList: true, subtree: true });
 
 		pipe('Watching for DOM changes ...');
 	};
@@ -2066,4 +2056,13 @@
 
 	// Create splash elements
 	SPLASH.create();
+
+	// Check for updates on `scroll`
+	window.addEventListener(!UTIL.isChromium() ? 'DOMMouseScroll' : 'mousewheel', () => {
+		clearTimeout(TTDB.timers.scrollBreak);
+		TTDB.timers.scrollBreak = setTimeout(() => TTDB.setInterval(20), 250);
+	});
+
+	// Check for updates on `click`
+	window.addEventListener('click', () => TTDB.setInterval(10), { passive: true });
 })();
