@@ -23,8 +23,6 @@ declare -a HAYSTACK=(
     'chrome.storage'
     'chrome.downloads'
     'chrome.tabs'
-    'Ask where to save each file before downloading'
-    'chrome://settings/downloads'
 )
 
 declare -a REPLACE=(
@@ -32,8 +30,6 @@ declare -a REPLACE=(
     'browser.storage'
     'browser.downloads'
     'browser.tabs'
-    'Always ask you where to save files'
-    'about:preferences'
 )
 
 mkdir "$OUTPUT"
