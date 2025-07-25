@@ -59,6 +59,7 @@ body a.link:hover
 
 body > div.header
 {
+    user-select: none;
     font-size: 120%;
     font-weight: bold;
     text-align: center;
@@ -78,6 +79,7 @@ body > div.content
 
 body > div.content > div.category-divide
 {
+    user-select: none;
     background-color: #181818;
     color: #ffffff;
     border-top: 2px solid #272727;
