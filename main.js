@@ -167,13 +167,8 @@
 	 * @returns 
 	 */
 	UTIL.checkNested = (obj, level, ...rest) => {
-		if (obj === undefined) {
-			return false;
-		}
-
-		if (rest.length == 0 && obj.hasOwnProperty(level)) {
-			return true;
-		}
+		if (obj === undefined) return false;
+		if (rest.length == 0 && obj.hasOwnProperty(level)) return true;
 
 		return UTIL.checkNested(obj[level], ...rest);
 	};
@@ -469,9 +464,9 @@
 
 	API.FORMATS = [
 		'play_addr',
+		'download_addr',
 		'play_addr_h264',
 		'play_addr_bytevc1',
-		'download_addr'
 	];
 
 	/**
@@ -570,9 +565,11 @@
 				data.aweme_detail.video[format].hasOwnProperty('data_size') &&
 				data.aweme_detail.video[format].hasOwnProperty('url_list') &&
 				data.aweme_detail.video[format].url_list.length > 0) {
-				const videoUrl = data.aweme_detail.video[format].url_list[0];
+
+				const videoUrl  = data.aweme_detail.video[format].url_list[0];
 				const videoSize = data.aweme_detail.video[format].data_size;
-				const videoRes = data.aweme_detail.video[format].height * data.aweme_detail.video[format].width;
+				const videoRes  = data.aweme_detail.video[format].height * data.aweme_detail.video[format].width;
+
 				urls.push([videoRes, videoSize, videoUrl]);
 			}
 		});
@@ -589,9 +586,10 @@
 			}
 
 			if (bestItem.hasOwnProperty('play_addr') && bestItem.play_addr.hasOwnProperty('url_list')) {
-				const videoUrl = bestItem.play_addr.url_list[0];
+				const videoUrl  = bestItem.play_addr.url_list[0];
 				const videoSize = bestItem.play_addr.data_size;
-				const videoRes = bestItem.play_addr.height * bestItem.play_addr.width;
+				const videoRes  = bestItem.play_addr.height * bestItem.play_addr.width;
+
 				urls.unshift([videoRes, videoSize, videoUrl]);
 			}
 		}
@@ -625,7 +623,7 @@
 				const data = response.data; // Get JSON data
 
 				if (response.error) {
-					pipe('API Response failed', '@', urlQuery);
+					pipe('API Response failed for:', urlQuery);
 				} else if (data) {
 					pipe('API Response:', data);
 				}
@@ -667,9 +665,7 @@
 						...videoData,
 						...API.extractId({
 							...data,
-							...{
-								videoId: videoId
-							}
+							...{ videoId }
 						}),
 						apiFullResponse: data
 					}; resolve(videoData);
@@ -1483,10 +1479,9 @@
 			appShareOverlay: 'div.TUXModal > div[data-e2e="share-group"]:not([is-downloadable])',
 			appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
 			appBrowserMode: 'div[class*="-DivBrowserModeContainer "]:not([is-downloadable])',
-			// appSwiperSlide: 'div.swiper div.swiper-slide:not([is-downloadable])',
+			appForYouArticle: 'main > div#column-list-container > article:not([is-downloadable])',
 			appBasicPlayer: 'div[class*="-DivLeftContainer "] div[class*="-DivVideoContainer "] \
 				div[class*="-DivContainer "]:not([is-downloadable])',
-			// appFeedArticle: 'article[class*="-ArticleItemContainer"]:not([is-downloadable])',
 			__nextGrid: 'div.video-feed div.video-feed-item:not([is-downloadable])',
 			__nextBig: 'div.video-feed-container div.feed-item-content:not([is-downloadable])',
 			__nextBrowser: 'div.tt-feed div.video-card-big.browse-mode:not([is-downloadable])'
@@ -1870,7 +1865,6 @@
 
 			if (parent) {
 				let existingButton = parent.querySelector(`.${button.classList[0]}`);
-
 				if (existingButton) existingButton.remove();
 
 				parent.children[0].parentNode.insertBefore(

@@ -1,7 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap');
 
-a.ttdb__button_feed>div>svg,
-a.ttdb__button_swiper_slide>div>svg {
+a.ttdb__button_feed>div>svg {
     transition: background-color 0.35s, color 0.35s, opacity 1s !important;
     -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
     -moz-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
@@ -9,7 +8,6 @@ a.ttdb__button_swiper_slide>div>svg {
 }
 
 a.ttdb__button_feed,
-a.ttdb__button_swiper_slide,
 a.ttdb__button_grid,
 a.ttdb__button_basic-player {
     transition: background-color 0.35s, color 0.35s, opacity 1s !important;
@@ -42,7 +40,6 @@ a.ttdb__button_browser.loading::after {
 }
 
 a.ttdb__button_feed.loading,
-a.ttdb__button_swiper_slide.loading,
 a.ttdb__button_grid.loading,
 a.ttdb__button_basic-player.loading,
 a.ttdb__button_browser.loading {
@@ -63,8 +60,7 @@ a.ttdb__button_browser[ttdb_mode="APP"] {
     margin: 10px 0px 10px 0px !important;
 }
 
-a.ttdb__button_feed,
-a.ttdb__button_swiper_slide {
+a.ttdb__button_feed {
     text-align: center;
     width: 48px;
     height: 48px;
@@ -72,13 +68,6 @@ a.ttdb__button_swiper_slide {
     border-radius: 100%;
     font-size: 1.5em;
     margin-bottom: 14px;
-}
-
-a.ttdb__button_swiper_slide {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    z-index: 1;
 }
 
 a.ttdb__button_feed {
@@ -99,7 +88,7 @@ a.ttdb__button_feed {
 }
 
 a.ttdb__button_feed:hover {
-    color: purple;
+    color: rgb(0, 255, 128);
 }
 
 a.ttdb__button_feed.loading>div {
@@ -161,24 +150,6 @@ a.ttdb__button_feed>div>svg {
     margin-top: -1px;
 }
 
-a.ttdb__button_swiper_slide>div {
-    width: 100%;
-    height: 100%;
-    background-repeat: no-repeat;
-    background-position: center center;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-a.ttdb__button_swiper_slide>div>svg {
-    fill: currentColor;
-    width: 55%;
-    margin-left: 1px;
-    margin-top: -1px;
-}
-
 a.ttdb__button_grid:not(.loading)>span::after {
     content: '\01F853';
     font-size: 16px !important;
@@ -193,9 +164,8 @@ a.ttdb__button_browser:hover {
     text-decoration: none;
 }
 
-a.ttdb__button_feed:hover>div>svg,
-a.ttdb__button_swiper_slide:hover>div>svg {
-    color: #fe4569 !important;
+a.ttdb__button_feed:hover>div>svg {
+    color: rgb(0, 255, 128) !important;
 }
 
 a.ttdb__button_grid:hover {
@@ -371,7 +341,7 @@ html[data-theme="light"] body>div.ttdb_downloading-active>div.item {
 html:not([data-theme]) a.ttdb__button_feed,
 html:not([data-theme="dark"]) a.ttdb__button_feed,
 html[data-theme="light"] a.ttdb__button_feed {
-    background-color: #f1f1f2;
+    background-color: rgb(0 0 0 / 10%);
     color: #000;
 }
 
@@ -388,15 +358,17 @@ html[data-theme="light"] a.ttdb__button_browser {
     color: #000;
 }
 
+html:not([data-theme]) a.ttdb__button_feed:hover > div > svg,
+html:not([data-theme="dark"]) a.ttdb__button_feed:hover > div > svg,
+html[data-theme="light"] a.ttdb__button_feed:hover > div > svg {
+    color: #fe2c55!important;
+}
+
 /* Dark mode colors */
 
 html[data-theme="dark"] a.ttdb__button_feed {
-    background-color: #2f2f2f;
+    background-color: rgb(255 255 255 / 10%);
     color: #fff;
-}
-
-html[data-theme="dark"] a.ttdb__button_feed:hover {
-    background-color: #252525;
 }
 
 html[data-theme="dark"] a.ttdb__button_feed svg {
