@@ -88,7 +88,7 @@ a.ttdb__button_feed {
 }
 
 a.ttdb__button_feed:hover {
-    color: rgb(0, 255, 128);
+    color: #fe4569;
 }
 
 a.ttdb__button_feed.loading>div {
@@ -165,7 +165,7 @@ a.ttdb__button_browser:hover {
 }
 
 a.ttdb__button_feed:hover>div>svg {
-    color: rgb(0, 255, 128) !important;
+    color: #fe4569 !important;
 }
 
 a.ttdb__button_grid:hover {
@@ -245,6 +245,7 @@ body>div.ttdb_splash-wrapper {
     z-index: 99999;
     opacity: 0;
     pointer-events: none;
+    user-select: none;
 }
 
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content {
@@ -257,20 +258,20 @@ body>div.ttdb_splash-wrapper>div.ttdb_splash-content {
     color: #fff;
     cursor: pointer;
     font-feature-settings: 'tnum';
-    backdrop-filter: blur(1px);
+    backdrop-filter: blur(2px);
     letter-spacing: 1px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
     font-size: 0.9em;
 }
 
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-success {
-    background-color: #00000096;
+    background-color: #3300ff42;
     color: #fff;
 }
 
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-warn {
-    background-color: #ffc800d9;
-    color: #fff;
+    background-color: rgb(255 200 0);
+    color: #000000;
 }
 
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-error {
@@ -358,10 +359,10 @@ html[data-theme="light"] a.ttdb__button_browser {
     color: #000;
 }
 
-html:not([data-theme]) a.ttdb__button_feed:hover > div > svg,
-html:not([data-theme="dark"]) a.ttdb__button_feed:hover > div > svg,
-html[data-theme="light"] a.ttdb__button_feed:hover > div > svg {
-    color: #fe2c55!important;
+html:not([data-theme]) a.ttdb__button_feed:hover>div>svg,
+html:not([data-theme="dark"]) a.ttdb__button_feed:hover>div>svg,
+html[data-theme="light"] a.ttdb__button_feed:hover>div>svg {
+    color: #fe2c55 !important;
 }
 
 /* Dark mode colors */

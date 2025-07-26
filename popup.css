@@ -60,16 +60,15 @@ body a.link:hover
 body > div.header
 {
     user-select: none;
-    font-size: 120%;
-    font-weight: bold;
     text-align: center;
-    font-style: italic;
+    letter-spacing: 1px;
     display: block;
-    color: #a9a9a9;
+    color: #d7d7d7;
     width: 320px;
-    padding: 8px 4px 10px 4px;
+    padding: 10px 4px 10px 4px;
     border-bottom: 1px solid #1e1e1e;
     background-color: #181818;
+    font-size: 1.1em;
 }
 
 body > div.content

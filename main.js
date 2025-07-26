@@ -849,7 +849,7 @@
 			pipe('✓ Probe is valid', t);
 
 			// Chrome  : Create blob from response and send its URL to backend worker
-			// Firefox : Pass video URL directly, as that's allowed in this environment
+			// Firefox : Pass video URL directly, as that's allowed in that environment
 			const chromium = UTIL.isChromium()
 			const videoUrl = chromium ? URL.createObjectURL(await t.blob()) : url;
 			const response = await chrome.runtime.sendMessage({
