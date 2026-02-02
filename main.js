@@ -1797,6 +1797,28 @@
 					return null;
 				};
 
+				const getWebVideoUrl = (webData) => {
+					const video = webData && webData.video ? webData.video : null;
+					if (!video) return null;
+
+					const candidates = [
+						video.playAddr,
+						video.downloadAddr,
+						video.playAddrH264,
+						video.playAddrBytevc1
+					];
+
+					for (const candidate of candidates) {
+						if (!candidate) continue;
+						if (typeof candidate === 'string') return candidate;
+						if (Array.isArray(candidate) && candidate.length) return candidate[0];
+						if (candidate.urlList && candidate.urlList.length) return candidate.urlList[0];
+						if (candidate.url_list && candidate.url_list.length) return candidate.url_list[0];
+					}
+
+					return null;
+				};
+
 				const usageData = {
 					videoUrl: attrUrl,
 					filename: attrFilename
@@ -1813,9 +1835,10 @@
 						videoApiId: attrApiId
 					}
 				}).then(async (webData) => {
-					if (webData.video && webData.video.playAddr) {
+					const webVideoUrl = getWebVideoUrl(webData);
+					if (webVideoUrl) {
 						if (!preferDomUrl) {
-							usageData.videoUrl = webData.video.playAddr;
+							usageData.videoUrl = webVideoUrl;
 						}
 
 						if (nameTemplate) {
