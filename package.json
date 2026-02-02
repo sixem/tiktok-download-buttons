@@ -1,0 +1,14 @@
+{
+	"name": "tiktok-download-buttons",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite build --watch"
+	},
+	"devDependencies": {
+		"sass-embedded": "^1.77.8",
+		"typescript": "^5.7.3",
+		"vite": "^7.0.0"
+	}
+}

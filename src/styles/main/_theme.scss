@@ -1,0 +1,50 @@
+/* Light mode colors */
+
+html:not([data-theme]) body>div.ttdb_downloading-active>div.item,
+html:not([data-theme="dark"]) body>div.ttdb_downloading-active>div.item,
+html[data-theme="light"] body>div.ttdb_downloading-active>div.item {
+    color: #fff;
+}
+
+
+html:not([data-theme]) a.ttdb__button_feed,
+html:not([data-theme="dark"]) a.ttdb__button_feed,
+html[data-theme="light"] a.ttdb__button_feed {
+    background-color: rgb(0 0 0 / 10%);
+    color: #000;
+}
+
+html:not([data-theme]) a.ttdb__button_feed svg,
+html:not([data-theme="dark"]) a.ttdb__button_feed svg,
+html[data-theme="light"] a.ttdb__button_feed svg {
+    color: #161823;
+}
+
+html:not([data-theme]) a.ttdb__button_browser,
+html:not([data-theme="dark"]) a.ttdb__button_browser,
+html[data-theme="light"] a.ttdb__button_browser {
+    background-color: #f1f1f2;
+    color: #000;
+}
+
+html:not([data-theme]) a.ttdb__button_feed:hover>div>svg,
+html:not([data-theme="dark"]) a.ttdb__button_feed:hover>div>svg,
+html[data-theme="light"] a.ttdb__button_feed:hover>div>svg {
+    color: #fe2c55 !important;
+}
+
+/* Dark mode colors */
+
+html[data-theme="dark"] a.ttdb__button_feed {
+    background-color: rgb(255 255 255 / 10%);
+    color: #fff;
+}
+
+html[data-theme="dark"] a.ttdb__button_feed svg {
+    color: #fff;
+}
+
+html[data-theme="dark"] a.ttdb__button_browser {
+    background-color: rgb(41, 41, 41);
+    color: #fff;
+}

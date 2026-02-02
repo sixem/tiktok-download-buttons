@@ -1,0 +1,48 @@
+import { TTDB, UTIL, SPLASH } from './state';
+import { setupLogging } from './logging';
+import { setupUtils } from './utils/index';
+import { setupExpressions } from './extractors/expressions';
+import { setupActiveDownloads } from './ui/active-downloads';
+import { setupSplash } from './ui/splash';
+import { observeApp, getAppContainer, startUpdateLoop } from './observe';
+
+export const bootstrap = () => {
+	setupLogging();
+	setupUtils();
+	setupExpressions();
+	setupActiveDownloads();
+	setupSplash();
+
+	let appContainer = getAppContainer();
+
+	if (appContainer) {
+		observeApp(appContainer);
+	} else {
+		let checks = 0;
+
+		TTDB.timers.appCreationWatcher = setInterval(() => {
+			appContainer = getAppContainer();
+
+			if (appContainer || checks === 10) {
+				clearInterval(TTDB.timers.appCreationWatcher);
+
+				if (appContainer) {
+					observeApp(appContainer);
+				}
+			}
+			checks++;
+		}, 1000);
+	}
+
+	startUpdateLoop();
+
+	SPLASH.create();
+
+	window.addEventListener(!UTIL.isChromium() ? 'DOMMouseScroll' : 'mousewheel', () => {
+		clearTimeout(TTDB.timers.scrollBreak);
+		TTDB.timers.scrollBreak = setTimeout(() => TTDB.setInterval(20), 250);
+	});
+
+	window.addEventListener('click', () => TTDB.setInterval(10), { passive: true });
+};
+

@@ -1,0 +1,9 @@
+@use './styles/main/fonts';
+@use './styles/main/buttons';
+@use './styles/main/overlays';
+@use './styles/main/theme';
+
+::selection {
+	background: #000000;
+	color: #ffffff;
+}

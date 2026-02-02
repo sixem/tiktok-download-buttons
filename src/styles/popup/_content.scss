@@ -1,0 +1,123 @@
+.popup__content
+{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 16px 16px 16px;
+}
+
+.card
+{
+    background: var(--popup-panel);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.card__header h3
+{
+    margin: 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--popup-soft);
+}
+
+.help
+{
+    margin: 0;
+    color: var(--popup-muted);
+    line-height: 1.4;
+    font-size: 12px;
+}
+
+input[type="text"]
+{
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--popup-panel-2);
+    color: var(--popup-text);
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="text"]::placeholder
+{
+    color: var(--popup-soft);
+}
+
+input[type="text"]:focus,
+input[type="text"]:focus-visible
+{
+    outline: none;
+    border-color: rgba(254, 44, 85, 0.5);
+    box-shadow: 0 0 0 2px rgba(254, 44, 85, 0.2);
+}
+
+.toggle
+{
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle input
+{
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.toggle__ui
+{
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    transition: background 0.2s ease, border 0.2s ease;
+}
+
+.toggle__ui::after
+{
+    content: "";
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.toggle input:checked + .toggle__ui
+{
+    background: var(--popup-accent-soft);
+    border-color: rgba(254, 44, 85, 0.6);
+    box-shadow: 0 0 10px rgba(254, 44, 85, 0.2);
+}
+
+.toggle input:checked + .toggle__ui::after
+{
+    transform: translateX(18px);
+    background: #fff;
+}
+
+.toggle__label
+{
+    font-size: 13px;
+}
+

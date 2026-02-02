@@ -1,0 +1,104 @@
+body>div.ttdb_downloading-active>div.item,
+body>div.ttdb_splash-wrapper {
+    font-family: "Noto Sans JP", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+body>div.ttdb_splash-wrapper {
+    transition: opacity 0.35s !important;
+    -webkit-transition: opacity 0.35s !important;
+    -moz-transition: opacity 0.35s !important;
+    -o-transition: opacity 0.35s !important;
+
+    position: fixed;
+    top: 0px;
+    right: 30px;
+    z-index: 99999;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content {
+    width: auto;
+    margin: 10px auto;
+    padding: 5px 10px 3px 10px;
+    display: inline-block;
+    text-align: center;
+    border-radius: 2px;
+    color: #fff;
+    cursor: pointer;
+    font-feature-settings: 'tnum';
+    backdrop-filter: blur(2px);
+    letter-spacing: 1px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    font-size: 0.9em;
+}
+
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-success {
+    background-color: #3300ff42;
+    color: #fff;
+}
+
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-warn {
+    background-color: rgb(255 200 0);
+    color: #000000;
+}
+
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content.state-error {
+    background-color: #ff0000c7;
+    color: #fff;
+}
+
+button.extract {
+    pointer-events: none !important;
+}
+
+button.extract div[class*="-DivContainer "] {
+    display: none !important;
+}
+
+body>div.ttdb_downloading-active {
+    position: fixed;
+    inset: auto 4px 4px auto;
+    z-index: 99999;
+
+    pointer-events: none;
+    display: flex;
+    justify-content: end;
+    gap: 6px;
+}
+
+body>div.ttdb_downloading-active>div.item {
+    background-color: #000000bf;
+    padding: 9px 8px 4px 8px;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 1s;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+
+    flex: 0 1 auto;
+    max-width: 20vw;
+}
+
+body>div.ttdb_downloading-active>div.item>div.progress {
+    background-color: #00ff66;
+    min-width: 0px;
+    max-width: 100%;
+    min-height: 3px;
+    max-height: 2px;
+    display: inline-block;
+    position: absolute;
+    inset: 0 auto auto 0;
+    transition: width 0.1s;
+}
+

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<head>
+    <link rel="stylesheet" href="popup.css">
+    <script src='popup.js'></script>
+</head>
+<body>
+    <div class="popup">
+        <header class="popup__header">
+            <div class="brand">
+                <div class="brand__title">TikTok Download Buttons</div>
+                <div id="version"></div>
+            </div>
+            <a href="#" id="website" target="_blank">Website</a>
+        </header>
+
+        <main class="popup__content">
+            <section class="card">
+                <div class="card__header">
+                    <h3>Behavior</h3>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="download-fallback-tab-focus">
+                    <span class="toggle__ui"></span>
+                    <span class="toggle__label">Focus on new tabs</span>
+                </label>
+                <p class="help">Decides if newly opened tabs (through the fallback) should be auto-focused on or not.</p>
+            </section>
+
+            <section class="card">
+                <div class="card__header">
+                    <h3>Subfolder</h3>
+                </div>
+                <p class="help">Subfolder to download videos to. Leaving it empty will download videos to your default directory.</p>
+                <input type="text" spellcheck="false" id="download-subfolder-path" placeholder="Subfolder path ...">
+            </section>
+
+            <section class="card">
+                <div class="card__header">
+                    <h3>Naming</h3>
+                </div>
+                <p class="help">Naming template to use when saving videos. This will only have an effect when using the API. See <a class="link" target="_blank" href="https://github.com/sixem/tiktok-download-buttons/blob/main/TEMPLATE.md">templating</a>.</p>
+                <input type="text" spellcheck="false" id="download-naming-template" placeholder="{uploader} - {id}">
+            </section>
+        </main>
+
+        <footer class="popup__footer">
+            <button id="settings-save">Save settings</button>
+        </footer>
+    </div>
+</body>
+</html>

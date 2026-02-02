@@ -1,3 +1,5 @@
+import './popup.scss';
+
 const getOptions = async () => {
 	return await chrome.runtime.sendMessage(
 		chrome.runtime.id, {
@@ -9,8 +11,8 @@ const getOptions = async () => {
 window.addEventListener('DOMContentLoaded', async () => {
 	const manifest = chrome.runtime.getManifest();
 
-	const versionElement = document.querySelector('body > div#version');
-	const websiteElement = document.querySelector('body > a#website');
+	const versionElement = document.querySelector('#version');
+	const websiteElement = document.querySelector('#website');
 
 	if(versionElement) {
 		versionElement.textContent = manifest.version;
@@ -76,7 +78,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 		}
 	});
 
-	const buttonSave = document.querySelector('body > button#settings-save');
+	const buttonSave = document.querySelector('#settings-save');
 
 	buttonSave.addEventListener('click', async () => {
 		Object.keys(options).forEach(async (key) => {

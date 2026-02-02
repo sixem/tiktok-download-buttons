@@ -1,16 +1,3 @@
-/**
- * The method `chrome.downloads.download` does not work with the option:
- *      "Ask where to save each file before downloading" enabled.
- * If the option is disabled (chrome://settings/downloads), this feature will work fine.
- * 
- * This is an issue with the actual chrome API (only MV3, not MV2) — see:
- *      [https://bugs.chromium.org/p/chromium/issues/detail?id=1173497]
- *      [https://bugs.chromium.org/p/chromium/issues/detail?id=1246717]
- * 
- * Anyways...
- *      This method is prioritized because it's very useful if it works, but fallbacks are needed.
- */
-
 /** Default options for the addon to use */
 const options = {
 	'download-fallback-tab-focus': {
@@ -118,25 +105,6 @@ const windowOpen = (args) => {
 };
 
 /**
- * Fetching function
- * 
- * @param {object} args 
- */
-const serviceFetch = async (args) => {
-	const url = args.data.url;
-	const options = args.data.options || {};
-
-	return fetch(url, options).then((response) => {
-		return response.json();
-	}).then((data) => {
-		args.sendResponse({ data: data, error: false });
-	}).catch((error) => {
-		console.info('Caught a fetching error:', error);
-		args.sendResponse({ data: null, error: error });
-	})
-};
-
-/**
  * `onMessage` listener
  */
 chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
@@ -145,8 +113,7 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 		'fileDownload': fileDownload,
 		'windowOpen': windowOpen,
 		'fileShow': showDefaultFolder,
-		'optionsGet': optionsGet,
-		'fetch': serviceFetch
+		'optionsGet': optionsGet
 	};
 
 	if (tasks[data.task]) {

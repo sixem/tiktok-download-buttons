@@ -2,3 +2,7 @@
 .chrome
 ff_port-*
 *.zip
+node_modules
+dist
+.vite
+/AGENTS.md

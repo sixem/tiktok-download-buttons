@@ -1,0 +1,31 @@
+.popup__footer
+{
+    padding: 12px 16px 16px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    background: linear-gradient(180deg, rgba(18, 21, 27, 0.6), rgba(10, 12, 16, 0.9));
+}
+
+#settings-save
+{
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, rgba(254, 44, 85, 0.8), rgba(254, 44, 85, 0.6));
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+#settings-save:hover
+{
+    transform: translateY(-1px);
+}
+
+#settings-save:active
+{
+    transform: translateY(0);
+    opacity: 0.9;
+}
