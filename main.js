@@ -3,6 +3,9 @@
 
 	TTDB.observers = {};
 	TTDB.timers = {};
+	TTDB.stats = {
+		downloadAttempts: 0
+	};
 
 	/**
 	 * Interval object
@@ -43,8 +46,48 @@
 	 * 
 	 * @param  {...any} args 
 	 */
+	TTDB.LOG = (() => {
+		const styles = {
+			prefix: 'color: #fff; background: #fe2c55; padding: 1px 4px; border-radius: 3px; font-weight: 600;',
+			namespace: 'color: #fe2c55; font-weight: 600;',
+			reset: 'color: inherit;'
+		};
+
+		const getMethod = (level) => (console && console[level] ? level : 'log');
+
+		const write = (level, namespace, ...args) => {
+			const method = getMethod(level);
+			const ns = namespace ? String(namespace) : 'core';
+			const label = `%cTTDB%c %c${ns}%c`;
+
+			try {
+				console[method](label, styles.prefix, styles.reset, styles.namespace, styles.reset, ...args);
+			} catch (error) {
+				console.log('[TTDB]', `[${ns}]`, ...args);
+			}
+		};
+
+		const ns = (namespace) => ({
+			info: (...args) => write('info', namespace, ...args),
+			warn: (...args) => write('warn', namespace, ...args),
+			error: (...args) => write('error', namespace, ...args),
+			debug: (...args) => write('debug', namespace, ...args),
+			log: (...args) => write('log', namespace, ...args)
+		});
+
+		return {
+			write,
+			info: (namespace, ...args) => write('info', namespace, ...args),
+			warn: (namespace, ...args) => write('warn', namespace, ...args),
+			error: (namespace, ...args) => write('error', namespace, ...args),
+			debug: (namespace, ...args) => write('debug', namespace, ...args),
+			ns,
+			styles
+		};
+	})();
+
 	const pipe = (...args) => {
-		console.info('[TTDB]', ...args)
+		TTDB.LOG.info('core', ...args);
 	};
 
 	/**
@@ -745,7 +788,9 @@
 	 * @param {Document} rootDocument
 	 */
 	const parseRehydrationData = (rootDocument = document) => {
-		const script = rootDocument.querySelector('script#__UNIVERSAL_DATA_FOR_REHYDRATION__');
+		const script = rootDocument.querySelector('script#__UNIVERSAL_DATA_FOR_REHYDRATION__')
+			|| rootDocument.querySelector('script#SIGI_STATE')
+			|| rootDocument.querySelector('script#__NEXT_DATA__');
 		if (!script) return null;
 
 		const raw = (script.textContent || script.innerText || '').trim();
@@ -767,6 +812,35 @@
 	};
 
 	/**
+	 * Attempts to extract fallback video info from meta tags
+	 * 
+	 * @param {Document} rootDocument
+	 */
+	const extractMetaVideoInfo = (rootDocument = document) => {
+		if (!rootDocument) return null;
+
+		const readMeta = (selector) => {
+			const el = rootDocument.querySelector(selector);
+			if (!el) return null;
+			const value = (el.getAttribute('content') || '').trim();
+			return value.length > 0 ? value : null;
+		};
+
+		const url = readMeta('meta[property="og:video"]')
+			|| readMeta('meta[property="og:video:secure_url"]')
+			|| readMeta('meta[property="og:video:url"]')
+			|| readMeta('meta[name="twitter:player:stream"]');
+
+		if (!url || !/^https?:/i.test(url)) return null;
+
+		return {
+			url,
+			title: readMeta('meta[property="og:title"]'),
+			description: readMeta('meta[property="og:description"]') || readMeta('meta[name="description"]')
+		};
+	};
+
+	/**
 	 * Validates that a rehydration item matches the requested video ID
 	 * 
 	 * @param {object} item
@@ -776,6 +850,37 @@
 		if (!item || !videoId) return false;
 		const itemId = item.id || item.aweme_id || (item.video && item.video.id) || (item.itemStruct && item.itemStruct.id);
 		return itemId && String(itemId) === String(videoId);
+	};
+
+	/**
+	 * Attempts to locate a video item by ID anywhere in a large data object.
+	 * Returns the most likely item struct (with a `video` field).
+	 * 
+	 * @param {object} root
+	 * @param {string|number} videoId
+	 * @param {Set<object>} seen
+	 */
+	const findVideoStructById = (root, videoId, seen = new Set()) => {
+		if (!root || typeof root !== 'object') return null;
+		if (seen.has(root)) return null;
+		seen.add(root);
+
+		if (matchesVideoId(root, videoId)) {
+			if (root.video) return root;
+			if (root.itemStruct && root.itemStruct.video) return root.itemStruct;
+		}
+
+		if (root.itemStruct && matchesVideoId(root.itemStruct, videoId)) {
+			return root.itemStruct;
+		}
+
+		const values = Array.isArray(root) ? root : Object.values(root);
+		for (const value of values) {
+			const found = findVideoStructById(value, videoId, seen);
+			if (found) return found;
+		}
+
+		return null;
 	};
 
 	/**
@@ -804,8 +909,10 @@
 		if (!webappDetail) {
 			const itemModule = UTIL.traverseObj(scope, ['webapp.video-detail', 'itemModule'])
 				|| UTIL.traverseObj(scope, ['itemModule'])
+				|| UTIL.traverseObj(scope, ['ItemModule'])
 				|| UTIL.traverseObj(UD, ['webapp.video-detail', 'itemModule'])
-				|| UTIL.traverseObj(UD, ['itemModule']);
+				|| UTIL.traverseObj(UD, ['itemModule'])
+				|| UTIL.traverseObj(UD, ['ItemModule']);
 
 			if (itemModule && typeof itemModule === 'object') {
 				if (videoId && itemModule[videoId]) {
@@ -829,6 +936,10 @@
 		if (videoId && webappDetail && !matchesVideoId(webappDetail, videoId)) {
 			webappDetail = null;
 			status = null;
+		}
+
+		if (!webappDetail && videoId) {
+			webappDetail = findVideoStructById(UD, videoId);
 		}
 
 		return { status: status || 0, webappDetail };
@@ -873,6 +984,17 @@
 					reject('Video is private'); return;
 				}
 
+				// Fallback: try meta tags (og:video) when rehydration data is missing
+				const metaInfo = extractMetaVideoInfo(webDocument);
+				if (metaInfo && metaInfo.url) {
+					pipe('Using meta video URL fallback.', metaInfo);
+					resolve({
+						video: { playAddr: [metaInfo.url] },
+						desc: metaInfo.description || null,
+						__meta: metaInfo
+					}); return;
+				}
+
 				reject(`Video is not available (status code: ${status})`);
 			}).catch((error) => {
 				reject('Error fetching web data: ' + error);
@@ -885,11 +1007,24 @@
 	 * 
 	 * @param {string} url 
 	 * @param {string} filename 
+	 * @param {HTMLElement|null} buttonElement
+	 * @param {number|null} attemptId
+	 * @param {object|null} context
 	 */
-	const downloadFile = async (url, filename, buttonElement = null) => {
+	const downloadFile = async (url, filename, buttonElement = null, attemptId = null, context = null) => {
+		const logDownload = TTDB.LOG.ns('download');
+		const attemptLabel = attemptId ? `#${attemptId}` : 'unknown';
+
 		// Sanitize filename
 		filename = UTIL.sanitizeFilename(filename), hasFallbacked = false;
 		const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+
+		logDownload.info(`Attempt ${attemptLabel}: fetch start`, {
+			url,
+			filename,
+			isBlobUrl,
+			context
+		});
 
 		if (filename.length > 250) { // Truncate any super long strings
 			filename = UTIL.truncateString(filename, 250);
@@ -911,22 +1046,52 @@
 		 */
 		const fallback = async (url) => {
 			if (hasFallbacked) return;
+
+			logDownload.warn(`Attempt ${attemptLabel}: fallback`, {
+				url,
+				isBlobUrl,
+				context
+			});
 			
 			if (isBlobUrl) {
-				pipe('Blob URL cannot be opened in a new tab.');
-				SPLASH.message('✘ Blob URL could not be opened. Try another video.', {
-					duration: 4000, state: 3
-				});
+				let attempted = false;
+
+				try {
+					const anchor = document.createElement('a');
+					anchor.href = url;
+					anchor.download = filename || 'video.mp4';
+					anchor.style.display = 'none';
+
+					document.body.appendChild(anchor);
+					anchor.click();
+					anchor.remove();
+
+					attempted = true;
+				} catch (error) {
+					logDownload.error(`Attempt ${attemptLabel}: blob anchor failed`, error);
+				}
+
+				if (attempted) {
+					logDownload.info(`Attempt ${attemptLabel}: blob anchor attempted`);
+					SPLASH.message('Attempted blob download', {
+						duration: 3000, state: 1
+					});
+				} else {
+					logDownload.warn(`Attempt ${attemptLabel}: blob URL cannot be opened`);
+					SPLASH.message('Blob URL could not be opened. Try another video.', {
+						duration: 4000, state: 3
+					});
+				}
 
 				revertState(buttonElement);
 				hasFallbacked = true;
 				return;
 			}
 			
-			pipe('✘ File could not be fetched — attempting to open instead.');
+			logDownload.warn(`Attempt ${attemptLabel}: fetch failed, opening in new tab`);
 
 			SPLASH.message(
-				'✘ Opened video in new tab (fetch was not allowed)', {
+				'Opened video in new tab (fetch was not allowed)', {
 					duration: 3500, state: 2
 				}
 			);
@@ -955,15 +1120,17 @@
 			if (isBlobUrl) {
 				blobData = await t.blob();
 				if (!blobData || blobData.size < 1000) {
-					pipe(`✘ Probe failed for ${url} (blob size too small)`, t);
+					logDownload.warn(`Attempt ${attemptLabel}: probe failed (blob size too small)`, t);
 					return fallback(url);
 				}
 			} else if (!UTIL.validateVideoRequest(t) || !t.body) { // Check if the content type is invalid
-				pipe(`✘ Probe failed for ${url} (${t.headers.get('Content-Type') || ''} - ${t.status})`, t);
+				logDownload.warn(
+					`Attempt ${attemptLabel}: probe failed (${t.headers.get('Content-Type') || ''} - ${t.status})`, t
+				);
 				return fallback(url);
 			}
 
-			pipe('✓ Probe is valid', t);
+			logDownload.info(`Attempt ${attemptLabel}: probe valid`, t);
 
 			// Chrome  : Create blob from response and send its URL to backend worker
 			// Firefox : Pass video URL directly, as that's allowed in that environment
@@ -975,10 +1142,10 @@
 			});
 
 			if (response.success) {
-				pipe(`✓ Downloaded ${url}`);
+				logDownload.info(`Attempt ${attemptLabel}: downloaded`, { url });
 				SPLASH.message('✓ Downloaded video', { duration: 2500, state: 1 });
 			} else {
-				pipe(`✘ Downloading failed`, response);
+				logDownload.warn(`Attempt ${attemptLabel}: download failed`, response);
 				fallback(url);
 			}
 
@@ -988,7 +1155,7 @@
 				URL.revokeObjectURL(videoUrl);
 			}
 		}).catch((error) => {
-			pipe(error);
+			logDownload.error(`Attempt ${attemptLabel}: fetch error`, error);
 			fallback(url);
 		});
 
@@ -1245,13 +1412,15 @@
 	 * @param {HTMLElement} element 
 	 */
 	const feedExtractVideoId = (element) => {
-		const xgWrapper = element.querySelector('div.xgplayer-container');
+		const xgWrapper = element.querySelector('div.xgplayer-container, div[id^="xgwrapper-"]');
 
 		if (!xgWrapper || !xgWrapper.hasAttribute('id')) {
 			return false;
 		}
 
-		const [, , videoId] = xgWrapper.getAttribute('id').split('-');
+		const wrapperId = xgWrapper.getAttribute('id');
+		const match = /xgwrapper-\d+-([0-9]+)/.exec(wrapperId);
+		const videoId = match ? match[1] : wrapperId.split('-').pop();
 
 		return videoId || false;
 	};
@@ -1564,7 +1733,7 @@
 		let videoData = { id: null, user: null, url: null };
 		const videoElement = container.querySelector('video');
 
-		if (videoElement && itemData.extract[data.mode]) {
+		if (videoElement) {
 			// Get actual video download URL (as it's played in the browser)
 			videoData.url = videoElement.currentSrc
 				|| videoElement.src
@@ -1577,7 +1746,9 @@
 					videoData.url = sourceElement.src || sourceElement.getAttribute('src');
 				}
 			}
+		}
 
+		if (itemData.extract[data.mode]) {
 			videoData = {
 				...videoData,
 				...itemData.extract[data.mode](data)
@@ -1600,6 +1771,8 @@
 			appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
 			appBrowserMode: 'div[class*="-DivBrowserModeContainer "]:not([is-downloadable])',
 			appForYouArticle: 'main > div#column-list-container > article:not([is-downloadable])',
+			appForYouArticleData: 'article[data-e2e="recommend-list-item-container"]:not([is-downloadable])',
+			appForYouArticleId: 'article[id^="one-column-item-"]:not([is-downloadable])',
 			appBasicPlayer: 'div[class*="-DivLeftContainer "] div[class*="-DivVideoContainer "] \
 				div[class*="-DivContainer "]:not([is-downloadable])',
 			__nextGrid: 'div.video-feed div.video-feed-item:not([is-downloadable])',
@@ -1748,6 +1921,15 @@
 				const attrFilename = button.getAttribute('filename') || null;
 				const attrApiId    = button.getAttribute('video-id') || null;
 				const attrUrl      = button.getAttribute('href')     || null;
+				const logDownload  = TTDB.LOG.ns('download');
+				const attemptId    = ++TTDB.stats.downloadAttempts;
+				const attemptLabel = `#${attemptId}`;
+
+				logDownload.info(`Attempt ${attemptLabel}: start`, {
+					filename: attrFilename,
+					videoId: attrApiId,
+					url: attrUrl
+				});
 
 				let nameTemplate = await getStoredSetting('download-naming-template');
 
@@ -1823,11 +2005,17 @@
 					videoUrl: attrUrl,
 					filename: attrFilename
 				};
+				let resolvedSource = attrUrl ? 'button-attr' : null;
 
 				const domVideoUrl = getVideoUrlFromButtonContext(button);
 				const preferDomUrl = !!domVideoUrl && !domVideoUrl.startsWith('blob:');
 				if (domVideoUrl) {
 					usageData.videoUrl = domVideoUrl;
+					resolvedSource = domVideoUrl.startsWith('blob:') ? 'dom-blob' : 'dom';
+					logDownload.info(`Attempt ${attemptLabel}: DOM URL found`, {
+						url: domVideoUrl,
+						source: resolvedSource
+					});
 				}
 
 				await getWebApiData({
@@ -1837,16 +2025,24 @@
 				}).then(async (webData) => {
 					const webVideoUrl = getWebVideoUrl(webData);
 					if (webVideoUrl) {
+						const used = !preferDomUrl;
 						if (!preferDomUrl) {
 							usageData.videoUrl = webVideoUrl;
+							resolvedSource = 'web-api';
 						}
 
 						if (nameTemplate) {
 							usageData.filename = getFileNameTemplate(videoData, webData, nameTemplate);
-						} pipe('Web API data was found:', { response: webData });
+						}
+
+						logDownload.info(`Attempt ${attemptLabel}: web API URL`, {
+							used,
+							url: webVideoUrl
+						});
+						logDownload.info(`Attempt ${attemptLabel}: web API data found`, { response: webData });
 					}
 				}).catch(async (error) => {
-					pipe(`Failed to get web API data (${error}) - trying mobile API instead.`);
+					logDownload.warn(`Attempt ${attemptLabel}: web API failed, trying mobile API`, error);
 
 					await API.getVideoData(attrApiId).then(async (res) => {
 						const templated = getFileNameTemplate(
@@ -1854,15 +2050,23 @@
 						);
 
 						if (res.url) {
+							const used = !preferDomUrl;
 							if (!preferDomUrl) {
 								usageData.videoUrl = res.url;
+								resolvedSource = 'mobile-api';
 							}
 							usageData.filename = templated ? templated : (
 								`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
-							); pipe('Mobile API data was found.', res);
+							);
+
+							logDownload.info(`Attempt ${attemptLabel}: mobile API URL`, {
+								used,
+								url: res.url
+							});
+							logDownload.info(`Attempt ${attemptLabel}: mobile API data found`, res);
 						}
 					}).catch((_) => {
-						pipe('Failed to get API data.');
+						logDownload.warn(`Attempt ${attemptLabel}: mobile API failed`);
 					});
 				}).finally((_) => {
 					if (!usageData.filename) {
@@ -1871,13 +2075,25 @@
 				});
 
 				if (!usageData.videoUrl) {
+					logDownload.warn(`Attempt ${attemptLabel}: no video URL resolved`, {
+						filename: usageData.filename,
+						videoId: attrApiId
+					});
 					SPLASH.message('✘ No video URL was found for download.', {
 						duration: 5000, state: 3
 					}); return;
 				}
 
-				pipe('Attempting to download using data: ', usageData);
-				downloadFile(usageData.videoUrl, usageData.filename, button);
+				logDownload.info(`Attempt ${attemptLabel}: download start`, {
+					url: usageData.videoUrl,
+					filename: usageData.filename,
+					source: resolvedSource
+				});
+				downloadFile(usageData.videoUrl, usageData.filename, button, attemptId, {
+					source: resolvedSource,
+					videoId: attrApiId,
+					user: videoData.user || null
+				});
 			});
 
 			button.hasListener = true;
@@ -1964,12 +2180,21 @@
 		const setButton = (videoData, button) => {
 			pipe('Found video data:', videoData);
 
-			// Valid video URL — set download data
-			if (videoData.url && !button.ttIsProcessed) {
+			const hasIdentity = !!(
+				videoData.videoApiId
+				|| videoData.user
+				|| videoData.url
+			);
+
+			// Valid video identity - set download data
+			if (hasIdentity && !button.ttIsProcessed) {
 				downloadHook(button, videoData);
 				button.ttIsProcessed = true;
 			}
 		}
+
+		// Attempt to set up immediately using link-derived data (no video element needed)
+		setButton(itemData.get(item, data), button);
 
 		item.addEventListener('mouseleave', () => {
 			// Clear any active timers on `mouseleave`
@@ -1982,22 +2207,17 @@
 
 				let videoData = itemData.get(item, data);
 
-				// No URL was found on the initial attempt
-				if (!videoData.url) {
-					// Check for existing video URLs
+				setButton(videoData, button);
+
+				if (!button.ttIsProcessed) {
 					TTDB.timers.gridAwaitVideoData = setInterval(() => {
 						videoData = itemData.get(item, data);
+						setButton(videoData, button);
 
-						// We have a valid video URL — set download data and clear interval
-						if (videoData.url) {
-							setButton(videoData, button);
+						if (button.ttIsProcessed) {
 							clearInterval(TTDB.timers.gridAwaitVideoData);
 						}
 					}, 100);
-				} else {
-					// We have a valid video URL — set download data
-					setButton(videoData, button);
-					button.ttIsProcessed = true;
 				}
 			}
 		});
@@ -2024,10 +2244,11 @@
 			const button = createButton.FEED();
 			button.ttdbItem = item;
 
-			if (videoData.url && !button.ttIsProcessed) {
-				videoData.id = feedExtractVideoId(item);
-
-				if (videoData.id) {
+			if (!button.ttIsProcessed) {
+				const feedVideoId = feedExtractVideoId(item);
+				if (feedVideoId) {
+					videoData.id = feedVideoId;
+					videoData.videoApiId = feedVideoId;
 					feedInjectButton({
 						getActionBar: () => {
 							return feedGetActionBar(item, data);
