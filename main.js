@@ -740,6 +740,101 @@
 	};
 
 	/**
+	 * Attempts to parse the rehydration JSON from a document
+	 * 
+	 * @param {Document} rootDocument
+	 */
+	const parseRehydrationData = (rootDocument = document) => {
+		const script = rootDocument.querySelector('script#__UNIVERSAL_DATA_FOR_REHYDRATION__');
+		if (!script) return null;
+
+		const raw = (script.textContent || script.innerText || '').trim();
+		if (!raw) return null;
+
+		let jsonText = raw;
+		const start = raw.indexOf('{');
+		const end = raw.lastIndexOf('}');
+		if (start > 0 && end > start) {
+			jsonText = raw.slice(start, end + 1);
+		}
+
+		try {
+			return JSON.parse(jsonText);
+		} catch (error) {
+			pipe('Error parsing rehydration data', error);
+			return null;
+		}
+	};
+
+	/**
+	 * Validates that a rehydration item matches the requested video ID
+	 * 
+	 * @param {object} item
+	 * @param {string|number} videoId
+	 */
+	const matchesVideoId = (item, videoId) => {
+		if (!item || !videoId) return false;
+		const itemId = item.id || item.aweme_id || (item.video && item.video.id) || (item.itemStruct && item.itemStruct.id);
+		return itemId && String(itemId) === String(videoId);
+	};
+
+	/**
+	 * Attempts to extract a webapp detail object from rehydration data
+	 * 
+	 * @param {object} UD
+	 * @param {string|number} videoId
+	 */
+	const extractWebappDetail = (UD, videoId = null) => {
+		if (!UD) return { status: null, webappDetail: null };
+
+		const scope = UD.__DEFAULT_SCOPE__ || UD;
+		let status = UTIL.traverseObj(scope, ['webapp.video-detail', 'statusCode']);
+		if (status === undefined || status === null) {
+			status = UTIL.traverseObj(UD, ['webapp.video-detail', 'statusCode']);
+		}
+
+		let webappDetail = UTIL.traverseObj(scope, ['webapp.video-detail', 'itemInfo', 'itemStruct'])
+			|| UTIL.traverseObj(UD, ['webapp.video-detail', 'itemInfo', 'itemStruct']);
+
+		if (videoId && webappDetail && !matchesVideoId(webappDetail, videoId)) {
+			webappDetail = null;
+			status = null;
+		}
+
+		if (!webappDetail) {
+			const itemModule = UTIL.traverseObj(scope, ['webapp.video-detail', 'itemModule'])
+				|| UTIL.traverseObj(scope, ['itemModule'])
+				|| UTIL.traverseObj(UD, ['webapp.video-detail', 'itemModule'])
+				|| UTIL.traverseObj(UD, ['itemModule']);
+
+			if (itemModule && typeof itemModule === 'object') {
+				if (videoId && itemModule[videoId]) {
+					webappDetail = itemModule[videoId];
+				} else {
+					const moduleValues = Object.values(itemModule);
+					if (videoId) {
+						webappDetail = moduleValues.find((item) => {
+							if (!item) return false;
+							const itemId = item.id || item.aweme_id || item?.video?.id;
+							return itemId && String(itemId) === String(videoId);
+						});
+					}
+					if (!webappDetail && !videoId && moduleValues.length > 0) {
+						webappDetail = moduleValues[0];
+					}
+				}
+			}
+		}
+
+		if (videoId && webappDetail && !matchesVideoId(webappDetail, videoId)) {
+			webappDetail = null;
+			status = null;
+		}
+
+		return { status: status || 0, webappDetail };
+	};
+
+	/**
 	 * Attempts to fetch the web API data for a video
 	 * 
 	 * @param {object} videoData 
@@ -747,33 +842,35 @@
 	const getWebApiData = (videoData) => {
 		return new Promise((resolve, reject) => {
 			if (!videoData.videoApiId) {
-				reject('No video ID found in object');
+				reject('No video ID found in object'); return;
+			}
+
+			// Prefer in-document rehydration data to avoid challenge stubs
+			const documentUD = parseRehydrationData(document);
+			if (documentUD) {
+				const { status, webappDetail } = extractWebappDetail(documentUD, videoData.videoApiId);
+				pipe('Got web API response (document)', { status }, webappDetail);
+
+				if (webappDetail && ![10216].includes(status)) {
+					resolve(webappDetail); return;
+				} else if (webappDetail && status === 10216) {
+					reject('Video is private'); return;
+				}
 			}
 
 			const reqUrl = `https://www.tiktok.com/@${videoData.user}/video/${videoData.videoApiId}`;
 
 			fetch(reqUrl).then((res) => res.text()).then((body) => {
-				let status = null, webappDetail = null;
-
 				const webDocument = (new DOMParser()).parseFromString(body, 'text/html');
-				const UDScript = webDocument.querySelector('script#__UNIVERSAL_DATA_FOR_REHYDRATION__');
+				const UD = parseRehydrationData(webDocument);
+				const { status, webappDetail } = extractWebappDetail(UD, videoData.videoApiId);
 
-				if (UDScript) {
-					try {
-						const UD = JSON.parse(UDScript.innerText);
-						status = UTIL.traverseObj(UD, ['webapp.video-detail', 'statusCode']) || 0
-						webappDetail = UTIL.traverseObj(UD, ['webapp.video-detail', 'itemInfo', 'itemStruct']);
-					} catch (error) {
-						reject('Error parsing web data: ' + error);
-					}
-				}
-
-				pipe('Got web API response', { status }, webappDetail);
+				pipe('Got web API response (fetch)', { status }, webappDetail);
 
 				if (webappDetail && ![10216].includes(status)) { // Video data is OK
-					resolve(webappDetail);
-				} else if (status === 10216) { // Status indicates a private video
-					reject('Video is private');
+					resolve(webappDetail); return;
+				} else if (webappDetail && status === 10216) { // Status indicates a private video
+					reject('Video is private'); return;
 				}
 
 				reject(`Video is not available (status code: ${status})`);
@@ -792,6 +889,7 @@
 	const downloadFile = async (url, filename, buttonElement = null) => {
 		// Sanitize filename
 		filename = UTIL.sanitizeFilename(filename), hasFallbacked = false;
+		const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
 
 		if (filename.length > 250) { // Truncate any super long strings
 			filename = UTIL.truncateString(filename, 250);
@@ -813,6 +911,17 @@
 		 */
 		const fallback = async (url) => {
 			if (hasFallbacked) return;
+			
+			if (isBlobUrl) {
+				pipe('Blob URL cannot be opened in a new tab.');
+				SPLASH.message('✘ Blob URL could not be opened. Try another video.', {
+					duration: 4000, state: 3
+				});
+
+				revertState(buttonElement);
+				hasFallbacked = true;
+				return;
+			}
 			
 			pipe('✘ File could not be fetched — attempting to open instead.');
 
@@ -841,7 +950,15 @@
 
 		// Attempt download using chrome API (@ service.js)
 		fetch(url, TTDB.headers).then(async (t) => {
-			if (!UTIL.validateVideoRequest(t) || !t.body) { // Check if the content type is invalid
+			let blobData = null;
+
+			if (isBlobUrl) {
+				blobData = await t.blob();
+				if (!blobData || blobData.size < 1000) {
+					pipe(`✘ Probe failed for ${url} (blob size too small)`, t);
+					return fallback(url);
+				}
+			} else if (!UTIL.validateVideoRequest(t) || !t.body) { // Check if the content type is invalid
 				pipe(`✘ Probe failed for ${url} (${t.headers.get('Content-Type') || ''} - ${t.status})`, t);
 				return fallback(url);
 			}
@@ -851,7 +968,8 @@
 			// Chrome  : Create blob from response and send its URL to backend worker
 			// Firefox : Pass video URL directly, as that's allowed in that environment
 			const chromium = UTIL.isChromium()
-			const videoUrl = chromium ? URL.createObjectURL(await t.blob()) : url;
+			const responseBlob = blobData || await t.blob();
+			const videoUrl = chromium ? URL.createObjectURL(responseBlob) : url;
 			const response = await chrome.runtime.sendMessage({
 				task: 'fileDownload', url: videoUrl, filename, subFolder
 			});
@@ -1448,13 +1566,15 @@
 
 		if (videoElement && itemData.extract[data.mode]) {
 			// Get actual video download URL (as it's played in the browser)
-			videoData.url = videoElement.getAttribute('src');
+			videoData.url = videoElement.currentSrc
+				|| videoElement.src
+				|| videoElement.getAttribute('src');
 
 			if (!videoData.url) { // If we have a <source/> element instead of an attribute
 				const sourceElement = videoElement.querySelector('source');
 
 				if (sourceElement) {
-					videoData.url = sourceElement.getAttribute('src');
+					videoData.url = sourceElement.src || sourceElement.getAttribute('src');
 				}
 			}
 
@@ -1637,10 +1757,56 @@
 					nameTemplate = nameTemplate.trim();
 				}
 
+				const getVideoUrlFromElement = (videoElement) => {
+					if (!videoElement) return null;
+					let url = videoElement.currentSrc
+						|| videoElement.src
+						|| videoElement.getAttribute('src');
+
+					if (!url) {
+						const sourceElement = videoElement.querySelector('source');
+						if (sourceElement) {
+							url = sourceElement.src || sourceElement.getAttribute('src');
+						}
+					}
+
+					return url || null;
+				};
+
+				const getVideoUrlFromButtonContext = (buttonElement) => {
+					const container = buttonElement.closest('[is-downloadable]')
+						|| buttonElement.closest('article')
+						|| buttonElement.ttdbItem;
+
+					if (container) {
+						const containerVideo = container.querySelector('video');
+						const containerUrl = getVideoUrlFromElement(containerVideo);
+						if (containerUrl) return containerUrl;
+					}
+
+					const videos = Array.from(document.querySelectorAll('video'));
+					const playing = videos.find((video) => !video.paused);
+					const playingUrl = getVideoUrlFromElement(playing);
+					if (playingUrl) return playingUrl;
+
+					for (const video of videos) {
+						const url = getVideoUrlFromElement(video);
+						if (url) return url;
+					}
+
+					return null;
+				};
+
 				const usageData = {
 					videoUrl: attrUrl,
 					filename: attrFilename
 				};
+
+				const domVideoUrl = getVideoUrlFromButtonContext(button);
+				const preferDomUrl = !!domVideoUrl && !domVideoUrl.startsWith('blob:');
+				if (domVideoUrl) {
+					usageData.videoUrl = domVideoUrl;
+				}
 
 				await getWebApiData({
 					...videoData, ...{
@@ -1648,7 +1814,9 @@
 					}
 				}).then(async (webData) => {
 					if (webData.video && webData.video.playAddr) {
-						usageData.videoUrl = webData.video.playAddr;
+						if (!preferDomUrl) {
+							usageData.videoUrl = webData.video.playAddr;
+						}
 
 						if (nameTemplate) {
 							usageData.filename = getFileNameTemplate(videoData, webData, nameTemplate);
@@ -1663,7 +1831,9 @@
 						);
 
 						if (res.url) {
-							usageData.videoUrl = res.url;
+							if (!preferDomUrl) {
+								usageData.videoUrl = res.url;
+							}
 							usageData.filename = templated ? templated : (
 								`${res.user ? (res.user + ' - ') : ''}${res.description.trim()}.mp4`
 							); pipe('Mobile API data was found.', res);
@@ -1719,6 +1889,7 @@
 
 			// Create download button
 			const button = createButton.BROWSER();
+			button.ttdbItem = item;
 			const videoData = itemData.get(item, data);
 
 			if (data.env === TTDB.ENV.APP) {
@@ -1765,6 +1936,7 @@
 
 		// Create download button
 		const button = createButton.GRID();
+		button.ttdbItem = item;
 
 		const setButton = (videoData, button) => {
 			pipe('Found video data:', videoData);
@@ -1827,6 +1999,7 @@
 
 			const videoData = itemData.get(item, data);
 			const button = createButton.FEED();
+			button.ttdbItem = item;
 
 			if (videoData.url && !button.ttIsProcessed) {
 				videoData.id = feedExtractVideoId(item);
@@ -1872,6 +2045,7 @@
 				);
 
 				button = button.querySelector('a');
+				button.ttdbItem = item;
 
 				const widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]');
 				DOM.setStyle(button, { 'width': `${Math.min(widthTarget ? widthTarget.offsetWidth : 240, 240)}px` });
@@ -1910,6 +2084,7 @@
 
 			button.classList.add('share');
 			button = button.querySelector('a');
+			button.ttdbItem = item;
 			button.parentNode.style.display = 'block';
 
 			setTimeout(() => button.style.opacity = '1', 50);
