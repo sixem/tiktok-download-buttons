@@ -33,6 +33,8 @@ export default defineConfig({
 	build: {
 		outDir: 'dist',
 		emptyOutDir: true,
+		// Keep readable output for debugging and extension review.
+		minify: false,
 		rollupOptions: {
 			input: {
 				main: path.join(SRC_DIR, 'main.ts'),

@@ -41,20 +41,27 @@ const getWebVideoUrl = (webData) => {
 };
 
 // Resolve the best immediate URL from DOM context and button attributes.
-const resolveVideoUrl = (button, attrUrl, logDownload, attemptLabel, attemptKey) => {
+const resolveVideoUrl = (button, attrUrl, pageUrl, logDownload, attemptLabel, attemptKey) => {
 	const domVideoUrl = getVideoUrlFromButtonContext(button);
 	const preferDomUrl = !!domVideoUrl && !domVideoUrl.startsWith('blob:');
+	const isDomBlob = !!domVideoUrl && domVideoUrl.startsWith('blob:');
 
 	let videoUrl = attrUrl;
 	let source = attrUrl ? 'button-attr' : null;
 
 	if (domVideoUrl) {
-		videoUrl = domVideoUrl;
-		source = domVideoUrl.startsWith('blob:') ? 'dom-blob' : 'dom';
+		const useDomUrl = !isDomBlob || !pageUrl;
+
+		if (useDomUrl) {
+			videoUrl = domVideoUrl;
+			source = isDomBlob ? 'dom-blob' : 'dom';
+		}
+
 		logDownload.info(`Attempt ${attemptLabel}: DOM URL found`, {
 			videoKey: attemptKey,
 			url: domVideoUrl,
-			source
+			source: isDomBlob ? 'dom-blob' : 'dom',
+			used: useDomUrl
 		});
 	}
 
@@ -70,6 +77,7 @@ const resolveVideoUrl = (button, attrUrl, logDownload, attemptLabel, attemptKey)
 const resolveSource = async ({
 	videoData,
 	attrApiId,
+	pageUrl,
 	preferDomUrl,
 	logDownload,
 	attemptLabel,
@@ -79,7 +87,8 @@ const resolveSource = async ({
 		const webData = await getWebApiData({
 			...videoData,
 			...{
-				videoApiId: attrApiId
+				videoApiId: attrApiId,
+				pageUrl
 			}
 		});
 		const webVideoUrl = getWebVideoUrl(webData);
@@ -161,6 +170,7 @@ const onDownloadClick = (button, videoData) => async (e) => {
 	const attrFilename = button.getAttribute('filename') || null;
 	const attrApiId = button.getAttribute('video-id') || null;
 	const attrUrl = button.getAttribute('href') || null;
+	const attrPageUrl = button.getAttribute('data-video-page-url') || null;
 	const logDownload = TTDB.LOG.ns('download');
 	const attemptKey = String(attrApiId || videoData.videoApiId || videoData.id || attrUrl || 'unknown');
 	const attemptsByVideo = TTDB.stats.downloadAttemptsByVideo;
@@ -175,7 +185,20 @@ const onDownloadClick = (button, videoData) => async (e) => {
 	});
 
 	const nameTemplate = await getNameTemplate();
-	const initialResolution = resolveVideoUrl(button, attrUrl, logDownload, attemptLabel, attemptKey);
+	const pageUrl = attrPageUrl || videoData.pageUrl || null;
+
+	if (pageUrl && !attrPageUrl) {
+		button.setAttribute('data-video-page-url', pageUrl);
+	}
+
+	const initialResolution = resolveVideoUrl(
+		button,
+		attrUrl,
+		pageUrl,
+		logDownload,
+		attemptLabel,
+		attemptKey
+	);
 	const usageData = {
 		videoUrl: initialResolution.videoUrl,
 		filename: attrFilename
@@ -188,6 +211,7 @@ const onDownloadClick = (button, videoData) => async (e) => {
 		const apiResolution = await resolveSource({
 			videoData,
 			attrApiId,
+			pageUrl,
 			preferDomUrl: initialResolution.preferDomUrl,
 			logDownload,
 			attemptLabel,

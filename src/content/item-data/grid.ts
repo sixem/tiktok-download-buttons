@@ -8,9 +8,23 @@ export const extractGridData = (data) => {
 	const itemLinks = data.container.querySelectorAll(GRID_LINK_SELECTOR);
 
 	(itemLinks).forEach((link) => {
-		const matches = EXPR.vanillaVideoUrl(link.getAttribute('href'), {
-			strict: true
-		});
+		// Keep the canonical page URL for API fallbacks when no video tag exists.
+		const rawHref = link.getAttribute('href');
+		let pageUrl = rawHref;
+
+		if (rawHref) {
+			try {
+				pageUrl = new URL(rawHref, window.location.origin).href;
+			} catch (_) {
+				pageUrl = rawHref;
+			}
+		}
+
+		if (pageUrl && !videoData.pageUrl) {
+			videoData.pageUrl = pageUrl;
+		}
+
+		const matches = pageUrl ? EXPR.vanillaVideoUrl(pageUrl) : null;
 
 		if (matches) {
 			const [, user, id] = matches;

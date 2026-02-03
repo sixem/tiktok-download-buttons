@@ -11,8 +11,14 @@ export const getItemDetailApiData = async (videoId) => {
 
 	let data = null;
 	try {
-		data = await response.json();
-	} catch (_) {
+		const raw = await response.text();
+		const cleaned = raw
+			.trim()
+			.replace(/^for\s*\(;;\);\s*/i, '')
+			.replace(/^\)\]\}',?\s*/, '');
+
+		data = JSON.parse(cleaned);
+	} catch (error) {
 		throw new Error(`Item detail API JSON parse failed (${contentType})`);
 	}
 

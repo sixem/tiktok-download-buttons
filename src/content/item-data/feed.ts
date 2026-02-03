@@ -1,5 +1,6 @@
 // Feed-mode extraction for scrolling timeline items.
 import { TTDB } from '../state';
+import { findVideoUrls } from '../extractors/share';
 import { extractDescriptionId, getTextContent, getUserFromProfileLink, selectFirst } from './extraction-helpers';
 
 const FEED_USER_SELECTORS = {
@@ -25,8 +26,33 @@ export const extractFeedData = (data) => {
 		}
 	}
 
+	// Grab the canonical video ID when a link is available inside the feed item.
+	const shareData = findVideoUrls(data.container);
+	if (shareData) {
+		if (!videoData.user) {
+			videoData.user = shareData.username;
+		}
+		videoData.videoApiId = shareData.videoId;
+		videoData.pageUrl = `https://www.tiktok.com/@${shareData.username}/video/${shareData.videoId}`;
+	}
+
 	const descriptionIdentifier = extractDescriptionId(data.container, data.env);
-	videoData.id = descriptionIdentifier ? descriptionIdentifier : Date.now();
+	if (descriptionIdentifier) {
+		videoData.id = descriptionIdentifier;
+	} else if (videoData.videoApiId) {
+		videoData.id = videoData.videoApiId;
+	} else {
+		videoData.id = Date.now();
+	}
+
+	// If we have a video ID but still no page URL (e.g., missing username), build a generic permalink.
+	if (!videoData.pageUrl && videoData.videoApiId) {
+		if (videoData.user) {
+			videoData.pageUrl = `https://www.tiktok.com/@${videoData.user}/video/${videoData.videoApiId}`;
+		} else {
+			videoData.pageUrl = `https://www.tiktok.com/video/${videoData.videoApiId}`;
+		}
+	}
 
 	return videoData;
 };

@@ -1,6 +1,7 @@
 // Shared helpers for extracting item metadata across modes.
 import { TTDB } from '../state';
 import { DOM } from '../dom';
+import { getVideoUrlFromElement } from '../extractors/video-url';
 
 const DESCRIPTION_SELECTORS = {
 	app: 'span[class*="-SpanText "]',
@@ -97,18 +98,5 @@ export const getVideoElementUrl = (container) => {
 	if (!isQueryable(container)) return null;
 
 	const videoElement = container.querySelector('video');
-	if (!videoElement) return null;
-
-	let url = videoElement.currentSrc
-		|| videoElement.src
-		|| videoElement.getAttribute('src');
-
-	if (!url) {
-		const sourceElement = videoElement.querySelector('source');
-		if (sourceElement) {
-			url = sourceElement.src || sourceElement.getAttribute('src');
-		}
-	}
-
-	return url || null;
+	return getVideoUrlFromElement(videoElement);
 };

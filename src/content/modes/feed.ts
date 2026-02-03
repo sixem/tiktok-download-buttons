@@ -1,4 +1,4 @@
-import { TTDB, UTIL } from '../state';
+import { TTDB } from '../state';
 import { createButton } from '../ui/buttons';
 import { itemData } from '../item-data';
 import { downloadHook } from '../download/download-hook';
@@ -49,6 +49,12 @@ const feedGetActionBar = (item, data) => {
 };
 
 const feedExtractVideoId = (element) => {
+	// Prefer the canonical link-based ID when available.
+	const shareData = findVideoUrls(element);
+	if (shareData && shareData.videoId) {
+		return shareData.videoId;
+	}
+
 	const xgWrapper = element.querySelector('div.xgplayer-container, div[id^="xgwrapper-"]');
 
 	if (!xgWrapper || !xgWrapper.hasAttribute('id')) {
@@ -60,69 +66,6 @@ const feedExtractVideoId = (element) => {
 	const videoId = match ? match[1] : wrapperId.split('-').pop();
 
 	return videoId || false;
-};
-
-const feedShareExtractIdLegacy = (element, callback, timeout = 500) => {
-	let timer = null;
-	let attempt;
-
-	const shareButton = element.querySelector('div[role="button"][data-e2e="share-btn"] > button:not(.attempted)');
-	const shareButtonSvg = shareButton.querySelector('span > svg');
-
-	if (!shareButtonSvg || !shareButton) {
-		callback(false);
-	}
-
-	const respond = (response, existing = false) => {
-		if (!existing) {
-			setTimeout(() => shareButton.classList.remove('extract'), 500);
-			clearTimeout(timer);
-			UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
-		}
-		callback(response);
-	};
-
-	const onMutate = (mutationsList) => {
-		for (let mutation of mutationsList) {
-			if (mutation.type === 'childList') {
-				const attempt = findVideoUrls(element.querySelector('div[class*="-DivContainer "]'));
-
-				if (attempt) {
-					observer.disconnect();
-					respond(attempt);
-					break;
-				}
-			}
-		}
-	};
-
-	let existingShare = element.querySelector('div[class*="-DivContainer "]');
-
-	if (existingShare) {
-		attempt = findVideoUrls(existingShare.cloneNode(true));
-
-		if (attempt) {
-			respond(attempt, true);
-		} else {
-			existingShare = false;
-		}
-	}
-
-	if (!existingShare) {
-		observer = new MutationObserver(onMutate);
-		observer.observe(shareButton, { childList: true, subtree: true });
-
-		shareButton.classList.add('extract');
-
-		UTIL.dispatchEvent(shareButtonSvg, MouseEvent, 'click');
-
-		timer = setTimeout(() => {
-			observer.disconnect();
-			respond(false);
-		}, timeout);
-	}
-
-	return false;
 };
 
 export const createFeedMode = () => (item, data) => {
