@@ -1,12 +1,10 @@
+// Popup UI logic for extension settings.
 import './popup.scss';
+import { sendRuntimeMessage, storageSet } from './popup-utils';
 
 const getOptions = async () => {
-	return await chrome.runtime.sendMessage(
-		chrome.runtime.id, {
-			task: 'optionsGet'
-		}
-	);
-}
+	return await sendRuntimeMessage({ task: 'optionsGet' }, chrome.runtime.id);
+};
 
 window.addEventListener('DOMContentLoaded', async () => {
 	const manifest = chrome.runtime.getManifest();
@@ -24,7 +22,12 @@ window.addEventListener('DOMContentLoaded', async () => {
 		websiteElement.style.visibility = 'visible';
 	}
 
-	const options = await getOptions();
+	let options = {};
+	try {
+		options = await getOptions();
+	} catch (error) {
+		console.warn('[TTDB]', 'Failed to load options', error);
+	}
 
 	Object.keys(options).forEach((key) => {
 		// Handle toggleable options (checkboxes)
@@ -81,12 +84,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 	const buttonSave = document.querySelector('#settings-save');
 
 	buttonSave.addEventListener('click', async () => {
-		Object.keys(options).forEach(async (key) => {
-			if(options[key].current !== null) {
+		for (const key of Object.keys(options)) {
+			if (options[key].current !== null) {
 				let value = new Object();
 				value[key] = options[key].current;
-				await chrome.storage.local.set(value);
+				await storageSet(value);
 			}
-		}); window.close();
+		}
+
+		window.close();
 	});
 });
