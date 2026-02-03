@@ -1,6 +1,7 @@
 // Download orchestration for fetch-based and blob-based downloads.
 import { TTDB, UTIL, SPLASH } from '../state';
 import { getStoredSetting } from '../utils/storage';
+import { sendRuntimeMessage } from '../utils/extension';
 
 export const downloadFile = async (url, filename, buttonElement = null, attemptId = null, context = null) => {
 	const logDownload = TTDB.LOG.ns('download');
@@ -178,14 +179,20 @@ export const downloadFile = async (url, filename, buttonElement = null, attemptI
 		const chromium = UTIL.isChromium();
 		const responseBlob = blobData || await t.blob();
 		const videoUrl = chromium ? URL.createObjectURL(responseBlob) : url;
-		const response = await chrome.runtime.sendMessage({
-			task: 'fileDownload',
-			url: videoUrl,
-			filename,
-			subFolder
-		});
+		let response = null;
+		try {
+			response = await sendRuntimeMessage({
+				task: 'fileDownload',
+				url: videoUrl,
+				filename,
+				subFolder
+			});
+		} catch (error) {
+			logDownload.warn(`Attempt ${attemptLabel}: download request failed`, error);
+			return fallback(url);
+		}
 
-		if (response.success) {
+		if (response && response.success) {
 			logDownload.info(`Attempt ${attemptLabel}: downloaded`, { url });
 			showToast({
 				title: 'Download complete',

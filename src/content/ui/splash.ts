@@ -5,7 +5,32 @@ import { DOM } from '../dom';
 const DEFAULT_TOAST_ID = 'global';
 const DEFAULT_META = 'Click to open downloads';
 
-const getToastId = (options) => {
+type ToastMessage = string | {
+	title?: string;
+	detail?: string | null;
+	meta?: string | null;
+	spinner?: boolean;
+};
+
+type ToastOptions = {
+	id?: string | number;
+	detail?: string | null;
+	meta?: string | null;
+	spinner?: boolean;
+	state?: number;
+	hideMeta?: boolean;
+	sticky?: boolean;
+	duration?: number;
+};
+
+type ToastPayload = {
+	title: string;
+	detail: string | null;
+	meta: string | null;
+	spinner: boolean;
+};
+
+const getToastId = (options: ToastOptions) => {
 	if (options && options.id !== undefined && options.id !== null) {
 		return String(options.id);
 	}
@@ -40,7 +65,7 @@ const updateWrapperState = () => {
 	}
 };
 
-const setToastState = (toast, state) => {
+const setToastState = (toast: HTMLElement, state: number) => {
 	toast.classList.remove('state-info', 'state-success', 'state-warn', 'state-error');
 
 	if (state === 1) {
@@ -54,7 +79,7 @@ const setToastState = (toast, state) => {
 	}
 };
 
-const resolveToastPayload = (message, options) => {
+const resolveToastPayload = (message: ToastMessage, options: ToastOptions): ToastPayload => {
 	if (typeof message === 'string') {
 		return {
 			title: message,
@@ -81,9 +106,9 @@ const resolveToastPayload = (message, options) => {
 	};
 };
 
-const ensureToastParts = (toast) => {
-	let dot = toast.querySelector(':scope > span.toast__dot');
-	let body = toast.querySelector(':scope > div.toast__body');
+const ensureToastParts = (toast: HTMLElement) => {
+	let dot = toast.querySelector<HTMLSpanElement>(':scope > span.toast__dot');
+	let body = toast.querySelector<HTMLDivElement>(':scope > div.toast__body');
 
 	if (!body) {
 		body = document.createElement('div');
@@ -107,38 +132,45 @@ const ensureToastParts = (toast) => {
 		toast.appendChild(body);
 	}
 
-	let title = body.querySelector(':scope > div.toast__title');
+	let title = body.querySelector<HTMLDivElement>(':scope > div.toast__title');
 	if (!title) {
 		title = document.createElement('div');
 		title.classList.add('toast__title');
 		body.appendChild(title);
 	}
 
-	let detail = body.querySelector(':scope > div.toast__detail');
+	let detail = body.querySelector<HTMLDivElement>(':scope > div.toast__detail');
 	if (!detail) {
 		detail = document.createElement('div');
 		detail.classList.add('toast__detail');
 		body.appendChild(detail);
 	}
 
-	let meta = body.querySelector(':scope > div.toast__meta');
+	let meta = body.querySelector<HTMLDivElement>(':scope > div.toast__meta');
 	if (!meta) {
 		meta = document.createElement('div');
 		meta.classList.add('toast__meta');
 		body.appendChild(meta);
 	}
 
-	let spinner = toast.querySelector(':scope > span.toast__spinner');
+	let spinner = toast.querySelector<HTMLSpanElement>(':scope > span.toast__spinner');
 	if (!spinner) {
 		spinner = document.createElement('span');
 		spinner.classList.add('toast__spinner');
 		toast.appendChild(spinner);
 	}
 
-	return { dot, body, title, detail, meta, spinner };
+	return {
+		dot: dot as HTMLSpanElement,
+		body: body as HTMLDivElement,
+		title: title as HTMLDivElement,
+		detail: detail as HTMLDivElement,
+		meta: meta as HTMLDivElement,
+		spinner: spinner as HTMLSpanElement
+	};
 };
 
-const setToastContent = (toast, payload) => {
+const setToastContent = (toast: HTMLElement, payload: ToastPayload) => {
 	toast.classList.toggle('has-spinner', payload.spinner);
 	const parts = ensureToastParts(toast);
 
@@ -163,14 +195,14 @@ const setToastContent = (toast, payload) => {
 	parts.spinner.style.display = payload.spinner ? '' : 'none';
 };
 
-const clearToastTimer = (toastId) => {
+const clearToastTimer = (toastId: string) => {
 	if (!SPLASH.timers || !SPLASH.timers.has(toastId)) return;
 
 	clearTimeout(SPLASH.timers.get(toastId));
 	SPLASH.timers.delete(toastId);
 };
 
-const hideToast = (toastId, toast, callback = null) => {
+const hideToast = (toastId: string, toast: HTMLElement, callback: (() => void) | null = null) => {
 	clearToastTimer(toastId);
 
 	toast.classList.remove('is-visible');
@@ -190,7 +222,7 @@ const hideToast = (toastId, toast, callback = null) => {
 	}, 220);
 };
 
-const scheduleHide = (toastId, toast, duration, callback = null) => {
+const scheduleHide = (toastId: string, toast: HTMLElement, duration: number, callback: (() => void) | null = null) => {
 	clearToastTimer(toastId);
 
 	if (duration <= 0) return;
@@ -203,7 +235,7 @@ const scheduleHide = (toastId, toast, duration, callback = null) => {
 	SPLASH.timers.set(toastId, timer);
 };
 
-const ensureToast = (toastId) => {
+const ensureToast = (toastId: string) => {
 	if (!SPLASH.toasts) {
 		SPLASH.toasts = new Map();
 	}
@@ -253,7 +285,7 @@ export const setupSplash = () => {
 		return wrapper;
 	};
 
-	SPLASH.message = (message, options = {}, callback = null) => {
+	SPLASH.message = (message: ToastMessage, options: ToastOptions = {}, callback: (() => void) | null = null) => {
 		const wrapper = ensureWrapper();
 		if (!wrapper) return false;
 
@@ -285,7 +317,7 @@ export const setupSplash = () => {
 		return true;
 	};
 
-	SPLASH.dismiss = (toastId = DEFAULT_TOAST_ID) => {
+	SPLASH.dismiss = (toastId: string | number = DEFAULT_TOAST_ID) => {
 		if (!SPLASH.toasts || !SPLASH.toasts.size) return;
 
 		const resolvedId = String(toastId);

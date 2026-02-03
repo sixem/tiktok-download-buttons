@@ -202,7 +202,7 @@ const scheduleFlush = () => {
 	const idleCallback = (window as any).requestIdleCallback;
 
 	if (typeof idleCallback === 'function') {
-		idleCallback(runFlush, { timeout: 1000 });
+		idleCallback.call(window, runFlush, { timeout: 1000 });
 		return;
 	}
 
