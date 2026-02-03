@@ -1,4 +1,4 @@
-// Builds a Firefox-compatible package by staging the Vite build and swapping APIs.
+// Builds a Firefox-compatible package by staging the Vite build and applying the Firefox manifest.
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,14 +18,6 @@ const pad = (value) => String(value).padStart(2, '0');
 const stamp = `${timestamp.getFullYear()}${pad(timestamp.getMonth() + 1)}${pad(timestamp.getDate())}-${pad(timestamp.getHours())}${pad(timestamp.getMinutes())}${pad(timestamp.getSeconds())}`;
 const OUTPUT_ZIP = path.join(OUTPUT_DIR, `firefox-${stamp}.zip`);
 const STAGING_DIR = path.join(STAGING_ROOT, `firefox-${stamp}`);
-
-// Firefox prefers the browser.* namespace, so swap the common extension APIs.
-const REPLACEMENTS = [
-	['chrome.runtime', 'browser.runtime'],
-	['chrome.storage', 'browser.storage'],
-	['chrome.downloads', 'browser.downloads'],
-	['chrome.tabs', 'browser.tabs']
-];
 
 const ensureDist = async () => {
 	const stat = await fs.stat(DIST_DIR).catch(() => null);
@@ -60,16 +52,8 @@ const listFiles = async (dir) => {
 	return files;
 };
 
-const replaceInFile = async (filePath) => {
-	const content = await fs.readFile(filePath, 'utf8');
-	let updated = content;
-	for (const [from, to] of REPLACEMENTS) {
-		updated = updated.split(from).join(to);
-	}
-	if (updated !== content) {
-		await fs.writeFile(filePath, updated, 'utf8');
-	}
-};
+// We intentionally keep the `chrome.*` namespace intact for Firefox.
+// Firefox supports it for compatibility and it keeps callback-based code working.
 
 // Creates a Firefox-ready archive that keeps entry paths valid for AMO validation.
 const writeZip = async () => {
@@ -88,13 +72,6 @@ const run = async () => {
 	}
 
 	await copyFile(FF_MANIFEST, path.join(STAGING_DIR, 'manifest.json'));
-
-	const stagedFiles = await listFiles(STAGING_DIR);
-	for (const filePath of stagedFiles) {
-		if (filePath.endsWith('.js') || filePath.endsWith('.html')) {
-			await replaceInFile(filePath);
-		}
-	}
 
 	await writeZip();
 
