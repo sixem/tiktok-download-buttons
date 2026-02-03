@@ -1,3 +1,4 @@
+// Entry point for the content script bootstrap sequence.
 import { TTDB, UTIL, SPLASH } from './state';
 import { setupLogging } from './logging';
 import { setupUtils } from './utils/index';

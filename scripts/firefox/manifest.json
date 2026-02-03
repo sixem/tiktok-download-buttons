@@ -6,16 +6,18 @@
     "version": "1.2.0",
     "homepage_url": "https://github.com/sixem/tiktok-download-buttons",
     "icons": {
-        "48": "48.png",
-        "128": "128.png"
+        "48": "icons/48.png",
+        "128": "icons/128.png"
     },
     "action": {
-        "default_popup": "popup.html"
+        "default_popup": "popup.html",
+        "default_icon": {
+            "48": "icons/48.png",
+            "128": "icons/128.png"
+        }
     },
     "background": {
-        "scripts": [
-            "service.js"
-        ]
+        "service_worker": "service.js"
     },
     "content_scripts": [
         {
@@ -34,8 +36,7 @@
     ],
     "permissions": [
         "downloads",
-        "storage",
-        "declarativeNetRequestWithHostAccess"
+        "storage"
     ],
     "host_permissions": [
         "*://*.tiktok.com/*",
@@ -43,15 +44,6 @@
         "https://*.tiktokcdn.com/*",
         "https://*.tiktokv.com/*"
     ],
-    "declarative_net_request": {
-        "rule_resources": [
-            {
-                "id": "ruleset_1",
-                "enabled": true,
-                "path": "ruleset.json"
-            }
-        ]
-    },
     "browser_specific_settings": {
         "gecko": {
             "id": "{8fea972f-c152-4f9d-b859-845c6d39bb3c}"
