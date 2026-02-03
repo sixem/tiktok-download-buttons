@@ -205,31 +205,29 @@ const onDownloadClick = (button, videoData) => async (e) => {
 	};
 	let resolvedSource = initialResolution.source;
 
-	const shouldFetchApi = !initialResolution.preferDomUrl || !!nameTemplate;
+	// Always attempt API resolution (web or item detail) even if we already have a DOM URL.
+	// This helps replace blob:// sources with real HTTP URLs and pick up metadata for naming.
+	const apiResolution = await resolveSource({
+		videoData,
+		attrApiId,
+		pageUrl,
+		preferDomUrl: initialResolution.preferDomUrl,
+		logDownload,
+		attemptLabel,
+		attemptKey
+	});
 
-	if (shouldFetchApi) {
-		const apiResolution = await resolveSource({
-			videoData,
-			attrApiId,
-			pageUrl,
-			preferDomUrl: initialResolution.preferDomUrl,
-			logDownload,
-			attemptLabel,
-			attemptKey
-		});
+	if (apiResolution.videoUrl) {
+		const domIsBlob = initialResolution.domVideoUrl ? initialResolution.domVideoUrl.startsWith('blob:') : false;
+		const shouldPreferApi = domIsBlob || !initialResolution.videoUrl || !initialResolution.preferDomUrl;
 
-		if (apiResolution.videoUrl && !initialResolution.preferDomUrl) {
+		if (shouldPreferApi) {
 			usageData.videoUrl = apiResolution.videoUrl;
 			resolvedSource = apiResolution.source;
 		}
-
-		usageData.filename = resolveFilename(attrFilename, nameTemplate, videoData, apiResolution.apiData);
-	} else if (initialResolution.domVideoUrl) {
-		logDownload.info(`Attempt ${attemptLabel}: skipping API, DOM URL is strong`, {
-			videoKey: attemptKey,
-			url: initialResolution.domVideoUrl
-		});
 	}
+
+	usageData.filename = resolveFilename(attrFilename, nameTemplate, videoData, apiResolution.apiData);
 
 	if (!usageData.filename) {
 		usageData.filename = attrFilename;
