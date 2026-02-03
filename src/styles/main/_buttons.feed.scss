@@ -1,0 +1,69 @@
+// Feed button styling for the vertical action rail.
+@use './buttons.tokens' as *;
+
+a.ttdb__button_feed
+{
+    text-align: center;
+    width: $ttdb-feed-size;
+    height: $ttdb-feed-size;
+    line-height: $ttdb-feed-size;
+    border-radius: 100%;
+    font-size: 1.5em;
+    margin-bottom: 14px;
+    padding: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex-direction: column;
+}
+
+a.ttdb__button_feed:where(:hover)
+{
+    color: $ttdb-accent-hover;
+}
+
+a.ttdb__button_feed:where(.loading) > div
+{
+    display: none !important;
+}
+
+a.ttdb__button_feed:where(.loading)::after
+{
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E");
+}
+
+a.ttdb__button_feed > div
+{
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+a.ttdb__button_feed > div > svg
+{
+    @include ttdb-transition;
+    fill: currentColor;
+    width: $ttdb-feed-icon-size;
+    margin-left: 1px;
+    margin-top: -1px;
+}
+
+a.ttdb__button_feed:where(:hover) > div > svg
+{
+    color: $ttdb-accent-hover !important;
+}

@@ -1,0 +1,41 @@
+// Browser mode button styling for top-level controls.
+@use './buttons.tokens' as *;
+
+a.ttdb__button_browser
+{
+    padding: 5px 8px 4px 8px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border-radius: $ttdb-button-radius;
+    text-align: center;
+    display: block;
+    font-size: 14px;
+    pointer-events: none;
+    position: relative;
+}
+
+a.ttdb__button_browser:where(.loading)::after
+{
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
+}
+
+a.ttdb__button_browser:where([ttdb_mode="__NEXT"])
+{
+    margin-bottom: 10px !important;
+    margin-top: -12px !important;
+    padding: 4px 8px 6px 8px !important;
+}
+
+a.ttdb__button_browser:where([ttdb_mode="APP"])
+{
+    margin: 10px 0px 10px 0px !important;
+}
+
+a.ttdb__button_browser:where(:hover)
+{
+    color: $ttdb-accent-hover !important;
+    text-decoration: none;
+}

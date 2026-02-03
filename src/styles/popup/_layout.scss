@@ -1,3 +1,4 @@
+// Base popup layout and theme tokens.
 :root
 {
     color-scheme: dark;
@@ -11,7 +12,7 @@
     --popup-accent: #fe2c55;
     --popup-accent-soft: rgba(254, 44, 85, 0.18);
     --popup-glow: rgba(254, 44, 85, 0.35);
-    --popup-radius: 14px;
+    --popup-radius: 0.875rem;
 }
 
 *,
@@ -24,13 +25,13 @@
 body
 {
     margin: 0;
-    width: 360px;
+    width: 22.5rem;
     color: var(--popup-text);
     background: radial-gradient(circle at 10% 0%, rgba(254, 44, 85, 0.08), transparent 35%),
         radial-gradient(circle at 90% 10%, rgba(91, 108, 255, 0.06), transparent 40%),
         var(--popup-bg);
     font-family: "Space Grotesk", "Outfit", "Segoe UI", sans-serif;
-    font-size: 13px;
+    font-size: 0.875rem;
     overflow: hidden;
 }
 
@@ -44,14 +45,27 @@ a.link
 {
     color: var(--popup-text);
     text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
+    text-decoration-thickness: 0.0625rem;
+    text-underline-offset: 0.1875rem;
     transition: color 0.2s ease;
 }
 
 a.link:hover
 {
     color: #ffffff;
+}
+
+// Consistent selection styling across the popup.
+::selection
+{
+    background: #fff;
+    color: red;
+}
+
+::-moz-selection
+{
+    background: #fff;
+    color: red;
 }
 
 .popup

@@ -1,0 +1,18 @@
+// Shared button states for all TTDB controls.
+@use './buttons.tokens' as *;
+
+:where(a.ttdb__button_feed, a.ttdb__button_grid, a.ttdb__button_basic-player)
+{
+    @include ttdb-transition;
+    cursor: not-allowed;
+    opacity: 0;
+    outline: none;
+}
+
+a.ttdb__button_feed:where(.loading),
+a.ttdb__button_grid:where(.loading),
+a.ttdb__button_basic-player:where(.loading),
+a.ttdb__button_browser:where(.loading)
+{
+    cursor: progress !important;
+}
