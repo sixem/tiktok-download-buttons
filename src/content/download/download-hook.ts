@@ -227,6 +227,12 @@ const onDownloadClick = (button, videoData) => async (e) => {
 		}
 	}
 
+	// If API failed to yield a URL, fall back to any DOM URL we saw (even blob) so the user still gets a best-effort download.
+	if (!usageData.videoUrl && initialResolution.domVideoUrl) {
+		usageData.videoUrl = initialResolution.domVideoUrl;
+		resolvedSource = initialResolution.source || 'dom-blob';
+	}
+
 	usageData.filename = resolveFilename(attrFilename, nameTemplate, videoData, apiResolution.apiData);
 
 	if (!usageData.filename) {
@@ -241,7 +247,7 @@ const onDownloadClick = (button, videoData) => async (e) => {
 		});
 		SPLASH.message({
 			title: 'No downloadable video URL',
-			detail: 'Try another post or refresh the page.'
+			detail: 'Try again, or try another post.'
 		}, {
 			duration: 6000,
 			state: 3,
