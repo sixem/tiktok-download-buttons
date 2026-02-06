@@ -8,13 +8,16 @@ I made this mostly for my own needs, but it's also published here:
 
 * [Add-ons for Firefox](https://addons.mozilla.org/en-US/firefox/addon/tiktok-download-buttons/)
 
-## Watermarks
+## Download strategy
 
-This addon will _attempt_ to use the API to download videos without the watermark. This may not always work because TikTok can change how this works and block the way of downloading.
+TikTok is a moving target, and different pages expose video URLs in different ways. This addon uses a small set of explicit strategies and falls back when needed:
 
-By default it'll prioritize downloading from the API, but this can be turned off in the settings (not recommended). If the addon detects that the API isn't responding correctly, it'll revert back to the fallbacks (with watermarks) and it'll try again with the API at a later time.
+- **API**: Prefer signed MP4 URLs from TikTok’s web APIs when available. This is usually the most reliable path (and is the only path that *can* be watermark-free).
+- **DOM**: If the page exposes a normal `https://...mp4` video URL, download that directly.
+- **INTERCEPT**: If the page only exposes a `blob:` URL, cache the signed preview URL that TikTok fetches (often on hover or autoplay) and download that instead.
+- **BLOB**: Last resort. On Chromium we can sometimes fetch the media and trigger a blob download. On Firefox this is frequently blocked by browser/extension constraints, so we’ll ask you to hover the card to load a preview URL.
 
-Once the API has failed, there will be a short "cooldown" for when it attempts to use it again. This cooldown can be reset by simply opening the menu and saving your options, or you can wait 15 minutes.
+When a strategy fails, it'll try the next one and the toast will show what was used (for example `API`, `INTERCEPT`, or `API->BLOB`).
 
 ## Development
 
