@@ -8,7 +8,7 @@ export const setupBrowserUtils = () => {
 		// TikTok can spoof UA / some globals, but this tends to be a stable Gecko signal.
 		if (typeof (globalThis as any).wrappedJSObject !== 'undefined') return true;
 
-		const rt = (globalThis.browser ?? globalThis.chrome)?.runtime as any;
+		const rt = ((globalThis as any).browser ?? (globalThis as any).chrome)?.runtime as any;
 		if (typeof rt?.getBrowserInfo === 'function') return true;
 
 		// Firefox exposes `InstallTrigger` on window/globalThis.
@@ -24,7 +24,7 @@ export const setupBrowserUtils = () => {
 		// If we're in Firefox, bail out early.
 		if (typeof (globalThis as any).wrappedJSObject !== 'undefined') return false;
 
-		const rt = (globalThis.browser ?? globalThis.chrome)?.runtime as any;
+		const rt = ((globalThis as any).browser ?? (globalThis as any).chrome)?.runtime as any;
 
 		if (typeof rt?.getBrowserInfo === 'function') return false;
 		if (typeof (globalThis as any).InstallTrigger !== 'undefined') return false;

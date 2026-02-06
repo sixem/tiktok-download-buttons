@@ -1,4 +1,24 @@
-import { TTDB_OPTIONS } from './options';
+// Service worker entrypoint.
+//
+// Important constraint:
+// - MV3 service workers (and content scripts) are loaded as classic scripts.
+// - That means they cannot use ESM `import ... from ...` unless the manifest opts into modules.
+//
+// Vite/Rollup will emit `import` statements if two entrypoints share a module. To keep the
+// extension compatible across browsers (especially Firefox), we keep this settings schema
+// local to the service worker to avoid cross-entry shared chunks.
+//
+// Keep this in sync with `src/options.ts` (popup UI defaults).
+const TTDB_OPTIONS = {
+	'download-subfolder-path': {
+		type: 'text',
+		default: ''
+	},
+	'download-naming-template': {
+		type: 'text',
+		default: '{uploader} - {id}'
+	}
+} as const;
 
 // Extension settings exposed to the popup UI (via `optionsGet`).
 //
@@ -137,7 +157,7 @@ const fileDownload = async (args) => {
 		// downloads API. (Those blob URLs belong to the website, not the extension.)
 		//
 		// Chromium-based browsers generally *do* handle these, so only block on Firefox.
-		const rt = (globalThis.browser ?? globalThis.chrome)?.runtime as any;
+		const rt = ((globalThis as any).browser ?? (globalThis as any).chrome ?? chrome)?.runtime as any;
 		const isFirefox = typeof rt?.getBrowserInfo === 'function';
 		if (isFirefox && typeof url === 'string' && url.startsWith('blob:')) {
 			console.warn('[TTDB]', 'Download blocked (blob URL)', {
@@ -211,7 +231,7 @@ const fileDownload = async (args) => {
  */
 const runtimeInfo = async (args) => {
 	try {
-		const rt = (globalThis.browser ?? globalThis.chrome)?.runtime as any;
+		const rt = ((globalThis as any).browser ?? (globalThis as any).chrome ?? chrome)?.runtime as any;
 		const isFirefox = typeof rt?.getBrowserInfo === 'function';
 
 		// Keep the response minimal; content scripts only need stable booleans for behavior.
