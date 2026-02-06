@@ -18,6 +18,14 @@ const copyFile = async (src, dest) => {
 const copyExtensionAssets = () => ({
 	name: 'copy-extension-assets',
 	apply: 'build',
+	// Ensure `vite build --watch` reruns when these static files change.
+	// Without explicit watch registration, changes to `src/popup.html` (etc.)
+	// may not trigger a rebuild because they're not imported by JS/CSS.
+	buildStart() {
+		for (const file of STATIC_FILES) {
+			this.addWatchFile(path.join(SRC_DIR, file));
+		}
+	},
 	async closeBundle() {
 		await Promise.all(
 			STATIC_FILES.map((file) => copyFile(

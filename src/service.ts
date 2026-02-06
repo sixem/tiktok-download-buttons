@@ -1,16 +1,14 @@
-/** Default options for the addon to use */
-const options = {
-	'download-subfolder-path': {
-		type: 'text',
-		default: false,
-		current: null
-	},
-	'download-naming-template': {
-		type: 'text',
-		default: false,
-		current: null
-	}
-};
+import { TTDB_OPTIONS } from './options';
+
+// Extension settings exposed to the popup UI (via `optionsGet`).
+//
+// Note on defaults:
+// Historically we used `false` as a sentinel. That made "Reset" confusing
+// (it would literally reset text inputs to `false`). We now use real defaults
+// and migrate legacy values in storage on startup.
+const options: Record<string, { type: string; default: unknown; current: unknown }> = Object.fromEntries(
+	Object.entries(TTDB_OPTIONS).map(([key, schema]) => ([key, { ...schema, current: null }]))
+);
 
 /** Active download sessions */
 const globalState = globalThis as any;
@@ -97,15 +95,19 @@ const ensureDownloadChangeListener = () => {
 };
 
 /** Set default storage values */
-Object.keys(options).forEach((key) => {
+for (const [key, option] of Object.entries(options)) {
 	chrome.storage.local.get(key, (result) => {
-		if (result && !result.hasOwnProperty(key)) {
-			let value = new Object();
-			value[key] = options[key].default;
-			chrome.storage.local.set(value);
-		}
+		const hasValue = !!result && Object.prototype.hasOwnProperty.call(result, key);
+		const currentValue = hasValue ? result[key] : undefined;
+
+		// Migrate legacy sentinel values + ensure defaults exist.
+		const isValidText = option?.type === 'text' ? typeof currentValue === 'string' : true;
+		const shouldSetDefault = !hasValue || !isValidText || currentValue === false || currentValue === null;
+		if (!shouldSetDefault) return;
+
+		chrome.storage.local.set({ [key]: option.default });
 	});
-});
+}
 
 /**
  * Options getter

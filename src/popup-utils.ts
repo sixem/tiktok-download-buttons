@@ -10,22 +10,17 @@ const wrapCallback = (resolve, reject) => (result) => {
 	resolve(result);
 };
 
-export const sendRuntimeMessage = (message, extensionId = null) => new Promise((resolve, reject) => {
+export const storageSet = (value) => new Promise((resolve, reject) => {
 	try {
-		const callback = wrapCallback(resolve, reject);
-		if (typeof extensionId === 'string' && extensionId.length > 0) {
-			chrome.runtime.sendMessage(extensionId, message, callback);
-		} else {
-			chrome.runtime.sendMessage(message, callback);
-		}
+		chrome.storage.local.set(value, wrapCallback(resolve, reject));
 	} catch (error) {
 		reject(error);
 	}
 });
 
-export const storageSet = (value) => new Promise((resolve, reject) => {
+export const storageGet = (keys) => new Promise((resolve, reject) => {
 	try {
-		chrome.storage.local.set(value, wrapCallback(resolve, reject));
+		chrome.storage.local.get(keys, wrapCallback(resolve, reject));
 	} catch (error) {
 		reject(error);
 	}

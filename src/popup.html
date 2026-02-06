@@ -10,7 +10,15 @@
                 <div class="brand__title">TikTok Download Buttons</div>
                 <div id="version"></div>
             </div>
-            <a href="#" id="website" target="_blank">Website</a>
+
+            <div class="headerActions">
+                <button class="iconButton iconButton--reset" type="button" data-open-reset aria-label="Reset settings to defaults">
+                    <span class="iconButton__icon iconButton__icon--reset" aria-hidden="true"></span>
+                </button>
+                <button class="iconButton iconButton--close" type="button" data-close-popup aria-label="Close popup">
+                    <span class="iconButton__icon iconButton__icon--close" aria-hidden="true"></span>
+                </button>
+            </div>
         </header>
 
         <main class="popup__content">
@@ -18,7 +26,10 @@
                 <div class="card__header">
                     <h3>Subfolder</h3>
                 </div>
-                <p class="help">Subfolder to download videos to. Leaving it empty will download videos to your default directory.</p>
+                <p class="help">
+                    Subfolder to download videos to. Leaving it empty will download videos to your default directory.
+                    <span class="help__note">Note: some fallback methods (like blob downloads) must save directly to Downloads (browser limitation).</span>
+                </p>
                 <input type="text" spellcheck="false" id="download-subfolder-path" placeholder="Subfolder path ...">
             </section>
 
@@ -26,14 +37,43 @@
                 <div class="card__header">
                     <h3>Naming</h3>
                 </div>
-                <p class="help">Naming template to use when saving videos. Some placeholders require API data, but we’ll fill what we can from the page too. See <a class="link" target="_blank" href="https://github.com/sixem/tiktok-download-buttons/blob/main/TEMPLATE.md">templating</a>.</p>
+                <p class="help">Naming template for downloaded videos. Use placeholders like <code>{uploader}</code> and <code>{id}</code>. See <a class="link" target="_blank" rel="noopener noreferrer" href="https://github.com/sixem/tiktok-download-buttons/blob/main/TEMPLATE.md">templating</a>.</p>
                 <input type="text" spellcheck="false" id="download-naming-template" placeholder="{uploader} - {id}">
+            </section>
+
+            <section class="card card--support">
+                <div class="card__header">
+                    <h3>Support</h3>
+                </div>
+                <p class="help">Star the repo, or submit an issue if you've found a bug.</p>
+                <div class="supportActions">
+                    <a class="repoCta repoCta--star" href="#" target="_blank" rel="noopener noreferrer" data-repo-link>
+                        <span class="repoCta__icon repoCta__icon--star" aria-hidden="true"></span>
+                        <span>Star</span>
+                    </a>
+                    <a class="repoCta repoCta--secondary repoCta--issues" href="#" target="_blank" rel="noopener noreferrer" data-issues-link>
+                        <span class="repoCta__icon repoCta__icon--github" aria-hidden="true"></span>
+                        <span>Issues</span>
+                    </a>
+                </div>
             </section>
         </main>
 
         <footer class="popup__footer">
             <button id="settings-save">Save settings</button>
         </footer>
+
+        <div class="popupModal" hidden data-reset-modal>
+            <div class="popupModal__backdrop" data-reset-cancel aria-hidden="true"></div>
+            <div class="popupModal__panel" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+                <h2 class="popupModal__title" id="resetTitle">Reset settings?</h2>
+                <p class="popupModal__text">This will restore Subfolder and Naming back to their defaults.</p>
+                <div class="popupModal__actions">
+                    <button class="popupModal__button popupModal__button--danger" type="button" data-reset-confirm>Reset</button>
+                    <button class="popupModal__button" type="button" data-reset-cancel>Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

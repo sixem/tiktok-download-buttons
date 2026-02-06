@@ -70,6 +70,8 @@ a.link:hover
 
 .popup
 {
+    // Used as a positioning root for the reset confirmation modal.
+    position: relative;
     border: none;
     border-radius: 0;
     background: linear-gradient(160deg, rgba(18, 21, 27, 0.96), rgba(12, 14, 18, 0.95));
@@ -79,3 +81,122 @@ a.link:hover
     overflow: hidden;
 }
 
+.popup--modalOpen > .popup__header
+{
+    // Keep the header clickable so the user can always close the popup,
+    // even when a modal is open.
+    filter: blur(0.375rem);
+}
+
+.popup--modalOpen > .popup__content,
+.popup--modalOpen > .popup__footer
+{
+    filter: blur(0.375rem);
+    pointer-events: none;
+    user-select: none;
+}
+
+.popupModal
+{
+    position: absolute;
+    inset: 0;
+    // Note: we intentionally use the native `[hidden]` attribute for toggling.
+    // Since this rule has the same specificity as `[hidden] { display: none; }`,
+    // we also add an explicit `.popupModal[hidden]` rule below to ensure the
+    // modal is truly hidden by default.
+    display: grid;
+    place-items: center;
+    padding: 0.75rem;
+    z-index: 10;
+}
+
+.popupModal[hidden]
+{
+	// Safari / Firefox already ship `[hidden] { display: none; }`, but the rule above
+	// (`.popupModal { display: grid; }`) can override it due to equal specificity.
+	//
+	// Using `!important` here is intentional: "hidden means hidden" is one of the few
+	// places where it avoids surprising behavior (like the modal showing up by default).
+	display: none !important;
+}
+
+.popupModal__backdrop
+{
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(0.25rem);
+}
+
+.popupModal__panel
+{
+    position: relative;
+    width: 100%;
+    max-width: 20rem;
+    border-radius: 0.75rem;
+    border: 0.0625rem solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 21, 27, 0.92);
+    box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.55);
+    padding: 0.75rem 0.75rem 0.6875rem 0.75rem;
+}
+
+.popupModal__title
+{
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.01rem;
+}
+
+.popupModal__text
+{
+    margin: 0.375rem 0 0 0;
+    color: var(--popup-muted);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.popupModal__actions
+{
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.popupModal__button
+{
+    flex: 1 1 0;
+    border: 0.0625rem solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.625rem;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--popup-text);
+    font-weight: 600;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.popupModal__button:hover
+{
+    transform: translateY(-0.0625rem);
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.popupModal__button:active
+{
+    transform: translateY(0);
+}
+
+.popupModal__button--danger
+{
+    border-color: rgba(254, 44, 85, 0.28);
+    background: rgba(254, 44, 85, 0.14);
+}
+
+.popupModal__button--danger:hover
+{
+    border-color: rgba(254, 44, 85, 0.4);
+    background: rgba(254, 44, 85, 0.18);
+}

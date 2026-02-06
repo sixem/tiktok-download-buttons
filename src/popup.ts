@@ -1,97 +1,147 @@
 // Popup UI logic for extension settings.
 import './popup.scss';
-import { sendRuntimeMessage, storageSet } from './popup-utils';
+import { storageGet, storageSet } from './popup-utils';
+import { TTDB_OPTIONS, type TTDBOptionKey } from './options';
 
-const getOptions = async () => {
-	return await sendRuntimeMessage({ task: 'optionsGet' }, chrome.runtime.id);
+const normalizeSubfolderPath = (value: string) => {
+	return value
+		.trim()
+		.replace(/\\/g, '/') // Replace `\` with `/`
+		.replace(/\/+/g, '/') // Remove duplicate slashes
+		.replace(/^\//, ''); // Remove leading slashes
+};
+
+const normalizeNamingTemplate = (value: string) => value.trim();
+
+const getInputElement = (id: TTDBOptionKey) => {
+	const el = document.querySelector<HTMLInputElement>(`input#${id}`);
+	return el ?? null;
 };
 
 window.addEventListener('DOMContentLoaded', async () => {
 	const manifest = chrome.runtime.getManifest();
 
 	const versionElement = document.querySelector('#version');
-	const websiteElement = document.querySelector('#website');
+	const repoLinkElements = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-repo-link]'));
+	const issuesLinkElements = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-issues-link]'));
 
 	if(versionElement) {
 		versionElement.textContent = manifest.version;
 		versionElement.style.visibility = 'visible';
 	}
 
-	if(websiteElement) {
-		websiteElement.setAttribute('href', manifest.homepage_url);
-		websiteElement.style.visibility = 'visible';
-	}
+	if (typeof manifest.homepage_url === 'string' && manifest.homepage_url.length > 0) {
+		const repoUrl = manifest.homepage_url.replace(/\/+$/, '');
+		const issuesUrl = /github\.com\/[^/]+\/[^/]+/i.test(repoUrl) ? `${repoUrl}/issues` : repoUrl;
 
-	let options = {};
-	try {
-		options = await getOptions();
-	} catch (error) {
-		console.warn('[TTDB]', 'Failed to load options', error);
-	}
-
-	Object.keys(options).forEach((key) => {
-		// Handle toggleable options (checkboxes)
-		if(options[key].type === 'toggle') {
-			const element = document.querySelector(`input[type="checkbox"]#${key}`);
-
-			chrome.storage.local.get(key, (result) => {
-				let currentValue = result[key];
-
-				// If value has not been set already, set to default
-				if(!(currentValue === true || currentValue === false)) {
-					let newValue = new Object();
-					newValue[key] = options[key].default;
-					chrome.storage.local.set(newValue);
-				} else {
-					element.checked = currentValue;
-				}
-			});
-
-			element.addEventListener('change', (e) => {
-				options[key].current = e.target.checked ? true : false;
-			});
-		// Handle text input (textboxes)
-		} else if (options[key].type === 'text') {
-			const element = document.querySelector(`input[type="text"]#${key}`);
-
-			chrome.storage.local.get(key, (result) => {
-				let currentValue = result[key];
-
-				// If value has not been set already, set to default
-				if(currentValue === false) {
-					let newValue = new Object();
-					newValue[key] = options[key].default;
-					chrome.storage.local.set(newValue);
-				} else if(typeof currentValue === 'string' || currentValue instanceof String) {
-					element.value = currentValue;
-				}
-			});
-
-			/** Detect checked change */
-			(['change', 'keydown', 'paste', 'input']).forEach((event) => {
-				element.addEventListener(event, (e) => {
-					let newValue = e.target.value.trim()
-						.replace(/\\/g, '/') // Replace `\` with `/`
-						.replace(/\/+/g, '/') // Remove duplicate slashes
-						.replace(/^\//, ''); // Remove leading slashes
-
-					options[key].current = newValue;
-				});
-			});
+		for (const el of repoLinkElements) {
+			el.setAttribute('href', repoUrl);
 		}
+
+		for (const el of issuesLinkElements) {
+			el.setAttribute('href', issuesUrl);
+		}
+	}
+
+	// The popup is ephemeral, but an explicit close button makes it feel more "app-like"
+	// (and reduces the need to click outside of the popup to dismiss it).
+	const closeButton = document.querySelector<HTMLButtonElement>('[data-close-popup]');
+	closeButton?.addEventListener('click', () => window.close());
+
+	const popupRoot = document.querySelector<HTMLElement>('.popup');
+	const resetModal = document.querySelector<HTMLElement>('[data-reset-modal]');
+	const openResetButton = document.querySelector<HTMLButtonElement>('[data-open-reset]');
+	const cancelResetButtons = Array.from(document.querySelectorAll<HTMLElement>('[data-reset-cancel]'));
+	const confirmResetButton = document.querySelector<HTMLButtonElement>('[data-reset-confirm]');
+	const buttonSave = document.querySelector<HTMLButtonElement>('#settings-save');
+
+	const setResetModalOpen = (isOpen: boolean) => {
+		if (!popupRoot || !resetModal) return;
+
+		popupRoot.classList.toggle('popup--modalOpen', isOpen);
+
+		// Prefer the DOM property over `toggleAttribute()` so the intent is obvious
+		// and we don't depend on relatively new DOM APIs.
+		resetModal.hidden = !isOpen;
+	};
+
+	// Ensure the modal starts closed, even if the markup gets edited in the future.
+	setResetModalOpen(false);
+
+	openResetButton?.addEventListener('click', () => setResetModalOpen(true));
+	for (const el of cancelResetButtons) {
+		el.addEventListener('click', () => setResetModalOpen(false));
+	}
+
+	// Load existing settings into the UI (and backfill defaults if needed).
+	const optionKeys = Object.keys(TTDB_OPTIONS) as TTDBOptionKey[];
+
+	let stored: Record<string, unknown> = {};
+	try {
+		stored = await storageGet(optionKeys) as Record<string, unknown>;
+	} catch (error) {
+		console.warn('[TTDB]', 'Failed to read settings from storage', error);
+	}
+
+	for (const key of optionKeys) {
+		const input = getInputElement(key);
+		if (!input) continue;
+
+		const schema = TTDB_OPTIONS[key];
+		const rawValue = stored ? stored[key] : undefined;
+
+		if (schema.type !== 'text') continue;
+
+		const value = typeof rawValue === 'string' ? rawValue : String(schema.default ?? '');
+		input.value = value;
+
+		// If the stored value is missing/invalid, write the default so other parts of the
+		// extension don't need to special-case `undefined`/`false`.
+		if (typeof rawValue !== 'string') {
+			await storageSet({ [key]: value });
+		}
+	}
+
+	buttonSave?.addEventListener('click', async () => {
+		const subfolderEl = getInputElement('download-subfolder-path');
+		const namingEl = getInputElement('download-naming-template');
+
+		const subfolder = subfolderEl ? normalizeSubfolderPath(subfolderEl.value) : String(TTDB_OPTIONS['download-subfolder-path'].default ?? '');
+
+		const namingTemplateRaw = namingEl ? normalizeNamingTemplate(namingEl.value) : '';
+		const namingTemplate = namingTemplateRaw.length > 0
+			? namingTemplateRaw
+			: String(TTDB_OPTIONS['download-naming-template'].default ?? '');
+
+		await storageSet({
+			'download-subfolder-path': subfolder,
+			'download-naming-template': namingTemplate
+		});
+
+		window.close();
 	});
 
-	const buttonSave = document.querySelector('#settings-save');
+	confirmResetButton?.addEventListener('click', async () => {
+		const resetPayload: Record<string, unknown> = {};
+		for (const key of optionKeys) {
+			resetPayload[key] = TTDB_OPTIONS[key].default;
 
-	buttonSave.addEventListener('click', async () => {
-		for (const key of Object.keys(options)) {
-			if (options[key].current !== null) {
-				let value = new Object();
-				value[key] = options[key].current;
-				await storageSet(value);
+			const input = getInputElement(key);
+			if (input && TTDB_OPTIONS[key].type === 'text') {
+				input.value = String(TTDB_OPTIONS[key].default ?? '');
 			}
 		}
 
-		window.close();
+		await storageSet(resetPayload);
+
+		setResetModalOpen(false);
+	});
+
+	// Let Escape dismiss the reset confirmation (when it is open).
+	window.addEventListener('keydown', (event) => {
+		if (event.key !== 'Escape') return;
+		if (!popupRoot?.classList.contains('popup--modalOpen')) return;
+		event.preventDefault();
+		setResetModalOpen(false);
 	});
 });
