@@ -1,12 +1,14 @@
 // Download click wiring and helpers for resolving URLs and filenames.
-import { TTDB, SPLASH } from '../state';
+import { TTDB, SPLASH, UTIL } from '../state';
 import { DOM } from '../dom';
 import { getStoredSetting } from '../utils/storage';
 import { getWebApiData } from '../api/web-detail';
 import { getItemDetailApiData } from '../api/item-detail';
 import { getFileNameTemplate } from './filename';
-import { downloadFile } from './download-file';
+import { downloadViaApi, downloadViaBlob, downloadViaDom, downloadViaIntercept } from './download-file';
 import { getVideoUrlFromButtonContext } from '../extractors/video-url';
+import { armPreviewCapture, getCachedPreviewUrl, waitForPreviewUrl } from './preview-url-cache';
+import { getRuntimeInfo } from '../utils/extension';
 
 const getNameTemplate = async () => {
 	let nameTemplate = await getStoredSetting('download-naming-template');
@@ -150,11 +152,21 @@ const resolveSource = async ({
 
 // Resolve final filename, falling back to the attribute name if no template applies.
 const resolveFilename = (defaultFilename, nameTemplate, videoData, apiData) => {
-	if (!nameTemplate || !apiData) {
+	if (!nameTemplate) {
 		return defaultFilename;
 	}
 
-	return getFileNameTemplate(videoData, apiData, nameTemplate);
+	// Apply naming templates even when API data is missing.
+	// Many placeholders (like `{uploader}` / `{id}`) can still be resolved from `videoData`.
+	// If the template can't produce a usable result, fall back to the default filename.
+	return getFileNameTemplate(videoData, apiData || {}, nameTemplate) || defaultFilename;
+};
+
+const hashString = (input) => {
+	if (!input) return null;
+	return String(input)
+		.split('')
+		.reduce((hash, char) => (hash * 33) ^ char.charCodeAt(0), 5381) >>> 0;
 };
 
 // Minimal click handler that orchestrates URL and filename resolution.
@@ -186,11 +198,27 @@ const onDownloadClick = (button, videoData) => async (e) => {
 
 	const nameTemplate = await getNameTemplate();
 	const pageUrl = attrPageUrl || videoData.pageUrl || null;
+	const runtimeInfo = await getRuntimeInfo();
+	const runtimeFirefox = !!(runtimeInfo && typeof runtimeInfo === 'object' && (runtimeInfo as any).isFirefox);
+	const firefox = runtimeFirefox || (typeof UTIL.isFirefox === 'function' ? UTIL.isFirefox() : false);
+	const chromium = !firefox && UTIL.isChromium();
 
 	if (pageUrl && !attrPageUrl) {
 		button.setAttribute('data-video-page-url', pageUrl);
 	}
 
+	// Step 1: Attempt API resolution first. This is the most reliable path when TikTok returns data.
+	const apiResolution = await resolveSource({
+		videoData,
+		attrApiId,
+		pageUrl,
+		preferDomUrl: false,
+		logDownload,
+		attemptLabel,
+		attemptKey
+	});
+
+	// Step 2: Resolve a DOM video URL (only if it's not a blob:).
 	const initialResolution = resolveVideoUrl(
 		button,
 		attrUrl,
@@ -199,38 +227,102 @@ const onDownloadClick = (button, videoData) => async (e) => {
 		attemptLabel,
 		attemptKey
 	);
+	const domUrl = initialResolution.domVideoUrl || null;
+	const domIsBlob = !!domUrl && domUrl.startsWith('blob:');
+	const domIsHttp = !!domUrl && /^https?:/i.test(domUrl);
+
 	const usageData = {
-		videoUrl: initialResolution.videoUrl,
+		videoUrl: null,
 		filename: attrFilename
 	};
-	let resolvedSource = initialResolution.source;
-
-	// Always attempt API resolution (web or item detail) even if we already have a DOM URL.
-	// This helps replace blob:// sources with real HTTP URLs and pick up metadata for naming.
-	const apiResolution = await resolveSource({
-		videoData,
-		attrApiId,
-		pageUrl,
-		preferDomUrl: initialResolution.preferDomUrl,
-		logDownload,
-		attemptLabel,
-		attemptKey
-	});
+	let resolvedSource = null;
 
 	if (apiResolution.videoUrl) {
-		const domIsBlob = initialResolution.domVideoUrl ? initialResolution.domVideoUrl.startsWith('blob:') : false;
-		const shouldPreferApi = domIsBlob || !initialResolution.videoUrl || !initialResolution.preferDomUrl;
+		usageData.videoUrl = apiResolution.videoUrl;
+		resolvedSource = apiResolution.source;
+	} else if (domIsHttp) {
+		usageData.videoUrl = domUrl;
+		resolvedSource = 'dom';
+	}
 
-		if (shouldPreferApi) {
-			usageData.videoUrl = apiResolution.videoUrl;
-			resolvedSource = apiResolution.source;
+	// Step 3: If the DOM gave us a blob: URL, try to use a cached preview URL captured from
+	// ResourceTiming entries (hover previews). If missing, wait briefly for it to appear.
+	if (!usageData.videoUrl && attrApiId) {
+		const cached = getCachedPreviewUrl(attrApiId);
+		if (cached) {
+			logDownload.info(`Attempt ${attemptLabel}: preview URL cache hit`, {
+				videoKey: attemptKey,
+				videoId: attrApiId,
+				url: cached
+			});
+			usageData.videoUrl = cached;
+			resolvedSource = 'preview-cache';
+		} else {
+			logDownload.info(`Attempt ${attemptLabel}: preview URL cache miss`, {
+				videoKey: attemptKey,
+				videoId: attrApiId,
+				waitMs: 1600
+			});
+
+			// Arm a short capture window and wait. This only works if TikTok actually requests
+			// the preview URL (often on hover). We keep messaging explicit so it doesn't feel "stuck".
+			armPreviewCapture(attrApiId, 'click', 1800);
+
+			const toastKeyHash = hashString(attemptKey) || Date.now();
+			const prepToastId = `download-prepare-${toastKeyHash}-${attemptId}`;
+
+			SPLASH.message({
+				title: 'Preparing download',
+				detail: 'Hover the video to load a preview, then wait a moment...'
+			}, {
+				id: prepToastId,
+				state: 0,
+				sticky: true,
+				spinner: true,
+				hideMeta: true
+			});
+
+			const waited = await waitForPreviewUrl(attrApiId, 1600);
+			SPLASH.dismiss(prepToastId);
+
+			if (waited) {
+				logDownload.info(`Attempt ${attemptLabel}: preview URL captured`, {
+					videoKey: attemptKey,
+					videoId: attrApiId,
+					url: waited
+				});
+				usageData.videoUrl = waited;
+				resolvedSource = 'preview-cache';
+			} else {
+				logDownload.info(`Attempt ${attemptLabel}: preview URL not found in time`, {
+					videoKey: attemptKey,
+					videoId: attrApiId
+				});
+			}
 		}
 	}
 
-	// If API failed to yield a URL, fall back to any DOM URL we saw (even blob) so the user still gets a best-effort download.
-	if (!usageData.videoUrl && initialResolution.domVideoUrl) {
-		usageData.videoUrl = initialResolution.domVideoUrl;
-		resolvedSource = initialResolution.source || 'dom-blob';
+	// Step 4: Final fallback. Blob download is Chromium-only (best-effort).
+	if (!usageData.videoUrl && domIsBlob) {
+		if (chromium) {
+			usageData.videoUrl = domUrl;
+			resolvedSource = 'dom-blob';
+		} else {
+			logDownload.warn(`Attempt ${attemptLabel}: blob URL blocked on Firefox`, {
+				videoKey: attemptKey,
+				url: domUrl
+			});
+			SPLASH.message({
+				title: 'Download blocked on Firefox',
+				detail: 'This video only exposed a blob URL. Hover the card to load a preview, then try again.'
+			}, {
+				duration: 6500,
+				state: 3,
+				hideMeta: true
+			});
+			button.classList.remove('loading');
+			return;
+		}
 	}
 
 	usageData.filename = resolveFilename(attrFilename, nameTemplate, videoData, apiResolution.apiData);
@@ -263,12 +355,32 @@ const onDownloadClick = (button, videoData) => async (e) => {
 		filename: usageData.filename,
 		source: resolvedSource
 	});
-	downloadFile(usageData.videoUrl, usageData.filename, button, attemptId, {
+
+	const downloadContext = {
 		videoKey: attemptKey,
 		source: resolvedSource,
 		videoId: attrApiId,
 		user: videoData.user || null
-	});
+	};
+
+	// Make the chosen download method explicit at the call-site.
+	// This keeps the coordinator "dumb" and makes debugging a lot easier.
+	switch (resolvedSource) {
+		case 'web-api':
+		case 'item-detail-api':
+			downloadViaApi(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
+			break;
+		case 'preview-cache':
+			downloadViaIntercept(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
+			break;
+		case 'dom-blob':
+			downloadViaBlob(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
+			break;
+		case 'dom':
+		default:
+			downloadViaDom(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
+			break;
+	}
 };
 
 export const downloadHook = async (button, videoData) => {
@@ -281,6 +393,19 @@ export const downloadHook = async (button, videoData) => {
 
 	if (videoData.videoApiId) {
 		button.setAttribute('video-id', videoData.videoApiId);
+
+		// Arm a preview-capture window when the user hovers the card. This is where TikTok
+		// typically requests the signed MP4 URL we can later download.
+		const container = button.closest('[is-downloadable]') || button.closest('article');
+		if (container && !container.ttdbPreviewCaptureArmed) {
+			container.addEventListener('pointerenter', () => {
+				armPreviewCapture(videoData.videoApiId, 'hover', 1600);
+			}, { passive: true });
+			container.addEventListener('mouseenter', () => {
+				armPreviewCapture(videoData.videoApiId, 'hover', 1600);
+			}, { passive: true });
+			container.ttdbPreviewCaptureArmed = true;
+		}
 	}
 
 	if (!button.hasListener) {

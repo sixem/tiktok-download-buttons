@@ -23,6 +23,22 @@ export const sendRuntimeMessage = (message, extensionId = null) => new Promise((
 	}
 });
 
+// Cached extension-context runtime info.
+// Content scripts can be affected by site shims (UA spoofing, etc), so we prefer asking
+// the service worker for stable "what browser is this?" booleans once per page load.
+let runtimeInfoPromise = null;
+
+export const getRuntimeInfo = async () => {
+	if (!runtimeInfoPromise) {
+		runtimeInfoPromise = sendRuntimeMessage({ task: 'runtimeInfo' })
+			.catch(() => null);
+	}
+
+	const info = await runtimeInfoPromise;
+	if (!info || typeof info !== 'object') return null;
+	return info;
+};
+
 export const storageGet = (key) => new Promise((resolve, reject) => {
 	try {
 		chrome.storage.local.get(key, wrapCallback(resolve, reject));

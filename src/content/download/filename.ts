@@ -21,7 +21,8 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 	const templateKeys = {
 		uploader: [['author', 'uniqueId'], data.user, ['aweme_detail', 'author', 'unique_id']],
 		nickname: [['author', 'nickname'], ['aweme_detail', 'author', 'nickname']],
-		desc: [['desc'], data.description, ['aweme_detail', 'author', 'unique_id']],
+		// `desc` is the post caption/description. (The previous fallback path accidentally pointed at the author.)
+		desc: [['desc'], data.description, ['aweme_detail', 'desc']],
 		uid: [['author', 'id'], ['aweme_detail', 'author', 'uid'], ['aweme_detail', 'author_user_id']],
 		id: [['id'], data.videoApiId, data.videoId],
 		region: [['aweme_detail', 'region']],
@@ -76,7 +77,9 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 	let filename = template;
 
 	for (const [key, value] of Object.entries(templateValues)) {
-		filename = filename.replace(`{${key}}`, value);
+		// Replace *all* occurrences of the token; `.replace()` only handles the first one.
+		const token = `{${key}}`;
+		filename = filename.split(token).join(String(value ?? ''));
 	}
 
 	filename = filename.replace(/({[^}]+})/g, '');

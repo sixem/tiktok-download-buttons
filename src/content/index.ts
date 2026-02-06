@@ -5,6 +5,7 @@ import { setupUtils } from './utils/index';
 import { setupExpressions } from './extractors/expressions';
 import { setupActiveDownloads } from './ui/active-downloads';
 import { setupSplash } from './ui/splash';
+import { setupAutoplayPreviewCapture } from './download/autoplay-preview-capture';
 import { observeApp, getAppContainer, startUpdateLoop } from './observe';
 
 export const bootstrap = () => {
@@ -13,6 +14,7 @@ export const bootstrap = () => {
 	setupExpressions();
 	setupActiveDownloads();
 	setupSplash();
+	setupAutoplayPreviewCapture();
 
 	let appContainer = getAppContainer();
 
