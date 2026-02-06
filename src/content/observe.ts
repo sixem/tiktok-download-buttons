@@ -150,6 +150,20 @@ const collectVideoItems = (root: ParentNode) => {
 	return items;
 };
 
+// Some "grid-like" TikTok UI panels (for example the "You may like" list under a video page)
+// use `DivItemContainer` cards without the usual inner `div[mode]` marker.
+//
+// When that happens, our mode detection must not assume "no `mode` attribute" means "__NEXT".
+// Instead we treat these as GRID cards when they contain a canonical video link.
+const looksLikeAppGridCardWithoutMode = (item: Element) => {
+	// Accept both absolute and relative URLs:
+	// - https://www.tiktok.com/@user/video/<id>
+	// - /@user/video/<id>
+	return !!item.querySelector(
+		'a[href*="/@"][href*="/video/"], a[href*="tiktok.com/@"][href*="/video/"]'
+	);
+};
+
 const detectItemMode = (item: Element) => {
 	let currentMode = null;
 	let currentEnvironment = null;
@@ -160,6 +174,12 @@ const detectItemMode = (item: Element) => {
 		currentMode = modeElement.getAttribute('mode');
 		currentEnvironment = TTDB.ENV.APP;
 	} else {
+		// App cards without `div[mode]` (example: "You may like").
+		if (looksLikeAppGridCardWithoutMode(item)) {
+			currentMode = TTDB.MODE.GRID;
+			currentEnvironment = TTDB.ENV.APP;
+		}
+
 		const classList = item.classList;
 
 		if (classList.contains('video-feed-item') || classList.contains('three-column-item')) {
@@ -174,7 +194,7 @@ const detectItemMode = (item: Element) => {
 			currentMode = TTDB.MODE.SHARE_OVERLAY;
 		}
 
-		if (currentMode !== null) {
+		if (currentMode !== null && currentEnvironment === null) {
 			currentEnvironment = TTDB.ENV.__NEXT;
 		}
 	}

@@ -1,7 +1,12 @@
 // Grid-mode extraction for thumbnail cards.
 import { EXPR } from '../state';
 
-const GRID_LINK_SELECTOR = 'a[href*="com/@"]';
+// Grid cards can use absolute or relative page URLs.
+//
+// Examples:
+// - https://www.tiktok.com/@user/video/<id>
+// - /@user/video/<id>
+const GRID_LINK_SELECTOR = 'a[href*="/@"][href*="/video/"], a[href*="tiktok.com/@"][href*="/video/"]';
 
 export const extractGridData = (data) => {
 	const videoData: any = {};
