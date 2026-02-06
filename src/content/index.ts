@@ -9,6 +9,13 @@ import { setupAutoplayPreviewCapture } from './download/autoplay-preview-capture
 import { observeApp, getAppContainer, startUpdateLoop } from './observe';
 
 export const bootstrap = () => {
+	// Defensive: content scripts can be injected multiple times in some extension workflows
+	// (for example during development, or if the page does a hard navigation and the old
+	// script instance is still winding down). Keep bootstrap idempotent so we don't stack
+	// observers, timers, or global event listeners.
+	if (TTDB.__ttdbBootstrapped) return;
+	TTDB.__ttdbBootstrapped = true;
+
 	setupLogging();
 	setupUtils();
 	setupExpressions();

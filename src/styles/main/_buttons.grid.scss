@@ -10,6 +10,8 @@ a.ttdb__button_grid
     background-color: $ttdb-grid-bg;
     border-radius: $ttdb-button-radius;
     color: #fff !important;
+    // Prevent browser default link underlines (some states can re-introduce them on hover/focus).
+    text-decoration: none !important;
     box-shadow: $ttdb-grid-shadow;
     backdrop-filter: blur(2px);
 }
@@ -41,5 +43,5 @@ a.ttdb__button_grid:where(:hover)
 {
     background-color: $ttdb-grid-bg-hover;
     color: #00ff80 !important;
-    text-decoration: none;
+    text-decoration: none !important;
 }

@@ -1,4 +1,3 @@
-import { TTDB } from '../state';
 import { DOM } from '../dom';
 import { pipe } from '../logging';
 import { createButton } from '../ui/buttons';
@@ -10,6 +9,16 @@ export const createGridMode = () => (item, data) => {
 
 	const button = createButton.GRID();
 	button.ttdbItem = item;
+
+	// Grid items sometimes require a short "await" period before `itemData` is populated.
+	// The previous implementation used a single global interval ID, which meant hovering
+	// multiple items could cancel each other's timers. Keep the timer per-item instead.
+	const clearAwaitTimer = () => {
+		if (typeof item.ttdbAwaitVideoDataTimerId === 'number') {
+			clearInterval(item.ttdbAwaitVideoDataTimerId);
+			item.ttdbAwaitVideoDataTimerId = null;
+		}
+	};
 
 	const setButton = (videoData, button) => {
 		pipe('Found video data:', videoData);
@@ -29,24 +38,24 @@ export const createGridMode = () => (item, data) => {
 	setButton(itemData.get(item, data), button);
 
 	item.addEventListener('mouseleave', () => {
-		clearInterval(TTDB.timers.gridAwaitVideoData);
+		clearAwaitTimer();
 	});
 
 	item.addEventListener('mouseenter', () => {
 		if (!button.ttIsProcessed) {
-			clearInterval(TTDB.timers.gridAwaitVideoData);
+			clearAwaitTimer();
 
 			let videoData = itemData.get(item, data);
 
 			setButton(videoData, button);
 
 			if (!button.ttIsProcessed) {
-				TTDB.timers.gridAwaitVideoData = setInterval(() => {
+				item.ttdbAwaitVideoDataTimerId = setInterval(() => {
 					videoData = itemData.get(item, data);
 					setButton(videoData, button);
 
 					if (button.ttIsProcessed) {
-						clearInterval(TTDB.timers.gridAwaitVideoData);
+						clearAwaitTimer();
 					}
 				}, 100);
 			}
@@ -54,7 +63,19 @@ export const createGridMode = () => (item, data) => {
 	});
 
 	DOM.setStyle(item, { position: 'relative' });
-	item.appendChild(button);
+
+	// Some "grid-like" layouts (e.g. "You may like" lists) start/stop their preview playback
+	// based on hovering a *specific* cover element. If we append our overlay button at the root,
+	// hovering the button can count as "leaving" the cover, which pauses the preview.
+	//
+	// We detect this newer card shape by the absence of `[mode]` (classic grid items have it),
+	// then prefer inserting into the cover container so hover state keeps working.
+	const looksLikeNoModeCard = !item.querySelector('[mode]');
+	const coverContainer = looksLikeNoModeCard
+		? item.querySelector('[class*="DivCoverContainer"]')
+		: null;
+
+	(coverContainer || item).appendChild(button);
 	setTimeout(() => { button.style.opacity = 1; }, 100);
 
 	return true;

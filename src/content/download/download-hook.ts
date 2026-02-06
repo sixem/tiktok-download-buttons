@@ -174,7 +174,12 @@ const hashString = (input) => {
 
 // Minimal click handler that orchestrates URL and filename resolution.
 const onDownloadClick = (button, videoData) => async (e) => {
+	// TikTok attaches various click handlers high up in the tree (and sometimes on the cards
+	// themselves). If our overlay button bubbles up, it can toggle playback or trigger navigation.
+	// We treat the TTDB button as a self-contained control.
 	e.preventDefault();
+	e.stopPropagation();
+	e.stopImmediatePropagation?.();
 
 	if (button.classList.contains('loading')) {
 		return false;
@@ -189,6 +194,25 @@ const onDownloadClick = (button, videoData) => async (e) => {
 	const logDownload = TTDB.LOG.ns('download');
 	const attemptKey = String(attrApiId || videoData.videoApiId || videoData.id || attrUrl || 'unknown');
 	const attemptsByVideo = TTDB.stats.downloadAttemptsByVideo;
+
+	// Safety guard: a long TikTok session can involve thousands of unique posts.
+	// Keep the attempt counter map bounded so we don't retain an unbounded set of keys.
+	//
+	// This is a debug/UX aid ("Attempt #N") and doesn't need perfect historical accuracy.
+	TTDB.stats.downloadAttemptOrder = TTDB.stats.downloadAttemptOrder || [];
+	const attemptOrder: string[] = TTDB.stats.downloadAttemptOrder;
+	const isFirstAttemptForVideo = !Object.prototype.hasOwnProperty.call(attemptsByVideo, attemptKey);
+	if (isFirstAttemptForVideo) {
+		attemptOrder.push(attemptKey);
+	}
+
+	const MAX_ATTEMPT_KEYS = 800;
+	while (attemptOrder.length > MAX_ATTEMPT_KEYS) {
+		const oldest = attemptOrder.shift();
+		if (!oldest) continue;
+		delete attemptsByVideo[oldest];
+	}
+
 	const attemptId = (attemptsByVideo[attemptKey] = (attemptsByVideo[attemptKey] || 0) + 1);
 	const attemptLabel = `#${attemptId}`;
 
@@ -397,16 +421,69 @@ export const downloadHook = async (button, videoData) => {
 	if (videoData.videoApiId) {
 		button.setAttribute('video-id', videoData.videoApiId);
 
+		const isGridButton = button.classList.contains('ttdb__button_grid');
+
 		// Arm a preview-capture window when the user hovers the card. This is where TikTok
 		// typically requests the signed MP4 URL we can later download.
 		const container = button.closest('[is-downloadable]') || button.closest('article');
 		if (container && !container.ttdbPreviewCaptureArmed) {
+			// Newer grid-like cards (e.g. "You may like") do not have `[mode]` and frequently
+			// rely on hover previews to expose a usable signed MP4 URL.
+			//
+			// For these cards, we keep the overlay non-interactive until the preview URL is
+			// observed in ResourceTiming. This makes the UX match the other grid items: hover
+			// first (to load a preview), then click to download.
+			const isNoModeCard = isGridButton && !container.querySelector('[mode]');
+
+			const setInteractive = (interactive: boolean) => {
+				DOM.setStyle(button, {
+					cursor: interactive ? 'pointer' : 'not-allowed',
+					'pointer-events': interactive ? 'auto' : 'none'
+				});
+			};
+
+			const ensureInteractiveOncePreviewIsCached = () => {
+				if (!isNoModeCard) return;
+				if (button.ttdbPreviewReady) return;
+				if (button.ttdbPreviewReadyPromise) return;
+
+				const cached = getCachedPreviewUrl(videoData.videoApiId);
+				if (cached) {
+					button.ttdbPreviewReady = true;
+					setInteractive(true);
+					return;
+				}
+
+				button.ttdbPreviewReadyPromise = waitForPreviewUrl(videoData.videoApiId, 1600)
+					.then((url) => {
+						if (!url) return;
+						button.ttdbPreviewReady = true;
+						setInteractive(true);
+					})
+					.finally(() => {
+						button.ttdbPreviewReadyPromise = null;
+					});
+			};
+
+			if (isNoModeCard) {
+				// Start in "hover-through" mode so we don't stop the preview playback by accident.
+				button.ttdbInteractivityManaged = true;
+				setInteractive(false);
+				// If we already captured a preview URL earlier (e.g. you hovered before the button
+				// was injected), enable immediately.
+				ensureInteractiveOncePreviewIsCached();
+			}
+
 			container.addEventListener('pointerenter', () => {
 				armPreviewCapture(videoData.videoApiId, 'hover', 1600);
+				ensureInteractiveOncePreviewIsCached();
 			}, { passive: true });
+
 			container.addEventListener('mouseenter', () => {
 				armPreviewCapture(videoData.videoApiId, 'hover', 1600);
+				ensureInteractiveOncePreviewIsCached();
 			}, { passive: true });
+
 			container.ttdbPreviewCaptureArmed = true;
 		}
 	}
@@ -416,10 +493,14 @@ export const downloadHook = async (button, videoData) => {
 		button.hasListener = true;
 	}
 
-	DOM.setStyle(button, {
-		cursor: 'pointer',
-		'pointer-events': 'auto'
-	});
+	// Default behavior: buttons are interactive once wired.
+	// Some grid cards override this temporarily via the hover-preview logic above.
+	if (!button.ttdbInteractivityManaged) {
+		DOM.setStyle(button, {
+			cursor: 'pointer',
+			'pointer-events': 'auto'
+		});
+	}
 
 	return button;
 };
