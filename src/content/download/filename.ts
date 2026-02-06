@@ -39,7 +39,7 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 				if (!Array.isArray(item) && item) {
 					keyData = item; break;
 				} else if (Array.isArray(item) && UTIL.checkNested(apiData, ...item)) {
-					keyData = _get(apiData, item.join('.')); break;
+					keyData = _get(apiData, item.join('.'), undefined); break;
 				}
 			}
 

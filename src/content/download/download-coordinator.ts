@@ -347,7 +347,6 @@ export const downloadWithMethodTag = async ({
 	const runtimeFirefox = !!(runtimeInfo && typeof runtimeInfo === 'object' && (runtimeInfo as any).isFirefox);
 	const firefox = runtimeFirefox || (typeof UTIL.isFirefox === 'function' ? UTIL.isFirefox() : false);
 	const chromium = !firefox && UTIL.isChromium();
-	const source = context && context.source ? String(context.source) : null;
 
 	const getDisplayName = (value: string) => {
 		if (!value) return 'video';
