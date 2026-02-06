@@ -5,6 +5,7 @@ ff_port-*
 node_modules
 dist
 .vite
+/logs
 /AGENTS.md
 _metadata/
 /packages/
