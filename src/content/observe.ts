@@ -5,7 +5,6 @@ import { pipe } from './logging';
 import { itemSetup } from './item-setup';
 
 const VIDEO_ITEM_SELECTORS = DOM.multiSelector({
-	appShareOverlay: 'div.TUXModal > div[data-e2e="share-group"]:not([is-downloadable])',
 	appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
 	appBrowserMode: 'div[class*="-DivBrowserModeContainer "]:not([is-downloadable])',
 	appForYouArticle: 'main > div#column-list-container > article:not([is-downloadable])',
@@ -190,8 +189,6 @@ const detectItemMode = (item: Element) => {
 			currentMode = TTDB.MODE.BROWSER;
 		} else if (item.querySelector('div.tiktok-web-player > video')) {
 			currentMode = TTDB.MODE.BASIC_PLAYER;
-		} else if (item.querySelector('input[value*="/video/"]')) {
-			currentMode = TTDB.MODE.SHARE_OVERLAY;
 		}
 
 		if (currentMode !== null && currentEnvironment === null) {

@@ -19,8 +19,7 @@ TTDB.MODE = {
 	FEED: '0',
 	GRID: '1',
 	BROWSER: '2',
-	BASIC_PLAYER: '4',
-	SHARE_OVERLAY: '-1'
+	BASIC_PLAYER: '4'
 };
 
 TTDB.setInterval = (count) => {
