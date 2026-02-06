@@ -16,6 +16,9 @@ type ToastOptions = {
 	id?: string | number;
 	detail?: string | null;
 	meta?: string | null;
+	// Small label shown at the far right of the toast title row.
+	// Used for short source indicators like "API", "DOM", "INTERCEPT", "BLOB".
+	tag?: string | null;
 	spinner?: boolean;
 	state?: number;
 	hideMeta?: boolean;
@@ -27,6 +30,7 @@ type ToastPayload = {
 	title: string;
 	detail: string | null;
 	meta: string | null;
+	tag: string | null;
 	spinner: boolean;
 };
 
@@ -85,6 +89,7 @@ const resolveToastPayload = (message: ToastMessage, options: ToastOptions): Toas
 			title: message,
 			detail: options.detail || null,
 			meta: options.meta || null,
+			tag: options.tag || null,
 			spinner: !!options.spinner
 		};
 	}
@@ -94,6 +99,7 @@ const resolveToastPayload = (message: ToastMessage, options: ToastOptions): Toas
 			title: message.title || '',
 			detail: message.detail || null,
 			meta: message.meta || null,
+			tag: options.tag || null,
 			spinner: typeof message.spinner === 'boolean' ? message.spinner : !!options.spinner
 		};
 	}
@@ -102,6 +108,7 @@ const resolveToastPayload = (message: ToastMessage, options: ToastOptions): Toas
 		title: '',
 		detail: null,
 		meta: null,
+		tag: options.tag || null,
 		spinner: !!options.spinner
 	};
 };
@@ -139,6 +146,20 @@ const ensureToastParts = (toast: HTMLElement) => {
 		body.appendChild(title);
 	}
 
+	let titleText = title.querySelector<HTMLSpanElement>(':scope > span.toast__titleText');
+	if (!titleText) {
+		titleText = document.createElement('span');
+		titleText.classList.add('toast__titleText');
+		title.appendChild(titleText);
+	}
+
+	let tag = title.querySelector<HTMLSpanElement>(':scope > span.toast__tag');
+	if (!tag) {
+		tag = document.createElement('span');
+		tag.classList.add('toast__tag');
+		title.appendChild(tag);
+	}
+
 	let detail = body.querySelector<HTMLDivElement>(':scope > div.toast__detail');
 	if (!detail) {
 		detail = document.createElement('div');
@@ -164,6 +185,8 @@ const ensureToastParts = (toast: HTMLElement) => {
 		dot: dot as HTMLSpanElement,
 		body: body as HTMLDivElement,
 		title: title as HTMLDivElement,
+		titleText: titleText as HTMLSpanElement,
+		tag: tag as HTMLSpanElement,
 		detail: detail as HTMLDivElement,
 		meta: meta as HTMLDivElement,
 		spinner: spinner as HTMLSpanElement
@@ -174,7 +197,15 @@ const setToastContent = (toast: HTMLElement, payload: ToastPayload) => {
 	toast.classList.toggle('has-spinner', payload.spinner);
 	const parts = ensureToastParts(toast);
 
-	parts.title.textContent = payload.title || '';
+	parts.titleText.textContent = payload.title || '';
+
+	if (payload.tag) {
+		parts.tag.textContent = payload.tag;
+		parts.tag.style.display = '';
+	} else {
+		parts.tag.textContent = '';
+		parts.tag.style.display = 'none';
+	}
 
 	if (payload.detail) {
 		parts.detail.textContent = payload.detail;

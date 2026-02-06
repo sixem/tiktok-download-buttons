@@ -104,6 +104,11 @@ body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body {
     min-width: 0;
 }
 
+// Make room for the top-right spinner icon so title/tag text doesn't sit underneath it.
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content.has-spinner>div.toast__body {
+    padding-right: 22px;
+}
+
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body>div.toast__title,
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body>div.toast__detail,
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body>div.toast__meta {
@@ -116,6 +121,27 @@ body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body>div.toast__
     font-weight: 600;
     font-size: 0.95em;
     letter-spacing: 0.4px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body>div.toast__title>span.toast__titleText {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body>div.toast__title>span.toast__tag {
+    flex: 0 0 auto;
+    font-weight: 600;
+    font-size: 0.78em;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    opacity: 0.9;
+    color: #9aa3b2;
 }
 
 body>div.ttdb_splash-wrapper>div.ttdb_splash-content>div.toast__body>div.toast__detail {
