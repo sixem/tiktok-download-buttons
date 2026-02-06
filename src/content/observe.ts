@@ -22,6 +22,56 @@ let flushScheduled = false;
 let initialScanQueued = false;
 const MAX_ROOTS_PER_FLUSH = 8;
 
+// --- Update loop (safe, bounded, non-stacking) -----------------------------
+//
+// TikTok is a very dynamic SPA. Some UI changes can happen without a clean "new node added"
+// signal (virtualized lists, delayed hydration, etc.). We keep a small "update window"
+// that re-checks pending roots for a short time after user interaction (scroll/click)
+// or DOM mutations.
+//
+// The original implementation used an always-on `setInterval`. That is simple but wastes
+// CPU by waking up forever even when there's no work. Here we keep the same semantics,
+// but make the loop:
+// - singleton (can't stack multiple timers),
+// - self-stopping (no idle wakeups once `counter` reaches 0),
+// - restartable (any call to `TTDB.setInterval()` will ensure the loop is running).
+
+const ensureUpdateLoopRunning = () => {
+	TTDB.timers = TTDB.timers || {};
+
+	// `setInterval()` IDs are numbers in the page context.
+	// Be explicit here so `0` (unlikely, but possible in some environments) doesn't bypass the guard.
+	if (typeof TTDB.timers.updateLoop === 'number') {
+		return;
+	}
+
+	TTDB.timers.updateLoop = window.setInterval(() => {
+		if (TTDB.interval.counter > 0) {
+			updatePage();
+			TTDB.interval.counter--;
+			return;
+		}
+
+		// No more scheduled work: stop to avoid idle CPU wakeups.
+		clearInterval(TTDB.timers.updateLoop);
+		TTDB.timers.updateLoop = null;
+	}, TTDB.interval.delay);
+};
+
+const ensureSetIntervalStartsLoop = () => {
+	// Wrap once per page lifetime. (Defensive: in case the content script is injected twice.)
+	if ((TTDB as any).__ttdbSetIntervalWrapped) return;
+	(TTDB as any).__ttdbSetIntervalWrapped = true;
+
+	const original = TTDB.setInterval;
+	if (typeof original !== 'function') return;
+
+	TTDB.setInterval = (count) => {
+		original(count);
+		ensureUpdateLoopRunning();
+	};
+};
+
 const isElement = (node: Node | null): node is Element => {
 	return !!node && node.nodeType === Node.ELEMENT_NODE;
 };
@@ -215,6 +265,8 @@ export const updatePage = () => {
 };
 
 export const observeApp = (container) => {
+	ensureSetIntervalStartsLoop();
+
 	if (TTDB.observers.main) {
 		TTDB.observers.main.disconnect();
 	}
@@ -258,10 +310,6 @@ export const observeApp = (container) => {
 };
 
 export const startUpdateLoop = () => {
-	setInterval(() => {
-		if (TTDB.interval.counter > 0) {
-			updatePage();
-			TTDB.interval.counter--;
-		}
-	}, TTDB.interval.delay);
+	ensureSetIntervalStartsLoop();
+	ensureUpdateLoopRunning();
 };
