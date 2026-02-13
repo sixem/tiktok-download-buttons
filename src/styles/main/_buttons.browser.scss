@@ -12,6 +12,42 @@ a.ttdb__button_browser
     font-size: 14px;
     pointer-events: none;
     position: relative;
+    text-decoration: none !important;
+}
+
+a.ttdb__button_browser:visited
+{
+    text-decoration: none !important;
+}
+
+a.ttdb__button_browser > span.ttdb__button_browser-inner
+{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding-right: 20px;
+}
+
+a.ttdb__button_browser > span.ttdb__button_browser-inner > span.ttdb__button_browser-text
+{
+    display: block;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+a.ttdb__button_browser > span.ttdb__button_browser-inner > svg.ttdb__button_browser-icon
+{
+    width: 15px;
+    height: 15px;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    flex: 0 0 auto;
+    fill: currentColor;
 }
 
 a.ttdb__button_browser:where(.loading)::after
@@ -37,5 +73,5 @@ a.ttdb__button_browser:where([ttdb_mode="APP"])
 a.ttdb__button_browser:where(:hover)
 {
     color: $ttdb-accent-hover !important;
-    text-decoration: none;
+    text-decoration: none !important;
 }
