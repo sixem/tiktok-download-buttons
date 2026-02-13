@@ -180,6 +180,12 @@ const dispatchDownloadStrategy = ({
 
 // Minimal click handler that only orchestrates UI/events and delegates resolution.
 const onDownloadClick = (button, videoData) => async (e) => {
+	// Browser mode can reuse a single button across mode switches.
+	// If this button is currently acting as slideshow launcher, let that handler run.
+	if (button.getAttribute('data-ttdb-content-type') === 'slideshow') {
+		return true;
+	}
+
 	// TikTok attaches various click handlers high up in the tree (and sometimes on the cards
 	// themselves). If our overlay button bubbles up, it can toggle playback or trigger navigation.
 	// We treat the TTDB button as a self-contained control.

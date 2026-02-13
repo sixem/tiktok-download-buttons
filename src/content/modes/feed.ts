@@ -3,9 +3,10 @@ import { createButton } from '../ui/buttons';
 import { itemData } from '../item-data';
 import { downloadHook } from '../download/download-hook';
 import { findVideoUrls } from '../extractors/share';
-import { pipe } from '../logging';
 import { collectSlideshowImageUrls } from '../slideshow/collect-image-urls';
-import { openSlideshowPicker } from '../slideshow/picker';
+import { setDownloadButtonIconVariant } from '../ui/buttons';
+import { injectActionButton } from './shared/action-button';
+import { attachSlideshowLauncher } from './shared/slideshow-launcher';
 
 const FEED_MEDIA_PREVIEW_SELECTORS = {
 	app: ':scope > div:first-child',
@@ -17,44 +18,21 @@ const FEED_ACTION_BAR_SELECTORS = {
 	__next: 'div[class*="-action-bar"].vertical'
 };
 
-const logFeed = (...args) => {
-	pipe('[FEED]', ...args);
-};
-
 const injectFeedActionButton = (data) => {
 	const { resolveActionBar, button, initializeButton } = data;
-
-	const ensureInjected = () => {
-		const actionBar = resolveActionBar();
-		if (!actionBar) return;
-
-		if (!actionBar.querySelector('a.' + [...button.classList].join('.'))) {
-			initializeButton(button);
-			actionBar.prepend(button);
-
-			setTimeout(() => {
-				button.style.opacity = 1;
-			}, 50);
+	injectActionButton<any>({
+		resolveSlot: resolveActionBar,
+		button,
+		init: initializeButton,
+		place: (actionBar, nextButton) => {
+			actionBar.prepend(nextButton);
+		},
+		resolveObserveTarget: (actionBar) => {
+			return actionBar && actionBar.parentNode ? actionBar.parentNode : null;
+		},
+		isButtonAlreadyPresent: (actionBar, nextButton) => {
+			return !!actionBar.querySelector('a.' + [...nextButton.classList].join('.'));
 		}
-	};
-
-	ensureInjected();
-
-	let observer;
-	let timer = null;
-	const actionBar = resolveActionBar();
-	if (!actionBar || !actionBar.parentNode) return;
-
-	observer = new MutationObserver(() => {
-		ensureInjected();
-		clearTimeout(timer);
-
-		timer = setTimeout(() => observer.disconnect(), 1E5);
-	});
-
-	observer.observe(actionBar.parentNode, {
-		childList: true,
-		subtree: true
 	});
 };
 
@@ -86,32 +64,14 @@ const extractFeedVideoId = (element) => {
 };
 
 const attachFeedSlideshowPickerLauncher = (button, item) => {
-	if (button.ttHasSlideshowPickerLauncher) return;
+	setDownloadButtonIconVariant(button, 'list');
 
-	button.ttHasSlideshowPickerLauncher = true;
-	button.setAttribute('data-ttdb-content-type', 'slideshow');
-
-	button.addEventListener('click', (e) => {
-		e.preventDefault();
-		e.stopPropagation();
-		e.stopImmediatePropagation?.();
-
-		const imageUrls = collectSlideshowImageUrls(item);
-
-		if (!imageUrls.length) {
-			logFeed('Slideshow button clicked, but no image URLs were found.');
-			return;
-		}
-
-		logFeed('Slideshow image URLs', {
-			count: imageUrls.length,
-			urls: imageUrls
-		});
-
-		openSlideshowPicker({
-			imageUrls,
-			assetIdPrefix: 'feed-image'
-		});
+	attachSlideshowLauncher({
+		button,
+		root: item,
+		collectUrls: collectSlideshowImageUrls,
+		pickerPrefix: 'feed-image',
+		logNs: 'FEED'
 	});
 };
 
@@ -142,6 +102,7 @@ export const createFeedMode = () => (item, data) => {
 					button,
 					initializeButton: (feedButton) => {
 						feedButton.setAttribute('video-id', videoData.id);
+						setDownloadButtonIconVariant(feedButton, 'regular');
 						downloadHook(feedButton, videoData);
 						feedButton.ttIsProcessed = true;
 					}
