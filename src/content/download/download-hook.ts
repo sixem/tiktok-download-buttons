@@ -1,10 +1,10 @@
-// Download click wiring and helpers for resolving URLs and filenames.
+// Download click wiring and UI-only orchestration.
+//
+// Core resolution decisions live in `resolve-download-attempt.ts` so this module can
+// stay focused on event handling, preview UX, and strategy dispatch wiring.
 import { TTDB, SPLASH, UTIL } from '../state';
 import { DOM } from '../dom';
 import { getStoredSetting } from '../utils/storage';
-import { getWebApiData } from '../api/web-detail';
-import { getItemDetailApiData } from '../api/item-detail';
-import { getFileNameTemplate } from './filename';
 import { downloadViaApi } from './strategies/api';
 import { downloadViaDom } from './strategies/dom';
 import { downloadViaIntercept } from './strategies/intercept';
@@ -12,157 +12,24 @@ import { downloadViaBlob } from './strategies/blob';
 import { getVideoUrlFromButtonContext } from '../extractors/video-url';
 import { armPreviewCapture, getCachedPreviewUrl, waitForPreviewUrl } from './preview-url-cache';
 import { getRuntimeInfo } from '../utils/extension';
+import {
+	resolveDownloadAttempt,
+	type DownloadAttemptAttrs,
+	type DownloadAttemptSource
+} from './resolve-download-attempt';
+
+const MAX_ATTEMPT_KEYS = 800;
+const PREVIEW_WAIT_MS = 1600;
+const PREVIEW_CAPTURE_WINDOW_MS = 1800;
 
 const getNameTemplate = async () => {
-	let nameTemplate = await getStoredSetting('download-naming-template');
+	const nameTemplate = await getStoredSetting('download-naming-template');
 
 	if (!(typeof nameTemplate === 'string' || nameTemplate instanceof String) || nameTemplate.length < 1) {
 		return false;
 	}
 
 	return nameTemplate.trim();
-};
-
-const getWebVideoUrl = (webData) => {
-	const video = webData && webData.video ? webData.video : null;
-	if (!video) return null;
-
-	const candidates = [
-		video.playAddr,
-		video.downloadAddr,
-		video.playAddrH264,
-		video.playAddrBytevc1
-	];
-
-	for (const candidate of candidates) {
-		if (!candidate) continue;
-		if (typeof candidate === 'string') return candidate;
-		if (Array.isArray(candidate) && candidate.length) return candidate[0];
-		if (candidate.urlList && candidate.urlList.length) return candidate.urlList[0];
-		if (candidate.url_list && candidate.url_list.length) return candidate.url_list[0];
-	}
-
-	return null;
-};
-
-// Resolve the best immediate URL from DOM context and button attributes.
-const resolveVideoUrl = (button, attrUrl, pageUrl, logDownload, attemptLabel, attemptKey) => {
-	const domVideoUrl = getVideoUrlFromButtonContext(button);
-	const preferDomUrl = !!domVideoUrl && !domVideoUrl.startsWith('blob:');
-	const isDomBlob = !!domVideoUrl && domVideoUrl.startsWith('blob:');
-
-	let videoUrl = attrUrl;
-	let source = attrUrl ? 'button-attr' : null;
-
-	if (domVideoUrl) {
-		const useDomUrl = !isDomBlob || !pageUrl;
-
-		if (useDomUrl) {
-			videoUrl = domVideoUrl;
-			source = isDomBlob ? 'dom-blob' : 'dom';
-		}
-
-		logDownload.info(`Attempt ${attemptLabel}: DOM URL found`, {
-			videoKey: attemptKey,
-			url: domVideoUrl,
-			source: isDomBlob ? 'dom-blob' : 'dom',
-			used: useDomUrl
-		});
-	}
-
-	return {
-		videoUrl,
-		source,
-		domVideoUrl,
-		preferDomUrl
-	};
-};
-
-// Resolve URL and metadata from API sources when needed.
-const resolveSource = async ({
-	videoData,
-	attrApiId,
-	pageUrl,
-	preferDomUrl,
-	logDownload,
-	attemptLabel,
-	attemptKey
-}) => {
-	try {
-		const webData = await getWebApiData({
-			...videoData,
-			...{
-				videoApiId: attrApiId,
-				pageUrl
-			}
-		});
-		const webVideoUrl = getWebVideoUrl(webData);
-
-		if (webVideoUrl) {
-			const used = !preferDomUrl;
-			logDownload.info(`Attempt ${attemptLabel}: web API URL`, {
-				videoKey: attemptKey,
-				used,
-				url: webVideoUrl
-			});
-			logDownload.info(`Attempt ${attemptLabel}: web API data found`, {
-				videoKey: attemptKey,
-				response: webData
-			});
-
-			return {
-				videoUrl: webVideoUrl,
-				source: 'web-api',
-				apiData: webData
-			};
-		}
-	} catch (error) {
-		logDownload.info(`Attempt ${attemptLabel}: web API failed, trying item detail API`, error);
-
-		try {
-			const itemDetailData = await getItemDetailApiData(attrApiId);
-			const itemDetailUrl = getWebVideoUrl(itemDetailData);
-
-			if (itemDetailUrl) {
-				const used = !preferDomUrl;
-				logDownload.info(`Attempt ${attemptLabel}: item detail API URL`, {
-					videoKey: attemptKey,
-					used,
-					url: itemDetailUrl
-				});
-				logDownload.info(`Attempt ${attemptLabel}: item detail API data found`, {
-					videoKey: attemptKey,
-					response: itemDetailData
-				});
-
-				return {
-					videoUrl: itemDetailUrl,
-					source: 'item-detail-api',
-					apiData: itemDetailData
-				};
-			}
-		} catch (itemError) {
-			logDownload.info(`Attempt ${attemptLabel}: item detail API failed`, itemError);
-		}
-	}
-
-	return {
-		videoUrl: null,
-		source: null,
-		apiData: null
-	};
-};
-
-// Resolve final filename, falling back to the attribute name if no template applies.
-const resolveFilename = (defaultFilename, nameTemplate, videoData, apiData) => {
-	if (!nameTemplate) {
-		return defaultFilename;
-	}
-
-	// Apply naming templates even when API data is missing.
-	// Many placeholders (like `{uploader}` / `{id}`) can still be resolved from `videoData`.
-	// If the template can't produce a usable result, fall back to the default filename.
-	return getFileNameTemplate(videoData, apiData || {}, nameTemplate) || defaultFilename;
 };
 
 const hashString = (input) => {
@@ -172,7 +39,146 @@ const hashString = (input) => {
 		.reduce((hash, char) => (hash * 33) ^ char.charCodeAt(0), 5381) >>> 0;
 };
 
-// Minimal click handler that orchestrates URL and filename resolution.
+const readButtonDownloadAttrs = (button, videoData): DownloadAttemptAttrs & { hasPageUrlAttribute: boolean } => {
+	const filename = button.getAttribute('filename') || null;
+	const apiId = button.getAttribute('video-id') || null;
+	const url = button.getAttribute('href') || null;
+	const attrPageUrl = button.getAttribute('data-video-page-url') || null;
+
+	return {
+		filename,
+		apiId,
+		url,
+		pageUrl: attrPageUrl || videoData.pageUrl || null,
+		hasPageUrlAttribute: !!attrPageUrl
+	};
+};
+
+const nextAttemptIdForKey = (attemptKey: string) => {
+	const attemptsByVideo = TTDB.stats.downloadAttemptsByVideo;
+
+	// Safety guard: a long TikTok session can involve thousands of unique posts.
+	// Keep the attempt counter map bounded so we don't retain an unbounded set of keys.
+	TTDB.stats.downloadAttemptOrder = TTDB.stats.downloadAttemptOrder || [];
+	const attemptOrder: string[] = TTDB.stats.downloadAttemptOrder;
+	const isFirstAttemptForVideo = !Object.prototype.hasOwnProperty.call(attemptsByVideo, attemptKey);
+	if (isFirstAttemptForVideo) {
+		attemptOrder.push(attemptKey);
+	}
+
+	while (attemptOrder.length > MAX_ATTEMPT_KEYS) {
+		const oldest = attemptOrder.shift();
+		if (!oldest) continue;
+		delete attemptsByVideo[oldest];
+	}
+
+	return (attemptsByVideo[attemptKey] = (attemptsByVideo[attemptKey] || 0) + 1);
+};
+
+const resolveRuntimeEnv = async () => {
+	const runtimeInfo = await getRuntimeInfo();
+	const runtimeFirefox = !!(runtimeInfo && typeof runtimeInfo === 'object' && (runtimeInfo as any).isFirefox);
+	const firefox = runtimeFirefox || (typeof UTIL.isFirefox === 'function' ? UTIL.isFirefox() : false);
+	const chromium = !firefox && UTIL.isChromium();
+
+	return {
+		firefox,
+		chromium
+	};
+};
+
+const waitForPreviewUrlFromClick = async ({
+	attemptKey,
+	attemptId,
+	apiId,
+	logDownload,
+	attemptLabel
+}: {
+	attemptKey: string;
+	attemptId: number;
+	apiId: string;
+	logDownload: any;
+	attemptLabel: string;
+}) => {
+	logDownload.info(`Attempt ${attemptLabel}: preview URL cache miss`, {
+		videoKey: attemptKey,
+		videoId: apiId,
+		waitMs: PREVIEW_WAIT_MS
+	});
+
+	// Arm a short capture window and wait. This only works if TikTok actually requests
+	// the preview URL (often on hover). We keep messaging explicit so it doesn't feel "stuck".
+	armPreviewCapture(apiId, 'click', PREVIEW_CAPTURE_WINDOW_MS);
+
+	const toastKeyHash = hashString(attemptKey) || Date.now();
+	const prepToastId = `download-prepare-${toastKeyHash}-${attemptId}`;
+
+	SPLASH.message({
+		title: 'Preparing download',
+		detail: 'Hover the video to load a preview, then wait a moment...'
+	}, {
+		id: prepToastId,
+		state: 0,
+		sticky: true,
+		spinner: true,
+		hideMeta: true
+	});
+
+	const waited = await waitForPreviewUrl(apiId, PREVIEW_WAIT_MS);
+	SPLASH.dismiss(prepToastId);
+
+	if (waited) {
+		logDownload.info(`Attempt ${attemptLabel}: preview URL captured`, {
+			videoKey: attemptKey,
+			videoId: apiId,
+			url: waited
+		});
+	} else {
+		logDownload.info(`Attempt ${attemptLabel}: preview URL not found in time`, {
+			videoKey: attemptKey,
+			videoId: apiId
+		});
+	}
+
+	return waited;
+};
+
+const dispatchDownloadStrategy = ({
+	source,
+	videoUrl,
+	filename,
+	button,
+	attemptId,
+	downloadContext
+}: {
+	source: DownloadAttemptSource;
+	videoUrl: string;
+	filename: string;
+	button: HTMLElement;
+	attemptId: number;
+	downloadContext: any;
+}) => {
+	// Make the chosen download method explicit at the call-site.
+	// This keeps the coordinator "dumb" and makes debugging a lot easier.
+	switch (source) {
+		case 'web-api':
+		case 'item-detail-api':
+			downloadViaApi(videoUrl, filename, button, attemptId, downloadContext);
+			break;
+		case 'preview-cache':
+			downloadViaIntercept(videoUrl, filename, button, attemptId, downloadContext);
+			break;
+		case 'dom-blob':
+			downloadViaBlob(videoUrl, filename, button, attemptId, downloadContext);
+			break;
+		case 'dom':
+		default:
+			downloadViaDom(videoUrl, filename, button, attemptId, downloadContext);
+			break;
+	}
+};
+
+// Minimal click handler that only orchestrates UI/events and delegates resolution.
 const onDownloadClick = (button, videoData) => async (e) => {
 	// TikTok attaches various click handlers high up in the tree (and sometimes on the cards
 	// themselves). If our overlay button bubbles up, it can toggle playback or trigger navigation.
@@ -187,157 +193,89 @@ const onDownloadClick = (button, videoData) => async (e) => {
 
 	button.classList.add('loading');
 
-	const attrFilename = button.getAttribute('filename') || null;
-	const attrApiId = button.getAttribute('video-id') || null;
-	const attrUrl = button.getAttribute('href') || null;
-	const attrPageUrl = button.getAttribute('data-video-page-url') || null;
+	const attrs = readButtonDownloadAttrs(button, videoData);
 	const logDownload = TTDB.LOG.ns('download');
-	const attemptKey = String(attrApiId || videoData.videoApiId || videoData.id || attrUrl || 'unknown');
-	const attemptsByVideo = TTDB.stats.downloadAttemptsByVideo;
-
-	// Safety guard: a long TikTok session can involve thousands of unique posts.
-	// Keep the attempt counter map bounded so we don't retain an unbounded set of keys.
-	//
-	// This is a debug/UX aid ("Attempt #N") and doesn't need perfect historical accuracy.
-	TTDB.stats.downloadAttemptOrder = TTDB.stats.downloadAttemptOrder || [];
-	const attemptOrder: string[] = TTDB.stats.downloadAttemptOrder;
-	const isFirstAttemptForVideo = !Object.prototype.hasOwnProperty.call(attemptsByVideo, attemptKey);
-	if (isFirstAttemptForVideo) {
-		attemptOrder.push(attemptKey);
-	}
-
-	const MAX_ATTEMPT_KEYS = 800;
-	while (attemptOrder.length > MAX_ATTEMPT_KEYS) {
-		const oldest = attemptOrder.shift();
-		if (!oldest) continue;
-		delete attemptsByVideo[oldest];
-	}
-
-	const attemptId = (attemptsByVideo[attemptKey] = (attemptsByVideo[attemptKey] || 0) + 1);
+	const attemptKey = String(attrs.apiId || videoData.videoApiId || videoData.id || attrs.url || 'unknown');
+	const attemptId = nextAttemptIdForKey(attemptKey);
 	const attemptLabel = `#${attemptId}`;
 
 	logDownload.info(`Attempt ${attemptLabel}: start`, {
 		videoKey: attemptKey,
-		filename: attrFilename,
-		videoId: attrApiId,
-		url: attrUrl
+		filename: attrs.filename,
+		videoId: attrs.apiId,
+		url: attrs.url
 	});
 
-	const nameTemplate = await getNameTemplate();
-	const pageUrl = attrPageUrl || videoData.pageUrl || null;
-	const runtimeInfo = await getRuntimeInfo();
-	const runtimeFirefox = !!(runtimeInfo && typeof runtimeInfo === 'object' && (runtimeInfo as any).isFirefox);
-	const firefox = runtimeFirefox || (typeof UTIL.isFirefox === 'function' ? UTIL.isFirefox() : false);
-	const chromium = !firefox && UTIL.isChromium();
+	try {
+		const nameTemplate = await getNameTemplate();
+		const runtime = await resolveRuntimeEnv();
 
-	if (pageUrl && !attrPageUrl) {
-		button.setAttribute('data-video-page-url', pageUrl);
-	}
+		if (attrs.pageUrl && !attrs.hasPageUrlAttribute) {
+			button.setAttribute('data-video-page-url', attrs.pageUrl);
+		}
 
-	// Step 1: Attempt API resolution first. This is the most reliable path when TikTok returns data.
-	const apiResolution = await resolveSource({
-		videoData,
-		attrApiId,
-		pageUrl,
-		preferDomUrl: false,
-		logDownload,
-		attemptLabel,
-		attemptKey
-	});
+		const domVideoUrl = getVideoUrlFromButtonContext(button);
+		if (domVideoUrl) {
+			logDownload.info(`Attempt ${attemptLabel}: DOM URL found`, {
+				videoKey: attemptKey,
+				url: domVideoUrl,
+				source: domVideoUrl.startsWith('blob:') ? 'dom-blob' : 'dom'
+			});
+		}
 
-	// Step 2: Resolve a DOM video URL (only if it's not a blob:).
-	const initialResolution = resolveVideoUrl(
-		button,
-		attrUrl,
-		pageUrl,
-		logDownload,
-		attemptLabel,
-		attemptKey
-	);
-	const domUrl = initialResolution.domVideoUrl || null;
-	const domIsBlob = !!domUrl && domUrl.startsWith('blob:');
-	const domIsHttp = !!domUrl && /^https?:/i.test(domUrl);
-
-	const usageData = {
-		videoUrl: null,
-		filename: attrFilename
-	};
-	let resolvedSource = null;
-
-	if (apiResolution.videoUrl) {
-		usageData.videoUrl = apiResolution.videoUrl;
-		resolvedSource = apiResolution.source;
-	} else if (domIsHttp) {
-		usageData.videoUrl = domUrl;
-		resolvedSource = 'dom';
-	}
-
-	// Step 3: If the DOM gave us a blob: URL, try to use a cached preview URL captured from
-	// ResourceTiming entries (hover previews). If missing, wait briefly for it to appear.
-	if (!usageData.videoUrl && attrApiId) {
-		const cached = getCachedPreviewUrl(attrApiId);
-		if (cached) {
+		const previewCachedUrl = attrs.apiId ? getCachedPreviewUrl(attrs.apiId) : null;
+		if (previewCachedUrl && attrs.apiId) {
 			logDownload.info(`Attempt ${attemptLabel}: preview URL cache hit`, {
 				videoKey: attemptKey,
-				videoId: attrApiId,
-				url: cached
+				videoId: attrs.apiId,
+				url: previewCachedUrl
 			});
-			usageData.videoUrl = cached;
-			resolvedSource = 'preview-cache';
-		} else {
-			logDownload.info(`Attempt ${attemptLabel}: preview URL cache miss`, {
-				videoKey: attemptKey,
-				videoId: attrApiId,
-				waitMs: 1600
-			});
-
-			// Arm a short capture window and wait. This only works if TikTok actually requests
-			// the preview URL (often on hover). We keep messaging explicit so it doesn't feel "stuck".
-			armPreviewCapture(attrApiId, 'click', 1800);
-
-			const toastKeyHash = hashString(attemptKey) || Date.now();
-			const prepToastId = `download-prepare-${toastKeyHash}-${attemptId}`;
-
-			SPLASH.message({
-				title: 'Preparing download',
-				detail: 'Hover the video to load a preview, then wait a moment...'
-			}, {
-				id: prepToastId,
-				state: 0,
-				sticky: true,
-				spinner: true,
-				hideMeta: true
-			});
-
-			const waited = await waitForPreviewUrl(attrApiId, 1600);
-			SPLASH.dismiss(prepToastId);
-
-			if (waited) {
-				logDownload.info(`Attempt ${attemptLabel}: preview URL captured`, {
-					videoKey: attemptKey,
-					videoId: attrApiId,
-					url: waited
-				});
-				usageData.videoUrl = waited;
-				resolvedSource = 'preview-cache';
-			} else {
-				logDownload.info(`Attempt ${attemptLabel}: preview URL not found in time`, {
-					videoKey: attemptKey,
-					videoId: attrApiId
-				});
-			}
 		}
-	}
 
-	// Step 4: Final fallback. Blob download is Chromium-only (best-effort).
-	if (!usageData.videoUrl && domIsBlob) {
-		if (chromium) {
-			usageData.videoUrl = domUrl;
-			resolvedSource = 'dom-blob';
-		} else {
+		let resolution = await resolveDownloadAttempt({
+			videoData,
+			attrs,
+			env: {
+				chromium: runtime.chromium
+			},
+			nameTemplate,
+			candidates: {
+				domVideoUrl,
+				previewCachedUrl,
+				previewWaitedUrl: null,
+				previewWaitAttempted: false
+			}
+		});
+
+		if (resolution.needsPreviewWait && attrs.apiId) {
+			const waitedPreviewUrl = await waitForPreviewUrlFromClick({
+				attemptKey,
+				attemptId,
+				apiId: attrs.apiId,
+				logDownload,
+				attemptLabel
+			});
+
+			resolution = await resolveDownloadAttempt({
+				videoData,
+				attrs,
+				env: {
+					chromium: runtime.chromium
+				},
+				nameTemplate,
+				candidates: {
+					domVideoUrl,
+					previewCachedUrl: getCachedPreviewUrl(attrs.apiId),
+					previewWaitedUrl: waitedPreviewUrl,
+					previewWaitAttempted: true
+				}
+			});
+		}
+
+		if (resolution.blockedReason === 'firefox-blob') {
 			logDownload.warn(`Attempt ${attemptLabel}: blob URL blocked on Firefox`, {
 				videoKey: attemptKey,
-				url: domUrl
+				url: domVideoUrl
 			});
 			SPLASH.message({
 				title: 'Download blocked on Firefox',
@@ -347,72 +285,65 @@ const onDownloadClick = (button, videoData) => async (e) => {
 				state: 3,
 				hideMeta: true
 			});
-			button.classList.remove('loading');
 			return;
 		}
-	}
 
-	usageData.filename = resolveFilename(attrFilename, nameTemplate, videoData, apiResolution.apiData);
+		if (!resolution.videoUrl) {
+			logDownload.warn(`Attempt ${attemptLabel}: no video URL resolved`, {
+				videoKey: attemptKey,
+				filename: resolution.filename,
+				videoId: attrs.apiId
+			});
+			SPLASH.message({
+				title: 'No downloadable video URL',
+				detail: 'Try again, or try another post.'
+			}, {
+				duration: 6000,
+				state: 3,
+				hideMeta: true
+			});
+			return;
+		}
 
-	if (!usageData.filename) {
-		usageData.filename = attrFilename;
-	}
+		const resolvedFilename = resolution.filename || attrs.filename;
+		if (!resolvedFilename) {
+			logDownload.warn(`Attempt ${attemptLabel}: missing filename after resolution`, {
+				videoKey: attemptKey,
+				videoId: attrs.apiId
+			});
+			return;
+		}
 
-	if (!usageData.videoUrl) {
-		logDownload.warn(`Attempt ${attemptLabel}: no video URL resolved`, {
+		logDownload.info(`Attempt ${attemptLabel}: download start`, {
 			videoKey: attemptKey,
-			filename: usageData.filename,
-			videoId: attrApiId
+			url: resolution.videoUrl,
+			filename: resolvedFilename,
+			source: resolution.source
 		});
-		SPLASH.message({
-			title: 'No downloadable video URL',
-			detail: 'Try again, or try another post.'
-		}, {
-			duration: 6000,
-			state: 3,
-			hideMeta: true
+
+		const downloadContext = {
+			videoKey: attemptKey,
+			source: resolution.source,
+			videoId: attrs.apiId,
+			user: videoData.user || null
+		};
+
+		dispatchDownloadStrategy({
+			source: resolution.source,
+			videoUrl: resolution.videoUrl,
+			filename: resolvedFilename,
+			button,
+			attemptId,
+			downloadContext
 		});
+	} finally {
 		button.classList.remove('loading');
-		return;
-	}
-
-	logDownload.info(`Attempt ${attemptLabel}: download start`, {
-		videoKey: attemptKey,
-		url: usageData.videoUrl,
-		filename: usageData.filename,
-		source: resolvedSource
-	});
-
-	const downloadContext = {
-		videoKey: attemptKey,
-		source: resolvedSource,
-		videoId: attrApiId,
-		user: videoData.user || null
-	};
-
-	// Make the chosen download method explicit at the call-site.
-	// This keeps the coordinator "dumb" and makes debugging a lot easier.
-	switch (resolvedSource) {
-		case 'web-api':
-		case 'item-detail-api':
-			downloadViaApi(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
-			break;
-		case 'preview-cache':
-			downloadViaIntercept(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
-			break;
-		case 'dom-blob':
-			downloadViaBlob(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
-			break;
-		case 'dom':
-		default:
-			downloadViaDom(usageData.videoUrl, usageData.filename, button, attemptId, downloadContext);
-			break;
 	}
 };
 
 export const downloadHook = async (button, videoData) => {
 	const videoIdentifier = videoData.id ? videoData.id : Date.now();
-	let fileName = `${videoData.user ? videoData.user + ' - ' : ''}${videoIdentifier}`;
+	const fileName = `${videoData.user ? videoData.user + ' - ' : ''}${videoIdentifier}`;
 
 	DOM.setAttributes(button, {
 		filename: `${fileName.trim()}.mp4`
@@ -454,7 +385,7 @@ export const downloadHook = async (button, videoData) => {
 					return;
 				}
 
-				button.ttdbPreviewReadyPromise = waitForPreviewUrl(videoData.videoApiId, 1600)
+				button.ttdbPreviewReadyPromise = waitForPreviewUrl(videoData.videoApiId, PREVIEW_WAIT_MS)
 					.then((url) => {
 						if (!url) return;
 						button.ttdbPreviewReady = true;
@@ -475,12 +406,12 @@ export const downloadHook = async (button, videoData) => {
 			}
 
 			container.addEventListener('pointerenter', () => {
-				armPreviewCapture(videoData.videoApiId, 'hover', 1600);
+				armPreviewCapture(videoData.videoApiId, 'hover', PREVIEW_WAIT_MS);
 				ensureInteractiveOncePreviewIsCached();
 			}, { passive: true });
 
 			container.addEventListener('mouseenter', () => {
-				armPreviewCapture(videoData.videoApiId, 'hover', 1600);
+				armPreviewCapture(videoData.videoApiId, 'hover', PREVIEW_WAIT_MS);
 				ensureInteractiveOncePreviewIsCached();
 			}, { passive: true });
 
