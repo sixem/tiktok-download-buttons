@@ -1,0 +1,408 @@
+// Reusable asset picker modal styles.
+//
+// Layout direction:
+// - all selectors are scoped under one root for safe embedding
+// - repeated button/icon patterns are expressed as mixins
+// - visual values are preserved from the previous version
+
+$asset-picker-root: 'body > div.ttdb_asset-picker-wrapper';
+
+$text-main: #e8edf7;
+$text-soft: #9ea8bb;
+$text-muted: #8e99ad;
+$text-hint: #8b95a9;
+$text-danger-soft: #ffb3c2;
+
+$panel-border: rgba(255, 255, 255, 0.12);
+$panel-bg-top: rgba(17, 21, 31, 0.98);
+$panel-bg-bottom: rgba(12, 15, 22, 0.98);
+
+$ghost-bg: rgba(255, 255, 255, 0.06);
+$ghost-bg-hover: rgba(255, 255, 255, 0.12);
+$ghost-border: rgba(255, 255, 255, 0.1);
+
+$primary-from: #fe2c55;
+$primary-to: #d81846;
+$primary-hover-from: #ff3e66;
+$primary-hover-to: #df1c4e;
+
+$thumb-border-selected: rgba(93, 139, 255, 0.82);
+$thumb-border-selected-inner: rgba(93, 139, 255, 0.5);
+$thumb-check-bg-selected: #5d8bff;
+$thumb-check-border-selected: #81a3ff;
+
+@mixin ttdb-tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+@mixin ttdb-inline-icon($size) {
+    width: $size;
+    height: $size;
+    display: inline-block;
+}
+
+@mixin ttdb-action-button {
+    border-radius: 7px;
+    padding: 4px 11px 3px 11px;
+    font-size: 0.79rem;
+    letter-spacing: 0.35px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    @include ttdb-tabular-nums;
+
+    > svg {
+        margin-top: -1px;
+    }
+}
+
+body.ttdb_asset-picker-open {
+    overflow: hidden;
+}
+
+#{$asset-picker-root} {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+
+    position: fixed;
+    inset: 0;
+    z-index: 100001;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+
+    &.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    > div.ttdb_asset-picker__backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 10, 16, 0.74);
+        backdrop-filter: blur(6px);
+    }
+
+    > div.ttdb_asset-picker__panel {
+        position: relative;
+        width: min(920px, calc(100vw - 34px));
+        max-height: calc(100vh - 36px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 10px;
+        border: 1px solid $panel-border;
+        background: linear-gradient(180deg, $panel-bg-top, $panel-bg-bottom);
+        box-shadow: 0 26px 54px rgba(0, 0, 0, 0.55);
+        color: $text-main;
+
+        > div.ttdb_asset-picker__header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        > div.ttdb_asset-picker__controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        > div.ttdb_asset-picker__grid {
+            overflow: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            background: rgba(0, 0, 0, 0.22);
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(122px, 1fr));
+            gap: 10px;
+            min-height: 180px;
+        }
+
+        > div.ttdb_asset-picker__footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        h3.ttdb_asset-picker__title {
+            margin: 0;
+            font-size: 1.03rem;
+            line-height: 1.25;
+            letter-spacing: 0.35px;
+        }
+
+        p.ttdb_asset-picker__subtitle {
+            margin: 3px 0 0;
+            color: $text-soft;
+            font-size: 0.82rem;
+            letter-spacing: 0.25px;
+        }
+    }
+
+    button.ttdb_asset-picker__close {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: $ghost-bg;
+        color: #d5d9e4;
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.14);
+            color: #fff;
+        }
+    }
+
+    span.ttdb_asset-picker__status {
+        font-size: 0.79rem;
+        letter-spacing: 0.5px;
+        color: $text-muted;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: $ghost-bg;
+        @include ttdb-tabular-nums;
+    }
+
+    div.ttdb_asset-picker__control-buttons,
+    div.ttdb_asset-picker__footer-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    button.ttdb_asset-picker__ghost,
+    button.ttdb_asset-picker__primary {
+        @include ttdb-action-button;
+
+        &:disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+    }
+
+    button.ttdb_asset-picker__ghost {
+        background: $ghost-bg;
+        border-color: $ghost-border;
+        color: #d4dae7;
+
+        &:hover {
+            background: $ghost-bg-hover;
+        }
+    }
+
+    button.ttdb_asset-picker__primary {
+        background: linear-gradient(180deg, $primary-from, $primary-to);
+        border-color: rgba(254, 44, 85, 0.65);
+        color: #fff;
+        font-weight: 600;
+
+        &:hover {
+            background: linear-gradient(180deg, $primary-hover-from, $primary-hover-to);
+        }
+    }
+
+    span.ttdb_asset-picker__buttonText {
+        display: inline-block;
+    }
+
+    button.ttdb_asset-picker__thumb {
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+        aspect-ratio: 1 / 1;
+        padding: 0;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+        animation: ttdb-asset-picker-enter 0.22s ease forwards;
+        animation-delay: var(--ttdb-thumb-delay, 0ms);
+        user-select: none;
+        -webkit-user-select: none;
+
+        &.is-selected {
+            border-color: $thumb-border-selected;
+            box-shadow: inset 0 0 0 1px $thumb-border-selected-inner;
+
+            > span.ttdb_asset-picker__check {
+                background: $thumb-check-bg-selected;
+                border-color: $thumb-check-border-selected;
+                opacity: 1;
+            }
+        }
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.56));
+        }
+
+        &:hover::before {
+            opacity: 1;
+        }
+
+        &.is-loading::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, rgba(255, 255, 255, 0.04) 20%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 80%);
+            background-size: 220% 100%;
+            animation: ttdb-asset-picker-shimmer 1.1s linear infinite;
+        }
+
+        &.is-loaded > img.ttdb_asset-picker__image {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        &.is-error > span.ttdb_asset-picker__meta {
+            color: $text-danger-soft;
+        }
+    }
+
+    span.ttdb_asset-picker__check,
+    span.ttdb_asset-picker__index,
+    span.ttdb_asset-picker__meta {
+        position: absolute;
+        z-index: 2;
+        color: #f0f4ff;
+    }
+
+    span.ttdb_asset-picker__check {
+        top: 7px;
+        right: 7px;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.69rem;
+        font-weight: 700;
+        background: rgba(0, 0, 0, 0.58);
+        border: 1px solid rgba(255, 255, 255, 0.23);
+        opacity: 0.72;
+    }
+
+    span.ttdb_asset-picker__index {
+        top: 7px;
+        left: 7px;
+        font-size: 0.66rem;
+        letter-spacing: 0.4px;
+        color: #aeb7c8;
+        background: rgba(0, 0, 0, 0.58);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        padding: 1px 6px;
+        border-radius: 999px;
+        @include ttdb-tabular-nums;
+    }
+
+    span.ttdb_asset-picker__meta {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 12px 8px 7px;
+        font-size: 0.7rem;
+        letter-spacing: 0.28px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(6, 8, 12, 0), rgba(6, 8, 12, 0.72));
+    }
+
+    img.ttdb_asset-picker__image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 0.23s ease, transform 0.23s ease;
+        transform: scale(1.02);
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+    }
+
+    p.ttdb_asset-picker__hint {
+        margin: 0;
+        font-size: 0.75rem;
+        color: $text-hint;
+        letter-spacing: 0.28px;
+    }
+
+    svg.ttdb_asset-picker__closeIcon {
+        @include ttdb-inline-icon(9px);
+    }
+
+    svg.ttdb_asset-picker__buttonIcon {
+        @include ttdb-inline-icon(13px);
+    }
+
+    svg.ttdb_asset-picker__buttonIcon--close {
+        width: 10px;
+        height: 10px;
+    }
+
+    svg.ttdb_asset-picker__checkIcon {
+        @include ttdb-inline-icon(11px);
+    }
+
+    svg.ttdb_asset-picker__buttonIcon,
+    svg.ttdb_asset-picker__checkIcon,
+    svg.ttdb_asset-picker__closeIcon {
+        flex: none;
+        color: currentColor;
+    }
+}
+
+@keyframes ttdb-asset-picker-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes ttdb-asset-picker-shimmer {
+    from {
+        background-position: 200% 0;
+    }
+
+    to {
+        background-position: -20% 0;
+    }
+}
