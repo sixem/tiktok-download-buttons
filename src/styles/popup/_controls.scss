@@ -1,13 +1,10 @@
-// Footer actions with compact button spacing.
-.popup__footer
-{
-    padding: 0.625rem 0.875rem 0.75rem 0.875rem;
+.popup__footer {
+    padding: 0.625rem 0.875rem 0.75rem;
     border-top: 0.0625rem solid rgba(255, 255, 255, 0.04);
     background: linear-gradient(180deg, rgba(18, 21, 27, 0.6), rgba(10, 12, 16, 0.9));
 }
 
-#settings-save
-{
+#settings-save {
     width: 100%;
     border: none;
     border-radius: 3px;
@@ -18,15 +15,13 @@
     letter-spacing: 0.0125rem;
     cursor: pointer;
     transition: transform 0.2s ease, opacity 0.2s ease;
-}
 
-#settings-save:hover
-{
-    transform: translateY(-0.0625rem);
-}
+    &:hover {
+        transform: translateY(-0.0625rem);
+    }
 
-#settings-save:active
-{
-    transform: translateY(0);
-    opacity: 0.9;
+    &:active {
+        transform: translateY(0);
+        opacity: 0.9;
+    }
 }
