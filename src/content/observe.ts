@@ -6,7 +6,8 @@ import { itemSetup } from './item-setup';
 
 const VIDEO_ITEM_SELECTORS = DOM.multiSelector({
 	appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
-	appBrowserMode: 'div[class*="-DivBrowserModeContainer "]:not([is-downloadable])',
+	appBrowserMode: 'div[class*="-DivBrowserModeContainer"]:not([is-downloadable])',
+	appBrowserControls: '[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]',
 	appForYouArticle: 'main > div#column-list-container > article:not([is-downloadable])',
 	appForYouArticleData: 'article[data-e2e="recommend-list-item-container"]:not([is-downloadable])',
 	appForYouArticleId: 'article[id^="one-column-item-"]:not([is-downloadable])',
@@ -20,6 +21,13 @@ const pendingRoots = new Set<ParentNode>();
 let flushScheduled = false;
 let initialScanQueued = false;
 const MAX_ROOTS_PER_FLUSH = 8;
+const APP_BROWSER_CONTROL_SELECTOR = '[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]';
+const APP_BROWSER_ROOT_SELECTOR = [
+	'div[class*="-DivBrowserModeContainer"]',
+	'div[class*="-DivVideoContainer"]',
+	'div.video-card-big.browse-mode',
+	'div.feed-item-content'
+].join(', ');
 
 // --- Update loop (safe, bounded, non-stacking) -----------------------------
 //
@@ -163,6 +171,28 @@ const looksLikeAppGridCardWithoutMode = (item: Element) => {
 	);
 };
 
+// Photo-mode feed cards can be APP entries without `div[mode]`.
+// Detect them explicitly so they still enter FEED setup (button injection, click handling).
+const isAppFeedSlideshowCard = (item: Element) => {
+	const isFeedArticle = item.matches(
+		'article[data-e2e="recommend-list-item-container"], article[id^="one-column-item-"]'
+	);
+	if (!isFeedArticle) return false;
+
+	return !!item.querySelector(
+		'section[data-e2e="feed-video"] div.swiper-wrapper div.swiper-slide img[src], '
+		+ 'section[data-e2e="feed-video"] div[class*="DivPhotoPlayerContainer"]'
+	);
+};
+
+// Browser overlay cards expose dedicated controls (`browse-close`, arrows, sound).
+// Use these markers so photo-mode browser cards route to BROWSER mode consistently.
+const isAppBrowserOverlayCard = (item: Element) => {
+	return !!item.querySelector(
+		'[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]'
+	);
+};
+
 const detectItemMode = (item: Element) => {
 	let currentMode = null;
 	let currentEnvironment = null;
@@ -176,6 +206,14 @@ const detectItemMode = (item: Element) => {
 		// App cards without `div[mode]` (example: "You may like").
 		if (looksLikeAppGridCardWithoutMode(item)) {
 			currentMode = TTDB.MODE.GRID;
+			currentEnvironment = TTDB.ENV.APP;
+		}
+		else if (isAppFeedSlideshowCard(item)) {
+			currentMode = TTDB.MODE.FEED;
+			currentEnvironment = TTDB.ENV.APP;
+		}
+		else if (isAppBrowserOverlayCard(item)) {
+			currentMode = TTDB.MODE.BROWSER;
 			currentEnvironment = TTDB.ENV.APP;
 		}
 
@@ -204,10 +242,60 @@ const detectItemMode = (item: Element) => {
 	};
 };
 
+const findBrowserOverlayRoot = (origin: Element) => {
+	const rootFromSelector = origin.closest(APP_BROWSER_ROOT_SELECTOR);
+	if (rootFromSelector) return rootFromSelector;
+
+	let current: Element | null = origin.parentElement;
+	while (current) {
+		const hasBrowserControls = !!current.querySelector(APP_BROWSER_CONTROL_SELECTOR);
+		const hasMedia = !!current.querySelector(
+			'div.swiper-wrapper, div.tiktok-web-player > video, video[data-version], video[src]'
+		);
+
+		if (hasBrowserControls && hasMedia) {
+			return current;
+		}
+
+		current = current.parentElement;
+	}
+
+	return null;
+};
+
+const normalizeObservedItem = (item: Element) => {
+	if (item.matches(APP_BROWSER_CONTROL_SELECTOR)) {
+		const browserRoot = findBrowserOverlayRoot(item);
+		if (!browserRoot || browserRoot.hasAttribute('is-downloadable')) {
+			return null;
+		}
+
+		return browserRoot;
+	}
+
+	const control = item.querySelector(APP_BROWSER_CONTROL_SELECTOR);
+	if (control) {
+		const browserRoot = findBrowserOverlayRoot(control);
+		if (browserRoot && !browserRoot.hasAttribute('is-downloadable')) {
+			return browserRoot;
+		}
+	}
+
+	return item;
+};
+
 const processVideoItems = (items: Iterable<Element>) => {
+	const normalizedItems = new Set<Element>();
 	let processed = 0;
 
 	for (const item of items) {
+		const normalized = normalizeObservedItem(item);
+		if (normalized) {
+			normalizedItems.add(normalized);
+		}
+	}
+
+	for (const item of normalizedItems) {
 		const detected = detectItemMode(item);
 
 		if (!detected) continue;
