@@ -237,7 +237,8 @@ const runtimeInfo = async (args) => {
 		// Keep the response minimal; content scripts only need stable booleans for behavior.
 		args.sendResponse({
 			success: true,
-			isFirefox
+			isFirefox,
+			isChromium: !isFirefox
 		});
 	} catch (error) {
 		args.sendResponse({ success: false, error });

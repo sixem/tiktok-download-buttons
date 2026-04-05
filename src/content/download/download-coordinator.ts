@@ -72,13 +72,10 @@ const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
 
 const resolveRuntime = async () => {
 	const runtimeInfo = await getRuntimeInfo();
-	const runtimeFirefox = !!(runtimeInfo && typeof runtimeInfo === 'object' && (runtimeInfo as any).isFirefox);
-	const firefox = runtimeFirefox || (typeof UTIL.isFirefox === 'function' ? UTIL.isFirefox() : false);
-	const chromium = !firefox && UTIL.isChromium();
 
 	return {
-		firefox,
-		chromium
+		firefox: runtimeInfo.isFirefox,
+		chromium: runtimeInfo.isChromium
 	};
 };
 

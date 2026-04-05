@@ -2,7 +2,7 @@
 //
 // Core resolution decisions live in `resolve-download-attempt.ts` so this module can
 // stay focused on event handling, preview UX, and strategy dispatch wiring.
-import { TTDB, SPLASH, UTIL } from '../state';
+import { TTDB, SPLASH } from '../state';
 import { DOM } from '../dom';
 import { getStoredSetting } from '../utils/storage';
 import { downloadViaApi } from './strategies/api';
@@ -77,13 +77,10 @@ const nextAttemptIdForKey = (attemptKey: string) => {
 
 const resolveRuntimeEnv = async () => {
 	const runtimeInfo = await getRuntimeInfo();
-	const runtimeFirefox = !!(runtimeInfo && typeof runtimeInfo === 'object' && (runtimeInfo as any).isFirefox);
-	const firefox = runtimeFirefox || (typeof UTIL.isFirefox === 'function' ? UTIL.isFirefox() : false);
-	const chromium = !firefox && UTIL.isChromium();
 
 	return {
-		firefox,
-		chromium
+		firefox: runtimeInfo.isFirefox,
+		chromium: runtimeInfo.isChromium
 	};
 };
 

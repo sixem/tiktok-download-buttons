@@ -1,5 +1,5 @@
 // Entry point for the content script bootstrap sequence.
-import { TTDB, UTIL, SPLASH } from './state';
+import { TTDB, SPLASH } from './state';
 import { setupLogging } from './logging';
 import { setupUtils } from './utils/index';
 import { setupExpressions } from './extractors/expressions';
@@ -8,6 +8,7 @@ import { setupSplash } from './ui/splash';
 import { setupAssetPickerModal } from './ui/asset-picker-modal';
 import { setupAutoplayPreviewCapture } from './download/autoplay-preview-capture';
 import { observeApp, getAppContainer, startUpdateLoop } from './observe';
+import { getRuntimeInfo } from './utils/extension';
 
 export const bootstrap = () => {
 	// Defensive: content scripts can be injected multiple times in some extension workflows
@@ -50,10 +51,18 @@ export const bootstrap = () => {
 
 	SPLASH.create();
 
-	window.addEventListener(!UTIL.isChromium() ? 'DOMMouseScroll' : 'mousewheel', () => {
+	const onScrollBreak = () => {
 		clearTimeout(TTDB.timers.scrollBreak);
 		TTDB.timers.scrollBreak = setTimeout(() => TTDB.setInterval(20), 250);
-	});
+	};
+
+	void getRuntimeInfo()
+		.then((runtimeInfo) => {
+			window.addEventListener(runtimeInfo.isFirefox ? 'DOMMouseScroll' : 'mousewheel', onScrollBreak);
+		})
+		.catch((error) => {
+			TTDB.LOG?.warn?.('core', 'Failed to resolve runtime info for scroll listener', error);
+		});
 
 	window.addEventListener('click', () => TTDB.setInterval(10), { passive: true });
 };
