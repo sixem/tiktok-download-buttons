@@ -63,22 +63,3 @@ export const setupAssetPickerModal = () => {
 	TTDB.assetPicker = TTDB.assetPicker || {};
 	TTDB.assetPicker.open = openAssetPickerModal;
 };
-
-// Backwards-compatible helpers while we migrate call-sites.
-export const openSlideshowModal = (imageUrls: string[]) => {
-	openAssetPickerModal({
-		assets: (imageUrls || []).map((url, index) => ({
-			id: `image-${index + 1}`,
-			url,
-			label: `Image ${index + 1}`
-		})),
-		title: 'Select images',
-		subtitle: 'Choose the slides you want. All are selected by default.',
-		primaryLabel: 'Download selected',
-		hint: DEFAULT_HINT
-	});
-};
-
-export const setupSlideshowModal = () => {
-	setupAssetPickerModal();
-};

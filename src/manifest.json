@@ -4,6 +4,7 @@
 	"author": "emy",
 	"manifest_version": 3,
 	"version": "1.2.3",
+	"version_name": "1.2.3-beta",
 	"homepage_url": "https://github.com/sixem/tiktok-download-buttons",
 	"icons": {
 		"48": "icons/48.png",

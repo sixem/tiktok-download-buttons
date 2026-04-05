@@ -2,6 +2,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createBuildStamp, ensureDirectoryExists } from './utils/build.js';
 import { createZip } from './utils/zip.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,17 +12,7 @@ const DIST_DIR = path.join(ROOT, 'dist');
 const PACKAGES_DIR = path.join(ROOT, 'packages');
 const OUTPUT_DIR = path.join(PACKAGES_DIR, 'chrome');
 
-const timestamp = new Date();
-const pad = (value) => String(value).padStart(2, '0');
-const stamp = `${timestamp.getFullYear()}${pad(timestamp.getMonth() + 1)}${pad(timestamp.getDate())}-${pad(timestamp.getHours())}${pad(timestamp.getMinutes())}${pad(timestamp.getSeconds())}`;
-const OUTPUT = path.join(OUTPUT_DIR, `chrome-${stamp}.zip`);
-
-const ensureDist = async () => {
-	const stat = await fs.stat(DIST_DIR).catch(() => null);
-	if (!stat || !stat.isDirectory()) {
-		throw new Error('dist folder not found. Run `pnpm build` first.');
-	}
-};
+const OUTPUT = path.join(OUTPUT_DIR, `chrome-${createBuildStamp()}.zip`);
 
 const ensureOutputDir = async () => {
 	await fs.mkdir(OUTPUT_DIR, { recursive: true });
@@ -32,7 +23,7 @@ const writeZip = async () => {
 };
 
 const run = async () => {
-	await ensureDist();
+	await ensureDirectoryExists(DIST_DIR, 'dist folder not found. Run `pnpm build` first.');
 	await ensureOutputDir();
 
 	await writeZip();
