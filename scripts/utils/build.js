@@ -12,3 +12,36 @@ export const ensureDirectoryExists = async (dir, errorMessage) => {
 		throw new Error(errorMessage);
 	}
 };
+
+export const createBuildToken = ({
+	length = 5,
+	date = new Date()
+} = {}) => {
+	const normalizedLength = Math.max(4, Number(length) || 5);
+	const timePart = date.getTime().toString(16);
+	const randomMax = 16 ** 3;
+	const randomPart = Math.floor(Math.random() * randomMax).toString(16).padStart(3, '0');
+	const token = `${timePart}${randomPart}`;
+	return token.length >= normalizedLength
+		? token.slice(-normalizedLength)
+		: token.padStart(normalizedLength, '0');
+};
+
+export const withBuildVersionName = (manifest, buildToken) => {
+	if (!manifest || typeof manifest !== 'object' || !buildToken) {
+		return manifest;
+	}
+
+	const baseVersionName = typeof manifest.version_name === 'string' && manifest.version_name.trim()
+		? manifest.version_name.trim()
+		: String(manifest.version || '').trim();
+
+	if (!baseVersionName) {
+		return manifest;
+	}
+
+	return {
+		...manifest,
+		version_name: `${baseVersionName} (${buildToken})`
+	};
+};

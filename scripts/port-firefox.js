@@ -2,7 +2,10 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createBuildStamp, ensureDirectoryExists } from './utils/build.js';
+import {
+	createBuildStamp,
+	ensureDirectoryExists
+} from './utils/build.js';
 import { createZip } from './utils/zip.js';
 
 const __filename = fileURLToPath(import.meta.url);
