@@ -3,7 +3,7 @@
 // Keeps toast wording and state transitions centralized so download executors
 // can focus on control flow.
 
-import { SPLASH } from '../state';
+import { SPLASH } from '@/content/state';
 import type { DownloadMethodTag } from './download-method';
 
 type ToastTag = DownloadMethodTag | string | null;

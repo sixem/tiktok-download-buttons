@@ -3,8 +3,8 @@
 // Chromium probes the URL in-page, then hands an object URL to the service worker
 // so the browser can complete the download without a second network request.
 
-import { TTDB, UTIL } from '../state';
-import { sendRuntimeMessage } from '../utils/extension';
+import { TTDB, UTIL } from '@/content/state';
+import { sendRuntimeMessage } from '@/content/utils';
 import { CHROMIUM_DOWNLOAD } from './constants';
 import type { DownloadMethodTag } from './download-method';
 import { registerPendingDownloadSession } from './session-store';

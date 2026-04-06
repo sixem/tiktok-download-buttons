@@ -6,8 +6,9 @@
 //
 // Keeping this logic centralized makes strategy selection easier to test.
 
-import { getWebApiData } from '../api/web-detail';
-import { getItemDetailApiData } from '../api/item-detail';
+import { getWebApiData } from '@/content/api/web-detail';
+import { getItemDetailApiData } from '@/content/api/item-detail';
+import { isBlobUrl, isHttpUrl } from '@/content/utils';
 import { getFileNameTemplate } from './filename';
 
 export type DownloadAttemptSource =
@@ -142,9 +143,6 @@ const resolveFilename = ({
 
 	return getFileNameTemplate(videoData, apiData || {}, nameTemplate) || defaultFilename;
 };
-
-const isHttpUrl = (value: string | null) => !!value && /^https?:/i.test(value);
-const isBlobUrl = (value: string | null) => !!value && value.startsWith('blob:');
 
 export const resolveDownloadAttempt = async ({
 	videoData,

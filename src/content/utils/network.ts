@@ -1,5 +1,5 @@
 // Network validation helpers for download responses.
-import { UTIL } from '../state';
+import { UTIL } from '@/content/state';
 
 export const setupNetworkUtils = () => {
 	// Confirm a response looks like a usable video payload.

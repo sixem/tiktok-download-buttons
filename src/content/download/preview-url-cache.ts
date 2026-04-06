@@ -9,7 +9,7 @@
 // Instead, we observe the network URLs TikTok requests for previews (often on hover),
 // then associate those URLs with a video-id during a short "capture window".
 
-import { TTDB } from '../state';
+import { TTDB } from '@/content/state';
 import { PREVIEW_CACHE } from './constants';
 
 type CaptureReason = 'hover' | 'click' | 'autoplay';

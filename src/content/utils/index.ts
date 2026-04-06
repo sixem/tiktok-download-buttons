@@ -1,17 +1,9 @@
-// Registers all content-script utilities onto the shared UTIL object.
-import { UTIL } from '../state';
-import { setupDomUtils } from './dom';
-import { setupNetworkUtils } from './network';
-import { setupObjectUtils } from './object';
-import { setupRandomUtils } from './random';
-import { setupStringUtils } from './strings';
+// Barrel exports for focused utility modules.
 
-export const setupUtils = () => {
-	setupDomUtils();
-	setupNetworkUtils();
-	setupStringUtils();
-	setupRandomUtils();
-	setupObjectUtils();
-
-	return UTIL;
-};
+export * from './assets';
+export * from './button-loading';
+export * from './dom-guards';
+export * from './extension';
+export * from './hash';
+export * from './storage';
+export * from './url';

@@ -3,7 +3,7 @@
 // Firefox starts downloads directly from the service worker and uses an in-page
 // fetch->blob retry when the browser reports SERVER_FORBIDDEN.
 
-import { sendRuntimeMessage } from '../utils/extension';
+import { sendRuntimeMessage } from '@/content/utils';
 import type { DownloadMethodTag } from './download-method';
 import { registerPendingDownloadSession } from './session-store';
 import type { DownloadToastPresenter } from './toast-presenter';

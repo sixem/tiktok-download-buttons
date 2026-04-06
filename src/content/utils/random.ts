@@ -1,5 +1,5 @@
 // Random generation helpers for IDs and ranges.
-import { UTIL } from '../state';
+import { UTIL } from '@/content/state';
 
 export const setupRandomUtils = () => {
 	// Generate a random string from a character set.

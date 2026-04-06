@@ -5,9 +5,13 @@
 // - shared setup/teardown (toast ID, listener wiring, button state)
 // - immediate blob: URL short-circuit
 
-import { TTDB, UTIL } from '../state';
-import { getStoredSetting } from '../utils/storage';
-import { getRuntimeInfo } from '../utils/extension';
+import { TTDB, UTIL } from '@/content/state';
+import {
+	clearButtonLoading,
+	getRuntimeInfo,
+	getStoredSetting,
+	hashString
+} from '@/content/utils';
 import { type DownloadMethodTag } from './download-method';
 import { executeChromiumBlobDownload } from './execute-chromium-blob';
 import { executeChromiumDownload } from './execute-chromium';
@@ -36,11 +40,6 @@ type CoordinatorArgs = {
 	attemptId?: string | number | null;
 	context?: DownloadContext | null;
 	methodTag: DownloadMethodTag | null;
-};
-
-const hashString = (input: string | null) => {
-	if (!input) return null;
-	return input.split('').reduce((hash, char) => (hash * 33) ^ char.charCodeAt(0), 5381) >>> 0;
 };
 
 const createToastId = ({
@@ -86,12 +85,6 @@ const resolveSubFolder = async () => {
 		return '';
 	}
 	return String(value);
-};
-
-const revertState = (buttonElement: HTMLElement | null) => {
-	if (buttonElement) {
-		buttonElement.classList.remove('loading');
-	}
 };
 
 const ensureCoordinatorDownloadStatusListener = () => {
@@ -232,6 +225,6 @@ export const downloadWithMethodTag = async ({
 			logDownload
 		});
 	} finally {
-		revertState(buttonElement);
+		clearButtonLoading(buttonElement);
 	}
 };

@@ -1,5 +1,5 @@
 // String helpers for display names and filesystem-safe output.
-import { UTIL } from '../state';
+import { UTIL } from '@/content/state';
 
 export const setupStringUtils = () => {
 	// Keep strings within a max length without changing short values.

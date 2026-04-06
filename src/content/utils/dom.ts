@@ -1,5 +1,5 @@
 // DOM-focused helpers registered on UTIL for the content script.
-import { UTIL } from '../state';
+import { UTIL } from '@/content/state';
 
 export const setupDomUtils = () => {
 	// Dispatch an event with consistent bubbling and cancelability.

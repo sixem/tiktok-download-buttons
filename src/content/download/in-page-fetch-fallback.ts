@@ -3,7 +3,7 @@
 // This keeps retry behavior in one place so Firefox retry paths and future
 // fallback call-sites do not drift in probe logic or toast semantics.
 
-import { TTDB, UTIL } from '../state';
+import { TTDB, UTIL } from '@/content/state';
 import { IN_PAGE_FETCH } from './constants';
 import type { DownloadToastPresenter } from './toast-presenter';
 

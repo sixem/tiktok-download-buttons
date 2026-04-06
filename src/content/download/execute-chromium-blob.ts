@@ -4,7 +4,7 @@
 // `downloads.onDeterminingFilename` in the service worker to inject the
 // configured subfolder path.
 
-import { sendRuntimeMessage } from '../utils/extension';
+import { sendRuntimeMessage } from '@/content/utils';
 import type { DownloadMethodTag } from './download-method';
 import type { DownloadToastPresenter } from './toast-presenter';
 

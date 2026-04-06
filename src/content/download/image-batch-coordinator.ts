@@ -6,9 +6,12 @@
 // - service worker emits `downloadStatus` (complete/error) back to the tab
 //
 // The coordinator is intentionally small and explicit so behavior is easy to inspect.
-import { SPLASH, TTDB } from '../state';
-import { sendRuntimeMessage } from '../utils/extension';
-import { getStoredSetting } from '../utils/storage';
+import { SPLASH, TTDB } from '@/content/state';
+import {
+	getStoredSetting,
+	normalizeAssetList,
+	sendRuntimeMessage
+} from '@/content/utils';
 import { IMAGE_BATCH } from './constants';
 
 type DownloadableImageAsset = {
@@ -89,18 +92,9 @@ const sanitizeExtension = (value: string) => {
 };
 
 const normalizeAssets = (assets: DownloadableImageAsset[]) => {
-	const seen = new Set<string>();
-	const normalized: DownloadableImageAsset[] = [];
-
-	(assets || []).forEach((asset) => {
-		if (!asset || !asset.url) return;
-		const url = String(asset.url).trim();
-		if (!url || url.startsWith('data:') || seen.has(url)) return;
-		seen.add(url);
-		normalized.push({ ...asset, url });
+	return normalizeAssetList(assets, {
+		allowDataUrls: false
 	});
-
-	return normalized;
 };
 
 const getImageExtension = (url: string) => {

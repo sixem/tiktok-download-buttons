@@ -5,7 +5,7 @@
 // - cleans up object URLs and timers
 // - listens for `downloadStatus` events from the service worker
 
-import { TTDB } from '../state';
+import { TTDB } from '@/content/state';
 import { CHROMIUM_DOWNLOAD } from './constants';
 import { PENDING_DOWNLOAD } from './constants';
 import type { DownloadMethodTag } from './download-method';

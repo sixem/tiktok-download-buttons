@@ -1,5 +1,5 @@
-import { UTIL } from '../state';
-import { pipe } from '../logging';
+import { UTIL } from '@/content/state';
+import { pipe } from '@/content/logging';
 
 const _get = (obj, path, defValue) => {
 	if (!path) {

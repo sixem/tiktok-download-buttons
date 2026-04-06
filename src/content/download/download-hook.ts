@@ -2,17 +2,24 @@
 //
 // Core resolution decisions live in `resolve-download-attempt.ts` so this module can
 // stay focused on event handling, preview UX, and strategy dispatch wiring.
-import { TTDB, SPLASH } from '../state';
-import { DOM } from '../dom';
-import { getStoredSetting } from '../utils/storage';
+import { TTDB, SPLASH } from '@/content/state';
+import { DOM } from '@/content/dom';
+import {
+	clearButtonLoading,
+	getRuntimeInfo,
+	getStoredSetting,
+	hashString,
+	startButtonLoading
+} from '@/content/utils';
 import { DOWNLOAD_HOOK } from './constants';
-import { downloadViaApi } from './strategies/api';
-import { downloadViaDom } from './strategies/dom';
-import { downloadViaIntercept } from './strategies/intercept';
-import { downloadViaBlob } from './strategies/blob';
-import { getVideoUrlFromButtonContext } from '../extractors/video-url';
+import {
+	downloadViaApi,
+	downloadViaBlob,
+	downloadViaDom,
+	downloadViaIntercept
+} from './strategies';
+import { getVideoUrlFromButtonContext } from '@/content/extractors/video-url';
 import { armPreviewCapture, getCachedPreviewUrl, waitForPreviewUrl } from './preview-url-cache';
-import { getRuntimeInfo } from '../utils/extension';
 import {
 	resolveDownloadAttempt,
 	type DownloadAttemptAttrs,
@@ -27,13 +34,6 @@ const getNameTemplate = async () => {
 	}
 
 	return nameTemplate.trim();
-};
-
-const hashString = (input) => {
-	if (!input) return null;
-	return String(input)
-		.split('')
-		.reduce((hash, char) => (hash * 33) ^ char.charCodeAt(0), 5381) >>> 0;
 };
 
 const readButtonDownloadAttrs = (button, videoData): DownloadAttemptAttrs & { hasPageUrlAttribute: boolean } => {
@@ -191,7 +191,7 @@ const onDownloadClick = (button, videoData) => async (e) => {
 		return false;
 	}
 
-	button.classList.add('loading');
+	startButtonLoading(button);
 
 	const attrs = readButtonDownloadAttrs(button, videoData);
 	const logDownload = TTDB.LOG.ns('download');
@@ -337,7 +337,7 @@ const onDownloadClick = (button, videoData) => async (e) => {
 			downloadContext
 		});
 	} finally {
-		button.classList.remove('loading');
+		clearButtonLoading(button);
 	}
 };
 
