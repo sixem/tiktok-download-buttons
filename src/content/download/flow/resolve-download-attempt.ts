@@ -53,7 +53,7 @@ export type ResolveDownloadAttemptResult = {
 };
 
 const getWebVideoUrl = (webData: any) => {
-	const video = webData && webData.video ? webData.video : null;
+	const video = webData?.video ? webData.video : null;
 	if (!video) return null;
 
 	const candidates = [
@@ -67,8 +67,8 @@ const getWebVideoUrl = (webData: any) => {
 		if (!candidate) continue;
 		if (typeof candidate === 'string') return candidate;
 		if (Array.isArray(candidate) && candidate.length) return candidate[0];
-		if (candidate.urlList && candidate.urlList.length) return candidate.urlList[0];
-		if (candidate.url_list && candidate.url_list.length) return candidate.url_list[0];
+		if (candidate.urlList?.length) return candidate.urlList[0];
+		if (candidate.url_list?.length) return candidate.url_list[0];
 	}
 
 	return null;

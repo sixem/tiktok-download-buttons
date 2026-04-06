@@ -6,7 +6,7 @@
 import { TTDB, UTIL } from '@/content/core/state';
 import { sendRuntimeMessage } from '@/content/utils';
 import { CHROMIUM_DOWNLOAD } from '@/content/download/constants';
-import type { DownloadMethodTag } from '@/content/download/flow/download-method';
+import type { DownloadTag } from '@/content/download/flow/download-tag';
 import { registerPendingDownloadSession } from '@/content/download/state/session-store';
 import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 
@@ -23,7 +23,7 @@ export const executeChromiumDownload = async ({
 	filename,
 	subFolder,
 	toastId,
-	methodTag,
+	sourceTag,
 	attemptLabel,
 	toastPresenter,
 	logDownload
@@ -32,7 +32,7 @@ export const executeChromiumDownload = async ({
 	filename: string;
 	subFolder: string;
 	toastId: string;
-	methodTag: DownloadMethodTag | null;
+	sourceTag: DownloadTag;
 	attemptLabel: string;
 	toastPresenter: DownloadToastPresenter;
 	logDownload: any;
@@ -70,7 +70,7 @@ export const executeChromiumDownload = async ({
 			return;
 		}
 
-		if (response && response.success && typeof response.itemId === 'number') {
+		if (response?.success && typeof response.itemId === 'number') {
 			registerPendingDownloadSession({
 				itemId: response.itemId,
 				session: {
@@ -78,7 +78,7 @@ export const executeChromiumDownload = async ({
 					startedAtMs: Date.now(),
 					toastId,
 					filename,
-					sourceTag: methodTag,
+					sourceTag,
 					originalUrl: url,
 					hasRetried: false
 				},

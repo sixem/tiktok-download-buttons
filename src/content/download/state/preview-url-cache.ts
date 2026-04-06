@@ -134,7 +134,7 @@ const isLikelyVideoResourceUrl = (rawUrl: string) => {
 
 const resolveWaiters = (videoId: string, url: string) => {
 	const waiters = pendingWaiters.get(videoId);
-	if (!waiters || !waiters.size) return;
+	if (!waiters?.size) return;
 
 	pendingWaiters.delete(videoId);
 	for (const resolve of waiters) {

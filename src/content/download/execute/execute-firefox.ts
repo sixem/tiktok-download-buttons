@@ -4,12 +4,12 @@
 // fetch->blob retry when the browser reports SERVER_FORBIDDEN.
 
 import { sendRuntimeMessage } from '@/content/utils';
-import type { DownloadMethodTag } from '@/content/download/flow/download-method';
+import type { DownloadTag } from '@/content/download/flow/download-tag';
 import { registerPendingDownloadSession } from '@/content/download/state/session-store';
 import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 import {
 	executeInPageFetchBlobFallback,
-	formatChainedMethodTag
+	formatChainedDownloadTag
 } from '@/content/download/execute/in-page-fetch-fallback';
 
 export const executeFirefoxDownload = async ({
@@ -18,7 +18,7 @@ export const executeFirefoxDownload = async ({
 	subFolder,
 	pageUrl,
 	toastId,
-	methodTag,
+	sourceTag,
 	attemptLabel,
 	toastPresenter,
 	logDownload
@@ -28,7 +28,7 @@ export const executeFirefoxDownload = async ({
 	subFolder: string;
 	pageUrl: string | null;
 	toastId: string;
-	methodTag: DownloadMethodTag | null;
+	sourceTag: DownloadTag;
 	attemptLabel: string;
 	toastPresenter: DownloadToastPresenter;
 	logDownload: any;
@@ -48,7 +48,7 @@ export const executeFirefoxDownload = async ({
 		return;
 	}
 
-	if (response && response.success && typeof response.itemId === 'number') {
+	if (response?.success && typeof response.itemId === 'number') {
 		registerPendingDownloadSession({
 			itemId: response.itemId,
 			session: {
@@ -56,7 +56,7 @@ export const executeFirefoxDownload = async ({
 				startedAtMs: Date.now(),
 				toastId,
 				filename,
-				sourceTag: methodTag,
+				sourceTag,
 				originalUrl: url,
 				hasRetried: false
 			}
@@ -73,13 +73,13 @@ export const executeFirefoxDownload = async ({
 
 	logDownload.warn(`Attempt ${attemptLabel}: download failed`, response);
 
-	const chainedTag = formatChainedMethodTag(methodTag || null, 'BLOB');
+	const chainedTag = formatChainedDownloadTag(sourceTag, 'BLOB');
 	const inPageStarted = await executeInPageFetchBlobFallback({
 		url,
 		filename,
 		toastPresenter,
 		toastTag: chainedTag,
-		sourceTag: methodTag || null,
+		sourceTag,
 		probeMode: 'video-content-type',
 		logDownload
 	});

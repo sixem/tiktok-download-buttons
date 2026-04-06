@@ -5,7 +5,7 @@
 // configured subfolder path.
 
 import { sendRuntimeMessage } from '@/content/utils';
-import type { DownloadTag } from '@/content/download/flow/download-method';
+import type { DownloadTag } from '@/content/download/flow/download-tag';
 import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 
 const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
@@ -63,8 +63,7 @@ export const executeChromiumBlobDownload = async ({
 	}
 
 	const armed = !!(
-		arm
-		&& arm.success
+		arm?.success
 		&& typeof arm.token === 'string'
 		&& typeof arm.tempName === 'string'
 	);

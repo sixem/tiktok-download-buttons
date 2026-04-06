@@ -42,7 +42,7 @@ const validateProbeResponse = (response: Response, probeMode: InPageFetchProbeMo
 	};
 };
 
-export const formatChainedMethodTag = (fromTag: string | null | undefined, toTag: string) => {
+export const formatChainedDownloadTag = (fromTag: string | null | undefined, toTag: string) => {
 	if (!toTag) return fromTag || null;
 	if (!fromTag) return toTag;
 	if (fromTag === toTag) return toTag;

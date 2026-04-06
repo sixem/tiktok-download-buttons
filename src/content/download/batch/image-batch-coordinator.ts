@@ -72,9 +72,22 @@ const getLogger = () => {
 	};
 };
 
+const INVALID_FILENAME_CHARS = /[<>:"/\\|?*]/g;
+
+const replaceControlCharacters = (value: string) => {
+	let sanitized = '';
+
+	for (const char of value) {
+		const code = char.charCodeAt(0);
+		sanitized += code <= 0x1f ? ' ' : char;
+	}
+
+	return sanitized;
+};
+
 const sanitizeFilenamePart = (value: string, fallback = IMAGE_BATCH.defaultBasename) => {
-	const safe = String(value || '')
-		.replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+	const safe = replaceControlCharacters(String(value || ''))
+		.replace(INVALID_FILENAME_CHARS, ' ')
 		.replace(/\s+/g, ' ')
 		.trim()
 		.replace(/^\.+/, '');
@@ -156,6 +169,15 @@ const buildFilename = (index: number, total: number, url: string) => {
 	return `${baseName}-${sequence}.${extension}`;
 };
 
+// Export the filename helpers so the normalization rules stay easy to test in isolation.
+export const imageBatchFilenameHelpers = {
+	replaceControlCharacters,
+	sanitizeFilenamePart,
+	getImageExtension,
+	getFilenamePartsFromUrl,
+	buildFilename
+};
+
 const getDoneCount = (batch: BatchSession) => batch.completed + batch.failed;
 
 const isBatchSettled = (batch: BatchSession) => {
@@ -174,7 +196,9 @@ const notifyBatchSlotWaiters = (batchId: string) => {
 
 	const callbacks = [...waiters];
 	waiters.clear();
-	callbacks.forEach((callback) => callback());
+	callbacks.forEach((callback) => {
+		callback();
+	});
 };
 
 const waitForBatchSlot = (batchId: string, batch: BatchSession, maxActive: number) => {
@@ -357,7 +381,7 @@ const startSingleImageDownload = async (args: {
 		});
 		const response = (rawResponse || null) as DownloadStartResponse | null;
 
-		if (response && response.success && typeof response.itemId === 'number') {
+		if (response?.success && typeof response.itemId === 'number') {
 			itemToBatch.set(response.itemId, batchId);
 			batch.pendingItemIds.add(response.itemId);
 			logDownload.info('image download started', {

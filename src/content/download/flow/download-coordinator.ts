@@ -12,13 +12,13 @@ import {
 	getStoredSetting,
 	hashString
 } from '@/content/utils';
-import { type DownloadMethodTag } from '@/content/download/flow/download-method';
+import type { DownloadTag } from '@/content/download/flow/download-tag';
 import { executeChromiumBlobDownload } from '@/content/download/execute/execute-chromium-blob';
 import { executeChromiumDownload } from '@/content/download/execute/execute-chromium';
 import { executeFirefoxDownload } from '@/content/download/execute/execute-firefox';
 import {
 	executeInPageFetchBlobFallback,
-	formatChainedMethodTag
+	formatChainedDownloadTag
 } from '@/content/download/execute/in-page-fetch-fallback';
 import {
 	ensureDownloadStatusListener,
@@ -40,7 +40,7 @@ type CoordinatorArgs = {
 	buttonElement?: HTMLElement | null;
 	attemptId?: string | number | null;
 	context?: DownloadContext | null;
-	methodTag: DownloadMethodTag | null;
+	sourceTag: DownloadTag;
 };
 
 const createToastId = ({
@@ -94,10 +94,10 @@ const ensureCoordinatorDownloadStatusListener = () => {
 			const retryPresenter = createDownloadToastPresenter({
 				toastId: String(session.toastId),
 				filename: String(session.filename),
-				methodTag: session.sourceTag || null
+				sourceTag: session.sourceTag || null
 			});
 
-			const chainedTag = formatChainedMethodTag(session.sourceTag || null, 'BLOB');
+			const chainedTag = formatChainedDownloadTag(session.sourceTag || null, 'BLOB');
 			void executeInPageFetchBlobFallback({
 				url: String(session.originalUrl || ''),
 				filename: String(session.filename || 'video.mp4'),
@@ -119,7 +119,7 @@ const ensureCoordinatorDownloadStatusListener = () => {
 			const presenter = createDownloadToastPresenter({
 				toastId: String(session.toastId),
 				filename: String(session.filename),
-				methodTag: session.sourceTag || null
+				sourceTag: session.sourceTag || null
 			});
 
 			presenter.showTerminalStatus({
@@ -137,17 +137,17 @@ const ensureCoordinatorDownloadStatusListener = () => {
 	});
 };
 
-export const downloadWithMethodTag = async ({
+export const startDownload = async ({
 	url,
 	filename,
 	buttonElement = null,
 	attemptId = null,
 	context = null,
-	methodTag
+	sourceTag
 }: CoordinatorArgs) => {
 	const logDownload = TTDB.LOG.ns('download');
 	const attemptLabel = attemptId ? `#${attemptId}` : 'unknown';
-	const videoKey = context && context.videoKey ? String(context.videoKey) : '';
+	const videoKey = context?.videoKey ? String(context.videoKey) : '';
 	const toastId = createToastId({
 		videoKey,
 		attemptId
@@ -163,7 +163,7 @@ export const downloadWithMethodTag = async ({
 	const toastPresenter = createDownloadToastPresenter({
 		toastId,
 		filename: normalizedFilename,
-		methodTag
+		sourceTag
 	});
 
 	ensureCoordinatorDownloadStatusListener();
@@ -174,7 +174,7 @@ export const downloadWithMethodTag = async ({
 		filename: normalizedFilename,
 		isBlobUrl,
 		context,
-		methodTag: methodTag || null
+		sourceTag
 	});
 
 	toastPresenter.showDownloading();
@@ -189,7 +189,7 @@ export const downloadWithMethodTag = async ({
 				filename: normalizedFilename,
 				subFolder,
 				toastId,
-				methodTag,
+				sourceTag,
 				attemptLabel,
 				toastPresenter,
 				logDownload
@@ -202,7 +202,7 @@ export const downloadWithMethodTag = async ({
 			logDownload.info(`Attempt ${attemptLabel}: blob anchor ${started ? 'triggered' : 'failed'}`);
 			toastPresenter.showInPageFetchResult({
 				started,
-				tag: methodTag || 'BLOB'
+				tag: sourceTag
 			});
 			return;
 		}
@@ -213,7 +213,7 @@ export const downloadWithMethodTag = async ({
 				filename: normalizedFilename,
 				subFolder,
 				toastId,
-				methodTag,
+				sourceTag,
 				attemptLabel,
 				toastPresenter,
 				logDownload
@@ -227,7 +227,7 @@ export const downloadWithMethodTag = async ({
 			subFolder,
 			pageUrl: context?.pageUrl || null,
 			toastId,
-			methodTag,
+			sourceTag,
 			attemptLabel,
 			toastPresenter,
 			logDownload

@@ -4,9 +4,9 @@
 // can focus on control flow.
 
 import { SPLASH } from '@/content/core/state';
-import type { DownloadMethodTag } from '@/content/download/flow/download-method';
+import type { DownloadTag } from '@/content/download/flow/download-tag';
 
-type ToastTag = DownloadMethodTag | string | null;
+type ToastTag = DownloadTag | string | null;
 
 type TerminalToastArgs = {
 	isComplete: boolean;
@@ -21,7 +21,7 @@ type InPageFetchResultArgs = {
 
 const getOptionTag = (options: any, fallbackTag: ToastTag, isProgressToast: boolean) => {
 	if (isProgressToast) return null;
-	if (Object.prototype.hasOwnProperty.call(options, 'tag')) {
+	if (Object.hasOwn(options, 'tag')) {
 		return options.tag;
 	}
 	return fallbackTag || null;
@@ -60,23 +60,23 @@ export type DownloadToastPresenter = ReturnType<typeof createDownloadToastPresen
 export const createDownloadToastPresenter = ({
 	toastId,
 	filename,
-	methodTag
+	sourceTag
 }: {
 	toastId: string;
 	filename: string;
-	methodTag: ToastTag;
+	sourceTag: ToastTag;
 }) => {
 	const displayName = getDisplayName(filename);
 
 	return {
 		toastId,
 		filename,
-		methodTag,
+		sourceTag,
 		getDisplayName,
 		showDownloading: () => {
 			return renderToast({
 				toastId,
-				fallbackTag: methodTag,
+				fallbackTag: sourceTag,
 				message: {
 					title: 'Downloading',
 					detail: displayName
@@ -106,7 +106,7 @@ export const createDownloadToastPresenter = ({
 		showBlockedNoTabFallback: () => {
 			return renderToast({
 				toastId,
-				fallbackTag: methodTag,
+				fallbackTag: sourceTag,
 				message: {
 					title: 'Download blocked',
 					detail: 'TikTok blocked this download attempt. Try again in a moment.'
@@ -140,7 +140,7 @@ export const createDownloadToastPresenter = ({
 		}: InPageFetchResultArgs) => {
 			return renderToast({
 				toastId,
-				fallbackTag: methodTag,
+				fallbackTag: sourceTag,
 				message: {
 					title: started ? 'Download triggered' : 'Download failed',
 					detail: displayName,
@@ -163,7 +163,7 @@ export const createDownloadToastPresenter = ({
 		}: TerminalToastArgs) => {
 			return renderToast({
 				toastId,
-				fallbackTag: methodTag,
+				fallbackTag: sourceTag,
 				message: {
 					title: isComplete ? 'Download complete' : 'Download failed',
 					detail: displayName,

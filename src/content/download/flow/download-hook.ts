@@ -62,7 +62,7 @@ const nextAttemptIdForKey = (attemptKey: string) => {
 	// Keep the attempt counter map bounded so we don't retain an unbounded set of keys.
 	TTDB.stats.downloadAttemptOrder = TTDB.stats.downloadAttemptOrder || [];
 	const attemptOrder: string[] = TTDB.stats.downloadAttemptOrder;
-	const isFirstAttemptForVideo = !Object.prototype.hasOwnProperty.call(attemptsByVideo, attemptKey);
+	const isFirstAttemptForVideo = !Object.hasOwn(attemptsByVideo, attemptKey);
 	if (isFirstAttemptForVideo) {
 		attemptOrder.push(attemptKey);
 	}
@@ -73,7 +73,9 @@ const nextAttemptIdForKey = (attemptKey: string) => {
 		delete attemptsByVideo[oldest];
 	}
 
-	return (attemptsByVideo[attemptKey] = (attemptsByVideo[attemptKey] || 0) + 1);
+	const nextAttemptId = (attemptsByVideo[attemptKey] || 0) + 1;
+	attemptsByVideo[attemptKey] = nextAttemptId;
+	return nextAttemptId;
 };
 
 const resolveRuntimeEnv = async () => {
@@ -169,7 +171,6 @@ const dispatchDownloadStrategy = ({
 		case 'dom-blob':
 			downloadViaBlob(videoUrl, filename, button, attemptId, downloadContext);
 			break;
-		case 'dom':
 		default:
 			downloadViaDom(videoUrl, filename, button, attemptId, downloadContext);
 			break;
@@ -359,7 +360,7 @@ const onDownloadClick = (button, videoData) => async (e) => {
 
 export const downloadHook = async (button, videoData) => {
 	const videoIdentifier = videoData.id ? videoData.id : Date.now();
-	const fileName = `${videoData.user ? videoData.user + ' - ' : ''}${videoIdentifier}`;
+	const fileName = `${videoData.user ? `${videoData.user} - ` : ''}${videoIdentifier}`;
 
 	DOM.setAttributes(button, {
 		filename: `${fileName.trim()}.mp4`

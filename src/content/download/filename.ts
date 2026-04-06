@@ -8,7 +8,7 @@ const _get = (obj, path, defValue) => {
 
 	const pathArray = Array.isArray(path) ? path : path.match(/([^.[\]])+/g);
 	const result = pathArray.reduce(
-		(prevObj, key) => prevObj && prevObj[key],
+		(prevObj, key) => prevObj?.[key],
 		obj
 	);
 
@@ -33,7 +33,7 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 	};
 
 	for (const [key, value] of Object.entries(templateKeys)) {
-		if (!templateValues.hasOwnProperty(key)) {
+		if (!Object.hasOwn(templateValues, key)) {
 			let keyData = null;
 			for (const item of value) {
 				if (!Array.isArray(item) && item) {
@@ -48,7 +48,7 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 	}
 
 	for (const timestamp of ['uploaded', 'timestamp']) {
-		templateValues[timestamp] = parseInt(templateValues[timestamp]);
+		templateValues[timestamp] = parseInt(templateValues[timestamp], 10);
 
 		if (Number.isInteger(templateValues[timestamp]) && templateValues[timestamp] > 0) {
 			const ts = new Date(templateValues[timestamp] * 1000);

@@ -8,14 +8,14 @@
 import { TTDB } from '@/content/core/state';
 import { CHROMIUM_DOWNLOAD } from '@/content/download/constants';
 import { PENDING_DOWNLOAD } from '@/content/download/constants';
-import type { DownloadMethodTag } from '@/content/download/flow/download-method';
+import type { DownloadTag } from '@/content/download/flow/download-tag';
 
 export type PendingDownloadSession = {
 	objectUrl: string | null;
 	startedAtMs: number;
 	toastId: string;
 	filename: string;
-	sourceTag: DownloadMethodTag | string | null;
+	sourceTag: DownloadTag | string | null;
 	originalUrl: string;
 	hasRetried: boolean;
 	revokeTimerId: number | null;
