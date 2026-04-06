@@ -6,6 +6,7 @@
 // - listens for `downloadStatus` events from the service worker
 
 import { TTDB } from '../state';
+import { CHROMIUM_DOWNLOAD } from './constants';
 import { PENDING_DOWNLOAD } from './constants';
 import type { DownloadMethodTag } from './download-method';
 
@@ -36,6 +37,11 @@ type DownloadStatusRetryPayload = {
 type DownloadStatusHandlers = {
 	onTerminalStatus?: (payload: DownloadStatusTerminalPayload) => void;
 	onRetryRequested?: (payload: DownloadStatusRetryPayload) => void;
+};
+
+type SuggestDownloadStartedPayload = {
+	itemId: number;
+	session: Omit<PendingDownloadSession, 'revokeTimerId'>;
 };
 
 const globalState = globalThis as any;
@@ -154,6 +160,20 @@ export const ensureDownloadStatusListener = (handlers: DownloadStatusHandlers = 
 		prunePendingDownloadSessions('downloadStatus:message');
 
 		if (!data || typeof data !== 'object') return;
+		if ((data as any).task === 'suggestDownloadStarted') {
+			const payload = data as any as SuggestDownloadStartedPayload & { task: 'suggestDownloadStarted' };
+			if (typeof payload.itemId !== 'number' || !payload.session) return;
+
+			registerPendingDownloadSession({
+				itemId: payload.itemId,
+				session: payload.session,
+				safetyTimeoutMs: typeof payload.session.objectUrl === 'string'
+					? CHROMIUM_DOWNLOAD.safetyRevokeMs
+					: null
+			});
+			return;
+		}
+
 		if ((data as any).task !== 'downloadStatus') return;
 
 		const itemId = (data as any).itemId;

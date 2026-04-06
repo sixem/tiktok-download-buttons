@@ -170,6 +170,34 @@ const ensureBlobSuggestListener = () => {
 		if (!entry) return;
 		if (typeof item?.url !== 'string' || item.url !== entry.blobUrl) return;
 
+		const tabId = typeof entry.tabId === 'number' ? entry.tabId : null;
+		pruneDownloadSessions();
+		if (typeof item.id === 'number') {
+			globalState.downloadSessions.set(item.id, {
+				tabId,
+				startedAt: Date.now()
+			});
+		}
+
+		if (typeof tabId === 'number' && typeof item.id === 'number') {
+			const originalUrl = String(entry.originalUrl || entry.blobUrl || '');
+			chrome.tabs.sendMessage(tabId, {
+				task: 'suggestDownloadStarted',
+				itemId: item.id,
+				session: {
+					objectUrl: null,
+					startedAtMs: Date.now(),
+					toastId: String(entry.toastId || ''),
+					filename: String(entry.filename || 'video.mp4'),
+					sourceTag: entry.sourceTag || null,
+					originalUrl: originalUrl.startsWith('blob:') ? '' : originalUrl,
+					hasRetried: false
+				}
+			}, () => {
+				void chrome.runtime?.lastError;
+			});
+		}
+
 		globalState.blobSuggests.delete(token);
 		suggest({
 			filename: entry.finalPath,
@@ -288,8 +316,12 @@ const fileDownload = async (args) => {
 const armBlobSuggest = async (args) => {
 	try {
 		const blobUrl = String(args.data.blobUrl || '');
+		const originalUrl = String(args.data.originalUrl || blobUrl || '');
 		const filename = String(args.data.filename || 'video.mp4');
 		const subFolder = typeof args.data.subFolder === 'string' ? args.data.subFolder : '';
+		const toastId = String(args.data.toastId || '');
+		const sourceTag = typeof args.data.sourceTag === 'string' ? args.data.sourceTag : null;
+		const tabId = args.sender?.tab?.id;
 
 		if (!blobUrl.startsWith('blob:')) {
 			args.sendResponse({ success: false, error: 'Expected blob URL.' });
@@ -298,6 +330,7 @@ const armBlobSuggest = async (args) => {
 
 		pruneBlobSuggests();
 		ensureBlobSuggestListener();
+		ensureDownloadChangeListener();
 
 		const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 		const tempName = buildBlobTempName(filename, token);
@@ -306,8 +339,13 @@ const armBlobSuggest = async (args) => {
 		globalState.blobSuggests.set(token, {
 			token,
 			blobUrl,
+			originalUrl,
 			tempName,
 			finalPath,
+			filename,
+			toastId,
+			sourceTag,
+			tabId: typeof tabId === 'number' ? tabId : null,
 			createdAt: Date.now(),
 			expiresAt: Date.now() + SERVICE.blobSuggest.ttlMs
 		});

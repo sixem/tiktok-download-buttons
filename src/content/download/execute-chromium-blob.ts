@@ -5,6 +5,7 @@
 // configured subfolder path.
 
 import { sendRuntimeMessage } from '../utils/extension';
+import type { DownloadMethodTag } from './download-method';
 import type { DownloadToastPresenter } from './toast-presenter';
 
 const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
@@ -26,15 +27,21 @@ const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
 
 export const executeChromiumBlobDownload = async ({
 	url,
+	originalUrl,
 	filename,
 	subFolder,
+	toastId,
+	methodTag,
 	attemptLabel,
 	toastPresenter,
 	logDownload
 }: {
 	url: string;
+	originalUrl?: string;
 	filename: string;
 	subFolder: string;
+	toastId: string;
+	methodTag: DownloadMethodTag | null;
 	attemptLabel: string;
 	toastPresenter: DownloadToastPresenter;
 	logDownload: any;
@@ -45,8 +52,11 @@ export const executeChromiumBlobDownload = async ({
 		arm = await sendRuntimeMessage({
 			task: 'armBlobSuggest',
 			blobUrl: url,
+			originalUrl: typeof originalUrl === 'string' && originalUrl.length > 0 ? originalUrl : url,
 			filename,
-			subFolder
+			subFolder,
+			toastId,
+			sourceTag: methodTag
 		});
 	} catch (error) {
 		logDownload.warn(`Attempt ${attemptLabel}: blob suggest arm failed`, error);

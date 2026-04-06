@@ -185,8 +185,11 @@ export const downloadWithMethodTag = async ({
 		if (isBlobUrl && runtime.chromium && subFolder) {
 			await executeChromiumBlobDownload({
 				url,
+				originalUrl: url,
 				filename: normalizedFilename,
 				subFolder,
+				toastId,
+				methodTag,
 				attemptLabel,
 				toastPresenter,
 				logDownload
