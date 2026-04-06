@@ -5,11 +5,10 @@
 
 import { TTDB, UTIL } from '../state';
 import { sendRuntimeMessage } from '../utils/extension';
+import { CHROMIUM_DOWNLOAD } from './constants';
 import type { DownloadMethodTag } from './download-method';
 import { registerPendingDownloadSession } from './session-store';
 import type { DownloadToastPresenter } from './toast-presenter';
-
-const CHROMIUM_SAFETY_REVOKE_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const revokeObjectUrl = (objectUrl: string) => {
 	try {
@@ -83,7 +82,7 @@ export const executeChromiumDownload = async ({
 					originalUrl: url,
 					hasRetried: false
 				},
-				safetyTimeoutMs: CHROMIUM_SAFETY_REVOKE_MS
+				safetyTimeoutMs: CHROMIUM_DOWNLOAD.safetyRevokeMs
 			});
 
 			logDownload.info(`Attempt ${attemptLabel}: download started`, {

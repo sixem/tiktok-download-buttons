@@ -9,6 +9,7 @@
 import { SPLASH, TTDB } from '../state';
 import { sendRuntimeMessage } from '../utils/extension';
 import { getStoredSetting } from '../utils/storage';
+import { IMAGE_BATCH } from './constants';
 
 type DownloadableImageAsset = {
 	id?: string;
@@ -55,13 +56,6 @@ globalState.__ttdbImageDownloadBatches = activeBatches;
 globalState.__ttdbImageDownloadItemToBatch = itemToBatch;
 globalState.__ttdbImageDownloadBatchSlotWaiters = batchSlotWaiters;
 
-const MAX_ACTIVE_IMAGE_DOWNLOADS = 2;
-const MAX_BATCH_WAIT_MS = 8 * 60 * 1000;
-const DEFAULT_BASENAME = 'image';
-const DEFAULT_EXTENSION = 'jpg';
-const MAX_BASENAME_LENGTH = 180;
-const IMAGE_TOAST_TAG = 'IMG';
-
 const getLogger = () => {
 	const loggerFactory = TTDB?.LOG?.ns;
 	if (typeof loggerFactory === 'function') {
@@ -75,14 +69,14 @@ const getLogger = () => {
 	};
 };
 
-const sanitizeFilenamePart = (value: string, fallback = DEFAULT_BASENAME) => {
+const sanitizeFilenamePart = (value: string, fallback = IMAGE_BATCH.defaultBasename) => {
 	const safe = String(value || '')
 		.replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim()
 		.replace(/^\.+/, '');
 
-	return (safe || fallback).slice(0, MAX_BASENAME_LENGTH).trim();
+	return (safe || fallback).slice(0, IMAGE_BATCH.maxBasenameLength).trim();
 };
 
 const sanitizeExtension = (value: string) => {
@@ -114,10 +108,10 @@ const getImageExtension = (url: string) => {
 		const parsed = new URL(url);
 		const path = parsed.pathname || '';
 		const match = /\.([a-z0-9]{1,8})$/i.exec(path);
-		if (!match) return DEFAULT_EXTENSION;
-		return sanitizeExtension(match[1]) || DEFAULT_EXTENSION;
+		if (!match) return IMAGE_BATCH.defaultExtension;
+		return sanitizeExtension(match[1]) || IMAGE_BATCH.defaultExtension;
 	} catch (_) {
-		return DEFAULT_EXTENSION;
+		return IMAGE_BATCH.defaultExtension;
 	}
 };
 
@@ -157,7 +151,7 @@ const getFilenamePartsFromUrl = (url: string) => {
 // - append order suffix only for multi-item downloads
 const buildFilename = (index: number, total: number, url: string) => {
 	const parsedFilename = getFilenamePartsFromUrl(url);
-	const baseName = parsedFilename?.baseName || DEFAULT_BASENAME;
+	const baseName = parsedFilename?.baseName || IMAGE_BATCH.defaultBasename;
 	const extension = parsedFilename?.extension || getImageExtension(url);
 	if (total <= 1) {
 		return `${baseName}.${extension}`;
@@ -248,7 +242,7 @@ const renderFinalToast = (batch: BatchSession) => {
 			spinner: false,
 			duration: 5000,
 			hideMeta: true,
-			tag: IMAGE_TOAST_TAG
+			tag: IMAGE_BATCH.toastTag
 		});
 		return;
 	}
@@ -265,7 +259,7 @@ const renderFinalToast = (batch: BatchSession) => {
 			spinner: false,
 			duration: 6000,
 			hideMeta: false,
-			tag: IMAGE_TOAST_TAG
+			tag: IMAGE_BATCH.toastTag
 		});
 		return;
 	}
@@ -280,7 +274,7 @@ const renderFinalToast = (batch: BatchSession) => {
 		spinner: false,
 		duration: 6500,
 		hideMeta: true,
-		tag: IMAGE_TOAST_TAG
+		tag: IMAGE_BATCH.toastTag
 	});
 };
 
@@ -413,7 +407,7 @@ export const downloadImageBatch = async ({
 			state: 2,
 			duration: 3600,
 			hideMeta: true,
-			tag: IMAGE_TOAST_TAG
+			tag: IMAGE_BATCH.toastTag
 		});
 		return;
 	}
@@ -448,13 +442,13 @@ export const downloadImageBatch = async ({
 
 		liveBatch.launchComplete = true;
 		finalizeBatchIfReady(batchId);
-	}, MAX_BATCH_WAIT_MS) as unknown as number;
+	}, IMAGE_BATCH.maxWaitMs) as unknown as number;
 	renderProgressToast(batch);
 
 	// Rolling queue launcher:
 	// start new requests only when active in-browser downloads drop below limit.
 	for (let nextIndex = 0; nextIndex < normalizedAssets.length; nextIndex += 1) {
-		await waitForBatchSlot(batchId, batch, MAX_ACTIVE_IMAGE_DOWNLOADS);
+		await waitForBatchSlot(batchId, batch, IMAGE_BATCH.maxActiveDownloads);
 		if (!activeBatches.has(batchId)) break;
 
 		const entry = normalizedAssets[nextIndex];

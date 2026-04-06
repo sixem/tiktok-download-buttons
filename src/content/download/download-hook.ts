@@ -5,6 +5,7 @@
 import { TTDB, SPLASH } from '../state';
 import { DOM } from '../dom';
 import { getStoredSetting } from '../utils/storage';
+import { DOWNLOAD_HOOK } from './constants';
 import { downloadViaApi } from './strategies/api';
 import { downloadViaDom } from './strategies/dom';
 import { downloadViaIntercept } from './strategies/intercept';
@@ -17,10 +18,6 @@ import {
 	type DownloadAttemptAttrs,
 	type DownloadAttemptSource
 } from './resolve-download-attempt';
-
-const MAX_ATTEMPT_KEYS = 800;
-const PREVIEW_WAIT_MS = 1600;
-const PREVIEW_CAPTURE_WINDOW_MS = 1800;
 
 const getNameTemplate = async () => {
 	const nameTemplate = await getStoredSetting('download-naming-template');
@@ -66,7 +63,7 @@ const nextAttemptIdForKey = (attemptKey: string) => {
 		attemptOrder.push(attemptKey);
 	}
 
-	while (attemptOrder.length > MAX_ATTEMPT_KEYS) {
+	while (attemptOrder.length > DOWNLOAD_HOOK.maxAttemptKeys) {
 		const oldest = attemptOrder.shift();
 		if (!oldest) continue;
 		delete attemptsByVideo[oldest];
@@ -100,12 +97,12 @@ const waitForPreviewUrlFromClick = async ({
 	logDownload.info(`Attempt ${attemptLabel}: preview URL cache miss`, {
 		videoKey: attemptKey,
 		videoId: apiId,
-		waitMs: PREVIEW_WAIT_MS
+		waitMs: DOWNLOAD_HOOK.previewWaitMs
 	});
 
 	// Arm a short capture window and wait. This only works if TikTok actually requests
 	// the preview URL (often on hover). We keep messaging explicit so it doesn't feel "stuck".
-	armPreviewCapture(apiId, 'click', PREVIEW_CAPTURE_WINDOW_MS);
+	armPreviewCapture(apiId, 'click', DOWNLOAD_HOOK.previewCaptureWindowMs);
 
 	const toastKeyHash = hashString(attemptKey) || Date.now();
 	const prepToastId = `download-prepare-${toastKeyHash}-${attemptId}`;
@@ -121,7 +118,7 @@ const waitForPreviewUrlFromClick = async ({
 		hideMeta: true
 	});
 
-	const waited = await waitForPreviewUrl(apiId, PREVIEW_WAIT_MS);
+	const waited = await waitForPreviewUrl(apiId, DOWNLOAD_HOOK.previewWaitMs);
 	SPLASH.dismiss(prepToastId);
 
 	if (waited) {
@@ -388,7 +385,7 @@ export const downloadHook = async (button, videoData) => {
 					return;
 				}
 
-				button.ttdbPreviewReadyPromise = waitForPreviewUrl(videoData.videoApiId, PREVIEW_WAIT_MS)
+				button.ttdbPreviewReadyPromise = waitForPreviewUrl(videoData.videoApiId, DOWNLOAD_HOOK.previewWaitMs)
 					.then((url) => {
 						if (!url) return;
 						button.ttdbPreviewReady = true;
@@ -409,12 +406,12 @@ export const downloadHook = async (button, videoData) => {
 			}
 
 			container.addEventListener('pointerenter', () => {
-				armPreviewCapture(videoData.videoApiId, 'hover', PREVIEW_WAIT_MS);
+				armPreviewCapture(videoData.videoApiId, 'hover', DOWNLOAD_HOOK.previewWaitMs);
 				ensureInteractiveOncePreviewIsCached();
 			}, { passive: true });
 
 			container.addEventListener('mouseenter', () => {
-				armPreviewCapture(videoData.videoApiId, 'hover', PREVIEW_WAIT_MS);
+				armPreviewCapture(videoData.videoApiId, 'hover', DOWNLOAD_HOOK.previewWaitMs);
 				ensureInteractiveOncePreviewIsCached();
 			}, { passive: true });
 

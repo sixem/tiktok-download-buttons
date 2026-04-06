@@ -104,39 +104,6 @@ export const createDownloadToastPresenter = ({
 				tag: null
 			});
 		},
-		showBlobBlockedOnFirefox: () => {
-			return renderToast({
-				toastId,
-				fallbackTag: methodTag,
-				message: {
-					title: 'Download blocked on Firefox',
-					detail: 'This video only exposed a blob URL. Hover the card to load a preview, then try again.'
-				},
-				options: {
-					duration: 6500,
-					state: 3,
-					hideMeta: true,
-					sticky: false,
-					spinner: false
-				}
-			});
-		},
-		showBlobImmediateResult: (started: boolean) => {
-			return renderToast({
-				toastId,
-				fallbackTag: methodTag,
-				message: {
-					title: started ? 'Download started' : 'Blob download blocked',
-					detail: started ? displayName : 'Try another video.'
-				},
-				options: {
-					duration: started ? 3500 : 5000,
-					state: started ? 1 : 3,
-					hideMeta: !started,
-					tag: 'BLOB'
-				}
-			});
-		},
 		showBlockedNoTabFallback: () => {
 			return renderToast({
 				toastId,

@@ -7,14 +7,8 @@
 // window in ResourceTiming entries, then arms a normal capture window for any follow-up requests.
 
 import { TTDB } from '../state';
+import { AUTOPLAY_PREVIEW } from './constants';
 import { armPreviewCapture, seedPreviewUrlFromLookback } from './preview-url-cache';
-
-const BUTTON_SELECTOR = [
-	'a.ttdb__button_feed[video-id]',
-	'a.ttdb__button_grid[video-id]',
-	'a.ttdb__button_browser[video-id]',
-	'a.ttdb__button_basic-player[video-id]'
-].join(', ');
 
 const findVideoIdForVideoElement = (videoEl: HTMLVideoElement) => {
 	// Walk up a few ancestors and look for the TTDB button that holds `video-id`.
@@ -23,7 +17,7 @@ const findVideoIdForVideoElement = (videoEl: HTMLVideoElement) => {
 	for (let i = 0; i < 10 && current; i += 1) {
 		const el: Element | null = current instanceof Element ? current : null;
 		if (el) {
-			const button = el.querySelector(BUTTON_SELECTOR) as Element | null;
+			const button = el.querySelector(AUTOPLAY_PREVIEW.buttonSelector) as Element | null;
 			const id = button?.getAttribute?.('video-id') || null;
 			if (id) return id;
 		}
@@ -46,9 +40,12 @@ export const setupAutoplayPreviewCapture = () => {
 		if (!videoId) return;
 
 		// Seed from recent ResourceTiming entries first (helps when the MP4 was fetched before play).
-		seedPreviewUrlFromLookback(videoId, { lookbackMs: 60_000, referencePerfMs: performance.now() });
+		seedPreviewUrlFromLookback(videoId, {
+			lookbackMs: AUTOPLAY_PREVIEW.lookbackMs,
+			referencePerfMs: performance.now()
+		});
 
 		// Also arm a short forward capture window in case TikTok requests a refreshed URL.
-		armPreviewCapture(videoId, 'autoplay', 1800);
+		armPreviewCapture(videoId, 'autoplay', AUTOPLAY_PREVIEW.captureWindowMs);
 	}, true);
 };

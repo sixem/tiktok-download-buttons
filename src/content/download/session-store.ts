@@ -6,6 +6,7 @@
 // - listens for `downloadStatus` events from the service worker
 
 import { TTDB } from '../state';
+import { PENDING_DOWNLOAD } from './constants';
 import type { DownloadMethodTag } from './download-method';
 
 export type PendingDownloadSession = {
@@ -46,9 +47,6 @@ const statusHandlers: DownloadStatusHandlers = globalState.__ttdbDownloadStatusH
 globalState.__ttdbPendingDownloadObjectUrls = pendingDownloadSessions;
 globalState.__ttdbDownloadStatusHandlers = statusHandlers;
 
-const MAX_PENDING_DOWNLOAD_SESSIONS = 400;
-const PENDING_DOWNLOAD_SESSION_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
-
 const clearSessionResources = (session: PendingDownloadSession) => {
 	if (typeof session?.revokeTimerId === 'number') {
 		clearTimeout(session.revokeTimerId);
@@ -80,13 +78,13 @@ export const prunePendingDownloadSessions = (reason: string) => {
 	// 1) TTL pruning.
 	for (const [itemId, session] of pendingDownloadSessions.entries()) {
 		const startedAtMs = typeof session?.startedAtMs === 'number' ? session.startedAtMs : nowMs;
-		if (nowMs - startedAtMs > PENDING_DOWNLOAD_SESSION_TTL_MS) {
+		if (nowMs - startedAtMs > PENDING_DOWNLOAD.sessionTtlMs) {
 			dropSession(itemId, session);
 		}
 	}
 
 	// 2) Cap pruning. Prefer removing sessions without object URLs first.
-	if (pendingDownloadSessions.size > MAX_PENDING_DOWNLOAD_SESSIONS) {
+	if (pendingDownloadSessions.size > PENDING_DOWNLOAD.maxSessions) {
 		const toEvictNoObjectUrl: Array<{ itemId: number; startedAtMs: number; session: PendingDownloadSession }> = [];
 		const toEvictWithObjectUrl: Array<{ itemId: number; startedAtMs: number; session: PendingDownloadSession }> = [];
 
@@ -102,7 +100,7 @@ export const prunePendingDownloadSessions = (reason: string) => {
 
 		const evictionOrder = [...toEvictNoObjectUrl, ...toEvictWithObjectUrl];
 		let idx = 0;
-		while (pendingDownloadSessions.size > MAX_PENDING_DOWNLOAD_SESSIONS && idx < evictionOrder.length) {
+		while (pendingDownloadSessions.size > PENDING_DOWNLOAD.maxSessions && idx < evictionOrder.length) {
 			const target = evictionOrder[idx++];
 			dropSession(target.itemId, target.session);
 		}

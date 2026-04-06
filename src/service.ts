@@ -30,18 +30,27 @@ const options: Record<string, { type: string; default: unknown; current: unknown
 	Object.entries(TTDB_OPTIONS).map(([key, schema]) => ([key, { ...schema, current: null }]))
 );
 
+const SERVICE = {
+	downloadSessions: {
+		maxEntries: 800,
+		ttlMs: 12 * 60 * 60 * 1000 // 12 hours
+	},
+	blobSuggest: {
+		ttlMs: 90 * 1000,
+		prefix: '__ttdb_blob__'
+	}
+} as const;
+
 /** Active download sessions */
 const globalState = globalThis as any;
 globalState.downloadSessions = globalState.downloadSessions || new Map();
+globalState.blobSuggests = globalState.blobSuggests || new Map();
 
 // Safety guard: the service worker can miss `downloads.onChanged` terminal signals (tab closes,
 // browser restarts, service worker suspension, etc.). Keep downloadSessions bounded so we don't
 // retain IDs forever within a long-lived worker.
 //
 // We prune opportunistically (on download requests + on change events) to avoid an always-on timer.
-const MAX_DOWNLOAD_SESSIONS = 800;
-const DOWNLOAD_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
-
 const pruneDownloadSessions = () => {
 	const sessions: Map<number, any> = globalState.downloadSessions;
 	if (!sessions || typeof sessions.size !== 'number' || sessions.size === 0) return;
@@ -51,13 +60,13 @@ const pruneDownloadSessions = () => {
 	// 1) TTL prune
 	for (const [id, session] of sessions.entries()) {
 		const startedAt = typeof session?.startedAt === 'number' ? session.startedAt : nowMs;
-		if (nowMs - startedAt > DOWNLOAD_SESSION_TTL_MS) {
+		if (nowMs - startedAt > SERVICE.downloadSessions.ttlMs) {
 			sessions.delete(id);
 		}
 	}
 
 	// 2) Cap prune (evict oldest)
-	if (sessions.size > MAX_DOWNLOAD_SESSIONS) {
+	if (sessions.size > SERVICE.downloadSessions.maxEntries) {
 		const ordered = Array.from(sessions.entries())
 			.map(([id, session]) => ({
 				id,
@@ -66,10 +75,43 @@ const pruneDownloadSessions = () => {
 			.sort((a, b) => a.startedAt - b.startedAt);
 
 		let idx = 0;
-		while (sessions.size > MAX_DOWNLOAD_SESSIONS && idx < ordered.length) {
+		while (sessions.size > SERVICE.downloadSessions.maxEntries && idx < ordered.length) {
 			sessions.delete(ordered[idx++].id);
 		}
 	}
+};
+
+const pruneBlobSuggests = () => {
+	const entries: Map<string, any> = globalState.blobSuggests;
+	if (!entries || typeof entries.size !== 'number' || entries.size === 0) return;
+
+	const nowMs = Date.now();
+	for (const [token, entry] of entries.entries()) {
+		if (!entry || typeof entry.expiresAt !== 'number' || entry.expiresAt <= nowMs) {
+			entries.delete(token);
+		}
+	}
+};
+
+const buildDownloadPath = (filename, subFolder) => {
+	let prefix = typeof subFolder === 'string' ? subFolder : '';
+	if (prefix && prefix.length > 1 && !prefix.endsWith('/')) {
+		prefix = `${prefix}/`;
+	}
+	return `${prefix}${filename}`;
+};
+
+const buildBlobTempName = (filename, token) => `${SERVICE.blobSuggest.prefix}${token}__${filename}`;
+
+const getBlobSuggestToken = (filename) => {
+	const value = typeof filename === 'string' ? filename : '';
+	if (!value.startsWith(SERVICE.blobSuggest.prefix)) return null;
+
+	const remainder = value.slice(SERVICE.blobSuggest.prefix.length);
+	const markerIndex = remainder.indexOf('__');
+	if (markerIndex <= 0) return null;
+
+	return remainder.slice(0, markerIndex);
 };
 
 /**
@@ -111,6 +153,28 @@ const ensureDownloadChangeListener = () => {
 				void chrome.runtime?.lastError;
 			});
 		}
+	});
+};
+
+const ensureBlobSuggestListener = () => {
+	if (globalState.__ttdbBlobSuggestListenerInstalled) return;
+	globalState.__ttdbBlobSuggestListenerInstalled = true;
+
+	chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
+		pruneBlobSuggests();
+
+		const token = getBlobSuggestToken(item?.filename || '');
+		if (!token) return;
+
+		const entry = globalState.blobSuggests.get(token);
+		if (!entry) return;
+		if (typeof item?.url !== 'string' || item.url !== entry.blobUrl) return;
+
+		globalState.blobSuggests.delete(token);
+		suggest({
+			filename: entry.finalPath,
+			conflictAction: 'uniquify'
+		});
 	});
 };
 
@@ -161,7 +225,7 @@ const fileDownload = async (args) => {
 		const isFirefox = typeof rt?.getBrowserInfo === 'function';
 		if (isFirefox && typeof url === 'string' && url.startsWith('blob:')) {
 			console.warn('[TTDB]', 'Download blocked (blob URL)', {
-				filename: `${subFolder ? subFolder : ''}${filename}`,
+				filename: buildDownloadPath(filename, subFolder),
 				url
 			});
 			args.sendResponse({
@@ -172,7 +236,7 @@ const fileDownload = async (args) => {
 		}
 
 		console.log('[TTDB]', 'Attempting download', {
-			filename: `${subFolder ? subFolder : ''}${filename}`, url: url
+			filename: buildDownloadPath(filename, subFolder), url: url
 		});
 
 		pruneDownloadSessions();
@@ -180,7 +244,7 @@ const fileDownload = async (args) => {
 
 		chrome.downloads.download({
 			conflictAction: 'uniquify',
-			filename: `${subFolder ? subFolder : ''}${filename}`,
+			filename: buildDownloadPath(filename, subFolder),
 			url: url,
 			...(url.startsWith('http') && { method: 'GET' }),
 			saveAs: false
@@ -188,7 +252,7 @@ const fileDownload = async (args) => {
 			const lastError = chrome.runtime?.lastError;
 			if (lastError) {
 				console.warn('[TTDB]', 'Download failed to start', {
-					filename: `${subFolder ? subFolder : ''}${filename}`,
+					filename: buildDownloadPath(filename, subFolder),
 					url,
 					error: lastError.message || String(lastError)
 				});
@@ -198,7 +262,7 @@ const fileDownload = async (args) => {
 
 			if (typeof itemId !== 'number') {
 				console.warn('[TTDB]', 'Download failed to start (no itemId)', {
-					filename: `${subFolder ? subFolder : ''}${filename}`,
+					filename: buildDownloadPath(filename, subFolder),
 					url
 				});
 				args.sendResponse({ success: false, error: 'Download did not start (no itemId).' });
@@ -215,6 +279,43 @@ const fileDownload = async (args) => {
 			// IMPORTANT: respond immediately. Holding the message channel open until the
 			// download completes is fragile in Firefox MV3 (service worker suspension).
 			args.sendResponse({ itemId, success: true });
+		});
+	} catch (error) {
+		args.sendResponse({ success: false, error });
+	}
+};
+
+const armBlobSuggest = async (args) => {
+	try {
+		const blobUrl = String(args.data.blobUrl || '');
+		const filename = String(args.data.filename || 'video.mp4');
+		const subFolder = typeof args.data.subFolder === 'string' ? args.data.subFolder : '';
+
+		if (!blobUrl.startsWith('blob:')) {
+			args.sendResponse({ success: false, error: 'Expected blob URL.' });
+			return;
+		}
+
+		pruneBlobSuggests();
+		ensureBlobSuggestListener();
+
+		const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+		const tempName = buildBlobTempName(filename, token);
+		const finalPath = buildDownloadPath(filename, subFolder);
+
+		globalState.blobSuggests.set(token, {
+			token,
+			blobUrl,
+			tempName,
+			finalPath,
+			createdAt: Date.now(),
+			expiresAt: Date.now() + SERVICE.blobSuggest.ttlMs
+		});
+
+		args.sendResponse({
+			success: true,
+			token,
+			tempName
 		});
 	} catch (error) {
 		args.sendResponse({ success: false, error });
@@ -261,7 +362,8 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 		'fileDownload': fileDownload,
 		'fileShow': showDefaultFolder,
 		'optionsGet': optionsGet,
-		'runtimeInfo': runtimeInfo
+		'runtimeInfo': runtimeInfo,
+		'armBlobSuggest': armBlobSuggest
 	};
 
 	if (tasks[data.task]) {

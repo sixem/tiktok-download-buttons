@@ -4,11 +4,10 @@
 // fallback call-sites do not drift in probe logic or toast semantics.
 
 import { TTDB, UTIL } from '../state';
+import { IN_PAGE_FETCH } from './constants';
 import type { DownloadToastPresenter } from './toast-presenter';
 
 export type InPageFetchProbeMode = 'strict' | 'video-content-type';
-
-const BLOB_REVOKE_DELAY_MS = 60_000;
 
 const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
 	try {
@@ -110,7 +109,7 @@ export const executeInPageFetchBlobFallback = async ({
 			} catch (_) {
 				// Best-effort cleanup.
 			}
-		}, BLOB_REVOKE_DELAY_MS);
+		}, IN_PAGE_FETCH.blobRevokeDelayMs);
 
 		toastPresenter.showInPageFetchResult({
 			started,

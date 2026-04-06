@@ -9,6 +9,7 @@ import { TTDB, UTIL } from '../state';
 import { getStoredSetting } from '../utils/storage';
 import { getRuntimeInfo } from '../utils/extension';
 import { type DownloadMethodTag } from './download-method';
+import { executeChromiumBlobDownload } from './execute-chromium-blob';
 import { executeChromiumDownload } from './execute-chromium';
 import { executeFirefoxDownload } from './execute-firefox';
 import {
@@ -179,26 +180,29 @@ export const downloadWithMethodTag = async ({
 	toastPresenter.showDownloading();
 
 	try {
-		// Firefox-specific safety: blob: URLs are frequently not downloadable from content scripts.
-		if (isBlobUrl && !runtime.chromium) {
-			logDownload.warn(`Attempt ${attemptLabel}: blob URL blocked on Firefox`, {
+		const subFolder = await resolveSubFolder();
+
+		if (isBlobUrl && runtime.chromium && subFolder) {
+			await executeChromiumBlobDownload({
 				url,
 				filename: normalizedFilename,
-				context
+				subFolder,
+				attemptLabel,
+				toastPresenter,
+				logDownload
 			});
-
-			toastPresenter.showBlobBlockedOnFirefox();
 			return;
 		}
 
 		if (isBlobUrl) {
 			const started = attemptBlobAnchorDownload(url, normalizedFilename || 'video.mp4');
 			logDownload.info(`Attempt ${attemptLabel}: blob anchor ${started ? 'triggered' : 'failed'}`);
-			toastPresenter.showBlobImmediateResult(started);
+			toastPresenter.showInPageFetchResult({
+				started,
+				tag: methodTag || 'BLOB'
+			});
 			return;
 		}
-
-		const subFolder = await resolveSubFolder();
 
 		if (runtime.chromium) {
 			await executeChromiumDownload({

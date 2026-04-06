@@ -10,6 +10,7 @@
 // then associate those URLs with a video-id during a short "capture window".
 
 import { TTDB } from '../state';
+import { PREVIEW_CACHE } from './constants';
 
 type CaptureReason = 'hover' | 'click' | 'autoplay';
 
@@ -27,14 +28,6 @@ type CachedPreviewUrl = {
 	expireParamMs?: number;
 	initiatorType?: string;
 };
-
-// How many video IDs to keep in memory. URLs themselves are time-limited (signed).
-// A moderately large cap is fine: it's tiny in memory and improves "download later" reliability.
-const MAX_CACHE_ENTRIES = 200;
-
-const CACHE_TTL_MS = 10 * 60 * 1000;
-const DEFAULT_CAPTURE_WINDOW_MS = 1500;
-const EXPIRY_SAFETY_BUFFER_MS = 12_000;
 
 // Map preserves insertion order, which we use as our LRU ordering.
 const previewUrlCache = new Map<string, CachedPreviewUrl>();
@@ -160,7 +153,7 @@ const touchLru = (videoId: string, entry: CachedPreviewUrl) => {
 };
 
 const evictIfNeeded = () => {
-	while (previewUrlCache.size > MAX_CACHE_ENTRIES) {
+	while (previewUrlCache.size > PREVIEW_CACHE.maxEntries) {
 		const oldestKey = previewUrlCache.keys().next().value;
 		if (!oldestKey) break;
 		previewUrlCache.delete(oldestKey);
@@ -189,8 +182,8 @@ const storePreviewUrl = (videoId: string, url: string, initiatorType?: string) =
 
 	const expireParamMs = parseExpireParamMs(url);
 	const computedExpiryMs = expireParamMs
-		? Math.max(nowMs, expireParamMs - EXPIRY_SAFETY_BUFFER_MS)
-		: nowMs + CACHE_TTL_MS;
+		? Math.max(nowMs, expireParamMs - PREVIEW_CACHE.expirySafetyBufferMs)
+		: nowMs + PREVIEW_CACHE.cacheTtlMs;
 
 	const id = String(videoId);
 	const existing = previewUrlCache.get(id) || null;
@@ -282,7 +275,11 @@ const ensureObserver = () => {
 	}
 };
 
-export const armPreviewCapture = (videoId: string, reason: CaptureReason, windowMs = DEFAULT_CAPTURE_WINDOW_MS) => {
+export const armPreviewCapture = (
+	videoId: string,
+	reason: CaptureReason,
+	windowMs = PREVIEW_CACHE.defaultCaptureWindowMs
+) => {
 	if (!videoId) return;
 
 	ensureObserver();
