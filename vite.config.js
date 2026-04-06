@@ -38,6 +38,11 @@ const copyExtensionAssets = () => ({
 
 export default defineConfig({
 	publicDir: 'public',
+	resolve: {
+		alias: {
+			'@': SRC_DIR
+		}
+	},
 	build: {
 		outDir: 'dist',
 		emptyOutDir: true,

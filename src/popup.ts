@@ -1,7 +1,7 @@
 // Popup UI logic for extension settings.
 import './popup.scss';
-import { storageGet, storageSet } from './popup-utils';
-import { TTDB_OPTIONS, type TTDBOptionKey } from './options';
+import { storageGet, storageSet } from '@/popup-utils';
+import { TTDB_OPTIONS, type TTDBOptionKey } from '@/options';
 
 const normalizeSubfolderPath = (value: string) => {
 	return value

@@ -1,5 +1,5 @@
 import './main.scss';
-import { bootstrap } from './content/index';
+import { bootstrap } from '@/content/index';
 
 bootstrap();
 

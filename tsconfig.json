@@ -4,6 +4,10 @@
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["src/*"]
+		},
 		"strict": false,
 		"noImplicitAny": false,
 		"skipLibCheck": true,
