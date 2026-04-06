@@ -8,7 +8,7 @@ export const createBuildStamp = (date = new Date()) => {
 
 export const ensureDirectoryExists = async (dir, errorMessage) => {
 	const stat = await fs.stat(dir).catch(() => null);
-	if (!stat || !stat.isDirectory()) {
+	if (!stat?.isDirectory()) {
 		throw new Error(errorMessage);
 	}
 };

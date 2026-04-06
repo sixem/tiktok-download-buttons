@@ -57,6 +57,13 @@ export default defineConfig({
 			'@': SRC_DIR
 		}
 	},
+	test: {
+		environment: 'node',
+		include: [
+			'src/**/*.test.ts',
+			'scripts/**/*.test.js'
+		]
+	},
 	build: {
 		outDir: 'dist',
 		emptyOutDir: true,
