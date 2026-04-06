@@ -239,6 +239,7 @@ const fileDownload = async (args) => {
 		args.data.url,
 		args.data.subFolder
 	];
+	const referer = typeof args.data.referer === 'string' ? args.data.referer : '';
 
 	if (subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
 		subFolder = subFolder + '/';
@@ -270,11 +271,22 @@ const fileDownload = async (args) => {
 		pruneDownloadSessions();
 		ensureDownloadChangeListener();
 
+		// Firefox background downloads come from the extension context instead of the
+		// page, so some signed TikTok URLs need an explicit referer to succeed.
+		const downloadHeaders = [];
+		if (isFirefox && /^https?:/i.test(referer)) {
+			downloadHeaders.push({
+				name: 'Referer',
+				value: referer
+			});
+		}
+
 		chrome.downloads.download({
 			conflictAction: 'uniquify',
 			filename: buildDownloadPath(filename, subFolder),
 			url: url,
 			...(url.startsWith('http') && { method: 'GET' }),
+			...(downloadHeaders.length ? { headers: downloadHeaders } : {}),
 			saveAs: false
 		}, (itemId) => {
 			const lastError = chrome.runtime?.lastError;

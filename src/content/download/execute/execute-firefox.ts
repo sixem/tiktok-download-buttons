@@ -16,6 +16,7 @@ export const executeFirefoxDownload = async ({
 	url,
 	filename,
 	subFolder,
+	pageUrl,
 	toastId,
 	methodTag,
 	attemptLabel,
@@ -25,6 +26,7 @@ export const executeFirefoxDownload = async ({
 	url: string;
 	filename: string;
 	subFolder: string;
+	pageUrl: string | null;
 	toastId: string;
 	methodTag: DownloadMethodTag | null;
 	attemptLabel: string;
@@ -37,7 +39,8 @@ export const executeFirefoxDownload = async ({
 			task: 'fileDownload',
 			url,
 			filename,
-			subFolder
+			subFolder,
+			referer: pageUrl
 		});
 	} catch (error) {
 		logDownload.warn(`Attempt ${attemptLabel}: download request failed`, error);

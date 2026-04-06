@@ -31,6 +31,7 @@ export type DownloadContext = {
 	source?: string;
 	videoId?: string;
 	user?: string | null;
+	pageUrl?: string | null;
 };
 
 type CoordinatorArgs = {
@@ -224,6 +225,7 @@ export const downloadWithMethodTag = async ({
 			url,
 			filename: normalizedFilename,
 			subFolder,
+			pageUrl: context?.pageUrl || null,
 			toastId,
 			methodTag,
 			attemptLabel,

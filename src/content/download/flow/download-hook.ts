@@ -176,6 +176,17 @@ const dispatchDownloadStrategy = ({
 	}
 };
 
+// Firefox API downloads are started from the extension context, so some signed
+// TikTok video URLs need a page-like referer to be accepted reliably.
+const getRefererCandidate = (pageUrl: string | null) => {
+	if (pageUrl && /^https?:/i.test(pageUrl)) {
+		return pageUrl;
+	}
+
+	const currentUrl = window.location.href;
+	return /^https?:/i.test(currentUrl) ? currentUrl : null;
+};
+
 // Minimal click handler that only orchestrates UI/events and delegates resolution.
 const onDownloadClick = (button, videoData) => async (e) => {
 	// Browser mode can reuse a single button across mode switches.
@@ -329,7 +340,8 @@ const onDownloadClick = (button, videoData) => async (e) => {
 			videoKey: attemptKey,
 			source: resolution.source,
 			videoId: attrs.apiId,
-			user: videoData.user || null
+			user: videoData.user || null,
+			pageUrl: getRefererCandidate(attrs.pageUrl || null)
 		};
 
 		dispatchDownloadStrategy({
