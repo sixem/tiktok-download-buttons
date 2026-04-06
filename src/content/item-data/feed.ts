@@ -1,7 +1,7 @@
 // Feed-mode extraction for scrolling timeline items.
-import { TTDB } from '../state';
-import { findVideoUrls } from '../extractors/share';
-import { extractDescriptionId, getTextContent, getUserFromProfileLink, selectFirst } from './extraction-helpers';
+import { TTDB } from '@/content/state';
+import { findVideoUrls } from '@/content/extractors/share';
+import { extractDescriptionId, getTextContent, getUserFromProfileLink, selectFirst } from '@/content/item-data/extraction-helpers';
 
 const FEED_USER_SELECTORS = {
 	app: 'a > [class*="AuthorTitle "]',

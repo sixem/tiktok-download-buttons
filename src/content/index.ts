@@ -1,14 +1,14 @@
 // Entry point for the content script bootstrap sequence.
 import { TTDB, SPLASH } from './state';
-import { setupLogging } from './logging';
-import { setupUtils } from './utils/index';
-import { setupExpressions } from './extractors/expressions';
-import { setupActiveDownloads } from './ui/active-downloads';
-import { setupSplash } from './ui/splash';
-import { setupAssetPickerModal } from './ui/asset-picker-modal';
-import { setupAutoplayPreviewCapture } from './download/autoplay-preview-capture';
-import { observeApp, getAppContainer, startUpdateLoop } from './observe';
-import { getRuntimeInfo } from './utils/extension';
+import { setupLogging } from '@/content/logging';
+import { setupUtils } from '@/content/utils/setup';
+import { setupExpressions } from '@/content/extractors/expressions';
+import { setupActiveDownloads } from '@/content/ui/active-downloads';
+import { setupSplash } from '@/content/ui/splash';
+import { setupAssetPickerModal } from '@/content/ui/asset-picker-modal';
+import { setupAutoplayPreviewCapture } from '@/content/download/autoplay-preview-capture';
+import { observeApp, getAppContainer, startUpdateLoop } from '@/content/observe';
+import { getRuntimeInfo } from '@/content/utils';
 
 export const bootstrap = () => {
 	// Defensive: content scripts can be injected multiple times in some extension workflows

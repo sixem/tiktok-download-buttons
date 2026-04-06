@@ -1,5 +1,5 @@
-import { ACTIVE } from '../state';
-import { DOM } from '../dom';
+import { ACTIVE } from '@/content/state';
+import { DOM } from '@/content/dom';
 
 export const setupActiveDownloads = () => {
 	ACTIVE.hash = (input) => {

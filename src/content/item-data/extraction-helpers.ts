@@ -1,15 +1,12 @@
 // Shared helpers for extracting item metadata across modes.
-import { TTDB } from '../state';
-import { DOM } from '../dom';
-import { getVideoUrlFromElement } from '../extractors/video-url';
+import { TTDB } from '@/content/state';
+import { DOM } from '@/content/dom';
+import { getVideoUrlFromElement } from '@/content/extractors/video-url';
+import { isQueryable } from '@/content/utils';
 
 const DESCRIPTION_SELECTORS = {
 	app: 'span[class*="-SpanText "]',
 	__next: 'div[class*="video-meta-caption"]'
-};
-
-const isQueryable = (root) => {
-	return !!root && typeof root.querySelector === 'function';
 };
 
 export const getTextContent = (element, { trim = true } = {}) => {
@@ -45,14 +42,15 @@ export const selectNamed = (container, selectors, fallback): Record<string, Elem
 	const fallbackRoot = isQueryable(fallback) ? fallback : null;
 
 	Object.entries(selectors).forEach(([key, selector]) => {
+		const selectorText = String(selector);
 		let found = null;
 
 		if (isQueryable(container)) {
-			found = container.querySelector(selector);
+			found = container.querySelector(selectorText);
 		}
 
 		if (!found && fallbackRoot) {
-			found = fallbackRoot.querySelector(selector);
+			found = fallbackRoot.querySelector(selectorText);
 		}
 
 		resolved[key] = found || null;

@@ -1,10 +1,10 @@
-import { TTDB } from '../state';
-import { createButton, setDownloadButtonIconVariant } from '../ui/buttons';
-import { itemData } from '../item-data';
-import { downloadHook } from '../download/download-hook';
-import { collectSlideshowImageUrls } from '../slideshow/collect-image-urls';
-import { injectActionButton } from './shared/action-button';
-import { attachSlideshowLauncher } from './shared/slideshow-launcher';
+import { TTDB } from '@/content/state';
+import { createButton, setDownloadButtonIconVariant } from '@/content/ui/buttons';
+import { itemData } from '@/content/item-data';
+import { downloadHook } from '@/content/download/download-hook';
+import { collectSlideshowImageUrls } from '@/content/slideshow/collect-image-urls';
+import { injectActionButton } from '@/content/modes/shared/action-button';
+import { attachSlideshowLauncher } from '@/content/modes/shared/slideshow-launcher';
 
 const BROWSER_ACTION_CONTAINER_SELECTORS = {
 	appPrimary: 'div[class*="-DivCopyLinkContainer"], div[class*="-DivTabMenuContainer"], [data-e2e="browse-copy"]',

@@ -2,13 +2,13 @@
 //
 // Rendering is pure relative to current state: it only reads state and updates DOM.
 
-import { createIconCheck } from '../icons';
-import { setButtonContent } from './dom';
+import { createIconCheck } from '@/content/ui/icons';
+import { setButtonContent } from '@/content/ui/asset-picker/dom';
 import {
 	assetPickerState,
 	DEFAULT_PRIMARY_LABEL,
 	THUMB_SELECTOR
-} from './state';
+} from '@/content/ui/asset-picker/state';
 
 const createNode = <T extends HTMLElement>(tag: string, className: string, text = '') => {
 	const node = document.createElement(tag) as T;

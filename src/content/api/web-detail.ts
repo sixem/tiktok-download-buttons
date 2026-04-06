@@ -1,16 +1,11 @@
-import { TTDB } from '../state';
-import { pipe } from '../logging';
-import { parseRehydrationData, extractWebappDetail, extractMetaVideoInfo } from '../extractors/rehydration';
+import { TTDB } from '@/content/state';
+import { pipe } from '@/content/logging';
+import { parseRehydrationData, extractWebappDetail, extractMetaVideoInfo } from '@/content/extractors/rehydration';
+import { normalizeUrl } from '@/content/utils';
 
 // Normalize page URLs so fetches work with relative or protocol-relative links.
 const normalizePageUrl = (pageUrl) => {
-	if (!pageUrl) return null;
-
-	try {
-		return new URL(pageUrl, window.location.origin).href;
-	} catch (_) {
-		return pageUrl;
-	}
+	return normalizeUrl(pageUrl);
 };
 
 // Decode JSON-escaped URL strings (e.g. \u002F or escaped slashes).

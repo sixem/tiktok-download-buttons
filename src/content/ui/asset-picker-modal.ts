@@ -6,10 +6,10 @@
 // - render.ts : list/status rendering
 // - events.ts : listeners and open/close lifecycle
 
-import { TTDB } from '../state';
-import { attachAssetPickerDomListeners } from './asset-picker/events';
-import { ensureAssetPickerDom, setButtonContent } from './asset-picker/dom';
-import { renderEntries, updateStatus } from './asset-picker/render';
+import { TTDB } from '@/content/state';
+import { attachAssetPickerDomListeners } from '@/content/ui/asset-picker/events';
+import { ensureAssetPickerDom, setButtonContent } from '@/content/ui/asset-picker/dom';
+import { renderEntries, updateStatus } from '@/content/ui/asset-picker/render';
 import {
 	assetPickerState,
 	BODY_OPEN_CLASS,

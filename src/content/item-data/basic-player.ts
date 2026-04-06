@@ -1,6 +1,6 @@
 // Basic player extraction for the standalone player layout.
-import { EXPR } from '../state';
-import { getTextContent, getUserFromProfileLink } from './extraction-helpers';
+import { EXPR } from '@/content/state';
+import { getTextContent, getUserFromProfileLink } from '@/content/item-data/extraction-helpers';
 
 const BASIC_PLAYER_SELECTORS = {
 	parent: 'div[class*="-DivLeftContainer "]',

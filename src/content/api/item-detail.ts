@@ -1,4 +1,4 @@
-import { TTDB } from '../state';
+import { TTDB } from '@/content/state';
 
 export const getItemDetailApiData = async (videoId) => {
 	if (!videoId) throw new Error('No video ID provided');

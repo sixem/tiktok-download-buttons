@@ -1,8 +1,8 @@
-import { TTDB } from './state';
-import { createBrowserMode } from './modes/browser';
-import { createGridMode } from './modes/grid';
-import { createFeedMode } from './modes/feed';
-import { createBasicPlayerMode } from './modes/basic-player';
+import { TTDB } from '@/content/state';
+import { createBrowserMode } from '@/content/modes/browser';
+import { createGridMode } from '@/content/modes/grid';
+import { createFeedMode } from '@/content/modes/feed';
+import { createBasicPlayerMode } from '@/content/modes/basic-player';
 
 export const itemSetup: any = { setters: {} };
 

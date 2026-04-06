@@ -1,7 +1,7 @@
 // Browser-mode extraction for single video pages.
-import { TTDB, EXPR } from '../state';
-import { pipe } from '../logging';
-import { findVideoUrls } from '../extractors/share';
+import { TTDB, EXPR } from '@/content/state';
+import { pipe } from '@/content/logging';
+import { findVideoUrls } from '@/content/extractors/share';
 import {
 	extractDescriptionId,
 	getTextContent,

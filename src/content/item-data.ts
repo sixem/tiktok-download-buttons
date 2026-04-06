@@ -1,10 +1,10 @@
 // Entry point for item metadata extraction by mode.
-import { TTDB } from './state';
-import { extractFeedData } from './item-data/feed';
-import { extractGridData } from './item-data/grid';
-import { extractBrowserData } from './item-data/browser';
-import { extractBasicPlayerData } from './item-data/basic-player';
-import { getVideoElementUrl } from './item-data/extraction-helpers';
+import { TTDB } from '@/content/state';
+import { extractFeedData } from '@/content/item-data/feed';
+import { extractGridData } from '@/content/item-data/grid';
+import { extractBrowserData } from '@/content/item-data/browser';
+import { extractBasicPlayerData } from '@/content/item-data/basic-player';
+import { getVideoElementUrl } from '@/content/item-data/extraction-helpers';
 
 export const itemData: any = { extract: {} };
 

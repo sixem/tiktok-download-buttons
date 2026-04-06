@@ -1,32 +1,5 @@
-import { EXPR } from '../state';
-
-// Normalize anchor hrefs so both absolute and relative TikTok URLs can be parsed.
-const normalizeVideoHref = (href) => {
-	if (!href) return null;
-	const trimmed = href.trim();
-	if (!trimmed) return null;
-
-	let decoded = trimmed;
-	try {
-		decoded = decodeURIComponent(trimmed);
-	} catch (_) {
-		decoded = trimmed;
-	}
-
-	if (decoded.startsWith('//')) {
-		return `https:${decoded}`;
-	}
-
-	if (decoded.startsWith('/')) {
-		try {
-			return new URL(decoded, window.location.origin).href;
-		} catch (_) {
-			return decoded;
-		}
-	}
-
-	return decoded;
-};
+import { EXPR } from '@/content/state';
+import { normalizeUrl } from '@/content/utils';
 
 export const findVideoUrls = (element) => {
 	if (!element) return false;
@@ -34,7 +7,8 @@ export const findVideoUrls = (element) => {
 	const anchors = element.querySelectorAll('a[href]');
 
 	for (let i = 0; i < anchors.length; i++) {
-		const href = normalizeVideoHref(anchors[i].getAttribute('href'));
+		const href = normalizeUrl(anchors[i].getAttribute('href'), { decode: true });
+
 		if (!href) continue;
 
 		const matches = EXPR.vanillaVideoUrl(href);
@@ -47,4 +21,3 @@ export const findVideoUrls = (element) => {
 
 	return false;
 };
-

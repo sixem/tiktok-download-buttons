@@ -1,8 +1,9 @@
 // Observes the TikTok app DOM and queues new video items for processing.
-import { TTDB } from './state';
-import { DOM } from './dom';
-import { pipe } from './logging';
-import { itemSetup } from './item-setup';
+import { TTDB } from '@/content/state';
+import { DOM } from '@/content/dom';
+import { pipe } from '@/content/logging';
+import { itemSetup } from '@/content/item-setup';
+import { isElement, isParentNode } from '@/content/utils';
 
 const VIDEO_ITEM_SELECTORS = DOM.multiSelector({
 	appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
@@ -77,14 +78,6 @@ const ensureSetIntervalStartsLoop = () => {
 		original(count);
 		ensureUpdateLoopRunning();
 	};
-};
-
-const isElement = (node: Node | null): node is Element => {
-	return !!node && node.nodeType === Node.ELEMENT_NODE;
-};
-
-const isParentNode = (node: Node | null): node is ParentNode => {
-	return !!node && typeof (node as ParentNode).querySelectorAll === 'function';
 };
 
 const queueRoot = (node: Node | null) => {

@@ -1,8 +1,8 @@
-import { DOM } from '../dom';
+import { DOM } from '@/content/dom';
 import {
 	createIconDownloadArrow,
 	createIconDownloadList
-} from './icons';
+} from '@/content/ui/icons';
 
 type DownloadIconVariant = 'regular' | 'list';
 

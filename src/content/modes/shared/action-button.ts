@@ -6,6 +6,8 @@
 // - place/re-place button when DOM mutates
 // - observe and self-disconnect after inactivity
 
+import { isNode } from '@/content/utils';
+
 type AnySlot = unknown;
 
 type InjectActionButtonArgs<TSlot = AnySlot> = {
@@ -21,10 +23,6 @@ type InjectActionButtonArgs<TSlot = AnySlot> = {
 
 const DEFAULT_DISCONNECT_MS = 1E5;
 const DEFAULT_FADE_IN_DELAY_MS = 50;
-
-const isNode = (value: unknown): value is Node => {
-	return !!value && typeof value === 'object' && 'nodeType' in (value as any);
-};
 
 const defaultObserveTarget = (slot: AnySlot): Node | null => {
 	if (!slot || typeof slot !== 'object') return null;

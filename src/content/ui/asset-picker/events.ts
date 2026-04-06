@@ -2,8 +2,8 @@
 //
 // This module owns click/keyboard bindings and keeps behavior centralized.
 
-import { SPLASH } from '../../state';
-import { setButtonContent } from './dom';
+import { SPLASH } from '@/content/state';
+import { setButtonContent } from '@/content/ui/asset-picker/dom';
 import {
 	assetPickerState,
 	BODY_OPEN_CLASS,
@@ -11,7 +11,7 @@ import {
 	THUMB_SELECTOR,
 	VISIBLE_CLASS
 } from './state';
-import { getSelectedEntries } from './state';
+import { getSelectedEntries } from '@/content/ui/asset-picker/state';
 import {
 	setAllThumbsSelectedState,
 	toggleThumbSelection,
