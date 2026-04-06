@@ -1,6 +1,6 @@
 // Toast-style notifications for the content scripts.
-import { SPLASH } from '@/content/state';
-import { DOM } from '@/content/dom';
+import { SPLASH } from '@/content/core/state';
+import { DOM } from '@/content/core/dom';
 
 const DEFAULT_TOAST_ID = 'global';
 const DEFAULT_META = 'Click to open downloads';

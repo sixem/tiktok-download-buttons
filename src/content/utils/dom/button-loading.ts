@@ -1,11 +1,10 @@
-// Shared helpers for transient button loading states.
+// Shared helpers for button loading states.
 //
-// Download actions can now resolve quickly while still kicking off meaningful work.
-// Keeping the spinner visible for a short minimum duration makes the click feel
-// acknowledged without delaying the underlying download flow.
+// These helpers keep the loading indicator stable so download buttons read as
+// acknowledged (visually) even when the underlying work resolves immediately.
 
 const buttonLoadingStartedAt = new WeakMap<HTMLElement, number>();
-const buttonLoadingRevision = new WeakMap<HTMLElement, number>();
+const buttonLoadingRevision  = new WeakMap<HTMLElement, number>();
 
 const nextRevision = (button: HTMLElement) => {
 	const current = buttonLoadingRevision.get(button) || 0;

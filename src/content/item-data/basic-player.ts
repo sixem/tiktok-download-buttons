@@ -1,5 +1,5 @@
 // Basic player extraction for the standalone player layout.
-import { EXPR } from '@/content/state';
+import { EXPR } from '@/content/core/state';
 import { getTextContent, getUserFromProfileLink } from '@/content/item-data/extraction-helpers';
 
 const BASIC_PLAYER_SELECTORS = {

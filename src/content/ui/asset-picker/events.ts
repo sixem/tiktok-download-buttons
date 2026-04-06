@@ -2,7 +2,7 @@
 //
 // This module owns click/keyboard bindings and keeps behavior centralized.
 
-import { SPLASH } from '@/content/state';
+import { SPLASH } from '@/content/core/state';
 import { setButtonContent } from '@/content/ui/asset-picker/dom';
 import {
 	assetPickerState,

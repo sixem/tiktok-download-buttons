@@ -1,14 +1,9 @@
-// Registers legacy content-script utilities onto the shared UTIL object.
-//
-// This stays separate from `index.ts` so the main utils entry can act as a
-// normal barrel-export module.
+// Registers the shared UTIL helpers used across the content script.
 
-import { UTIL } from '@/content/state';
+import { UTIL } from '@/content/core/state';
 import { setupDomUtils } from '@/content/utils/dom';
 import { setupNetworkUtils } from '@/content/utils/network';
-import { setupObjectUtils } from '@/content/utils/object';
-import { setupRandomUtils } from '@/content/utils/random';
-import { setupStringUtils } from '@/content/utils/strings';
+import { setupObjectUtils, setupRandomUtils, setupStringUtils } from '@/content/utils/data';
 
 export const setupUtils = () => {
 	setupDomUtils();

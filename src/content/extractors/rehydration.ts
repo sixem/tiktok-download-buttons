@@ -1,5 +1,5 @@
-import { UTIL } from '@/content/state';
-import { pipe } from '@/content/logging';
+import { UTIL } from '@/content/core/state';
+import { pipe } from '@/content/core/logging';
 
 export const parseRehydrationData = (rootDocument = document) => {
 	const script = rootDocument.querySelector('script#__UNIVERSAL_DATA_FOR_REHYDRATION__')

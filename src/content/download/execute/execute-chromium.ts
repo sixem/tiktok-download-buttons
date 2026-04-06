@@ -3,12 +3,12 @@
 // Chromium probes the URL in-page, then hands an object URL to the service worker
 // so the browser can complete the download without a second network request.
 
-import { TTDB, UTIL } from '@/content/state';
+import { TTDB, UTIL } from '@/content/core/state';
 import { sendRuntimeMessage } from '@/content/utils';
-import { CHROMIUM_DOWNLOAD } from './constants';
-import type { DownloadMethodTag } from './download-method';
-import { registerPendingDownloadSession } from './session-store';
-import type { DownloadToastPresenter } from './toast-presenter';
+import { CHROMIUM_DOWNLOAD } from '@/content/download/constants';
+import type { DownloadMethodTag } from '@/content/download/flow/download-method';
+import { registerPendingDownloadSession } from '@/content/download/state/session-store';
+import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 
 const revokeObjectUrl = (objectUrl: string) => {
 	try {

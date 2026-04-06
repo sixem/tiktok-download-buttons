@@ -2,8 +2,8 @@
 //
 // Used when we got a signed URL from the preview URL cache (PerformanceObserver/resource timing).
 
-import type { DownloadContext } from '../download-coordinator';
-import { downloadWithMethodTag } from '../download-coordinator';
+import type { DownloadContext } from '@/content/download/flow/download-coordinator';
+import { downloadWithMethodTag } from '@/content/download/flow/download-coordinator';
 
 export const downloadViaIntercept = (
 	url: string,
@@ -21,4 +21,3 @@ export const downloadViaIntercept = (
 		methodTag: 'INTERCEPT'
 	});
 };
-

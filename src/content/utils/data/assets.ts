@@ -3,7 +3,7 @@
 // Multiple download/picker flows accept "asset-like" objects that only really
 // require a usable URL. Centralizing the cleanup avoids subtle drift.
 
-import { isDataUrl } from '@/content/utils/url';
+import { isDataUrl } from '@/content/utils/data/url';
 
 type AssetWithUrl = {
 	url?: string | null;

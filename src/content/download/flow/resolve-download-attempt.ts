@@ -9,7 +9,7 @@
 import { getWebApiData } from '@/content/api/web-detail';
 import { getItemDetailApiData } from '@/content/api/item-detail';
 import { isBlobUrl, isHttpUrl } from '@/content/utils';
-import { getFileNameTemplate } from './filename';
+import { getFileNameTemplate } from '@/content/download/filename';
 
 export type DownloadAttemptSource =
 	| 'web-api'
@@ -76,8 +76,7 @@ const getWebVideoUrl = (webData: any) => {
 
 // Resolve URL and metadata from API sources when needed.
 //
-// Behavior intentionally mirrors previous logic:
-// - item-detail API is only attempted when web API throws.
+// Item-detail API is only attempted when the web API throws.
 const resolveApiSource = async ({
 	videoData,
 	apiId,

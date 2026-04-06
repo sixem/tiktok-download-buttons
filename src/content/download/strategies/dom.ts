@@ -2,8 +2,8 @@
 //
 // Used when we resolved a direct HTTP(S) video URL from a <video> element in the DOM.
 
-import type { DownloadContext } from '../download-coordinator';
-import { downloadWithMethodTag } from '../download-coordinator';
+import type { DownloadContext } from '@/content/download/flow/download-coordinator';
+import { downloadWithMethodTag } from '@/content/download/flow/download-coordinator';
 
 export const downloadViaDom = (
 	url: string,
@@ -21,4 +21,3 @@ export const downloadViaDom = (
 		methodTag: 'DOM'
 	});
 };
-

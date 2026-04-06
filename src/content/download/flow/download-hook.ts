@@ -2,8 +2,8 @@
 //
 // Core resolution decisions live in `resolve-download-attempt.ts` so this module can
 // stay focused on event handling, preview UX, and strategy dispatch wiring.
-import { TTDB, SPLASH } from '@/content/state';
-import { DOM } from '@/content/dom';
+import { TTDB, SPLASH } from '@/content/core/state';
+import { DOM } from '@/content/core/dom';
 import {
 	clearButtonLoading,
 	getRuntimeInfo,
@@ -11,20 +11,24 @@ import {
 	hashString,
 	startButtonLoading
 } from '@/content/utils';
-import { DOWNLOAD_HOOK } from './constants';
+import { DOWNLOAD_HOOK } from '@/content/download/constants';
 import {
 	downloadViaApi,
 	downloadViaBlob,
 	downloadViaDom,
 	downloadViaIntercept
-} from './strategies';
+} from '@/content/download/strategies';
 import { getVideoUrlFromButtonContext } from '@/content/extractors/video-url';
-import { armPreviewCapture, getCachedPreviewUrl, waitForPreviewUrl } from './preview-url-cache';
+import {
+	armPreviewCapture,
+	getCachedPreviewUrl,
+	waitForPreviewUrl
+} from '@/content/download/state/preview-url-cache';
 import {
 	resolveDownloadAttempt,
 	type DownloadAttemptAttrs,
 	type DownloadAttemptSource
-} from './resolve-download-attempt';
+} from '@/content/download/flow/resolve-download-attempt';
 
 const getNameTemplate = async () => {
 	const nameTemplate = await getStoredSetting('download-naming-template');

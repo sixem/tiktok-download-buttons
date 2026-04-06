@@ -3,9 +3,9 @@
 // This keeps retry behavior in one place so Firefox retry paths and future
 // fallback call-sites do not drift in probe logic or toast semantics.
 
-import { TTDB, UTIL } from '@/content/state';
-import { IN_PAGE_FETCH } from './constants';
-import type { DownloadToastPresenter } from './toast-presenter';
+import { TTDB, UTIL } from '@/content/core/state';
+import { IN_PAGE_FETCH } from '@/content/download/constants';
+import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 
 export type InPageFetchProbeMode = 'strict' | 'video-content-type';
 
@@ -56,8 +56,7 @@ export const executeInPageFetchBlobFallback = async ({
 	toastTag,
 	sourceTag = null,
 	probeMode = 'video-content-type',
-	logDownload,
-	showFailureToast = true
+	logDownload
 }: {
 	url: string;
 	filename: string;
@@ -66,16 +65,10 @@ export const executeInPageFetchBlobFallback = async ({
 	sourceTag?: string | null;
 	probeMode?: InPageFetchProbeMode;
 	logDownload: any;
-	showFailureToast?: boolean;
 }) => {
 	const resolvedToastTag = typeof toastTag === 'string' ? toastTag : sourceTag;
 
 	if (!url || typeof url !== 'string' || !/^https?:/i.test(url)) {
-		toastPresenter.showInPageFetchResult({
-			started: false,
-			tag: resolvedToastTag,
-			showFailureToast
-		});
 		return false;
 	}
 
@@ -90,11 +83,6 @@ export const executeInPageFetchBlobFallback = async ({
 				contentType: probe.contentType || null,
 				probeMode,
 				sourceTag: sourceTag || null
-			});
-			toastPresenter.showInPageFetchResult({
-				started: false,
-				tag: resolvedToastTag,
-				showFailureToast
 			});
 			return false;
 		}
@@ -113,8 +101,7 @@ export const executeInPageFetchBlobFallback = async ({
 
 		toastPresenter.showInPageFetchResult({
 			started,
-			tag: resolvedToastTag,
-			showFailureToast
+			tag: resolvedToastTag
 		});
 
 		logDownload?.info?.('in-page fetch fallback result', {
@@ -128,11 +115,6 @@ export const executeInPageFetchBlobFallback = async ({
 			error,
 			probeMode,
 			sourceTag: sourceTag || null
-		});
-		toastPresenter.showInPageFetchResult({
-			started: false,
-			tag: resolvedToastTag,
-			showFailureToast
 		});
 		return false;
 	}

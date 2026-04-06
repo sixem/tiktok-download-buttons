@@ -1,7 +1,7 @@
-import { DOM } from '@/content/dom';
+import { DOM } from '@/content/core/dom';
 import { createButton } from '@/content/ui/buttons';
-import { itemData } from '@/content/item-data';
-import { downloadHook } from '@/content/download/download-hook';
+import { itemData } from '@/content/items/data-registry';
+import { downloadHook } from '@/content/download/flow/download-hook';
 
 export const createBasicPlayerMode = () => (item, data) => {
 	const videoElement = item.querySelector('video');

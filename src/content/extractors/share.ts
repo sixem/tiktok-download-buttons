@@ -1,4 +1,4 @@
-import { EXPR } from '@/content/state';
+import { EXPR } from '@/content/core/state';
 import { normalizeUrl } from '@/content/utils';
 
 export const findVideoUrls = (element) => {

@@ -1,4 +1,4 @@
-import { EXPR } from '@/content/state';
+import { EXPR } from '@/content/core/state';
 
 export const setupExpressions = () => {
 	EXPR.vanillaVideoUrl = (haystack, options = {}) => {

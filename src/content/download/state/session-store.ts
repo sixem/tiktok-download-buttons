@@ -5,10 +5,10 @@
 // - cleans up object URLs and timers
 // - listens for `downloadStatus` events from the service worker
 
-import { TTDB } from '@/content/state';
-import { CHROMIUM_DOWNLOAD } from './constants';
-import { PENDING_DOWNLOAD } from './constants';
-import type { DownloadMethodTag } from './download-method';
+import { TTDB } from '@/content/core/state';
+import { CHROMIUM_DOWNLOAD } from '@/content/download/constants';
+import { PENDING_DOWNLOAD } from '@/content/download/constants';
+import type { DownloadMethodTag } from '@/content/download/flow/download-method';
 
 export type PendingDownloadSession = {
 	objectUrl: string | null;

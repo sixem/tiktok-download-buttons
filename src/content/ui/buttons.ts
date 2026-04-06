@@ -1,4 +1,4 @@
-import { DOM } from '@/content/dom';
+import { DOM } from '@/content/core/dom';
 import {
 	createIconDownloadArrow,
 	createIconDownloadList

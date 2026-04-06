@@ -1,5 +1,5 @@
 // Grid-mode extraction for thumbnail cards.
-import { EXPR } from '@/content/state';
+import { EXPR } from '@/content/core/state';
 
 // Grid cards can use absolute or relative page URLs.
 //

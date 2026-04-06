@@ -1,4 +1,4 @@
-import { TTDB } from '@/content/state';
+import { TTDB } from '@/content/core/state';
 import { createBrowserMode } from '@/content/modes/browser';
 import { createGridMode } from '@/content/modes/grid';
 import { createFeedMode } from '@/content/modes/feed';

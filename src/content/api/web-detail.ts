@@ -1,5 +1,5 @@
-import { TTDB } from '@/content/state';
-import { pipe } from '@/content/logging';
+import { TTDB } from '@/content/core/state';
+import { pipe } from '@/content/core/logging';
 import { parseRehydrationData, extractWebappDetail, extractMetaVideoInfo } from '@/content/extractors/rehydration';
 import { normalizeUrl } from '@/content/utils';
 

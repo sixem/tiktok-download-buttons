@@ -1,7 +1,7 @@
-import { TTDB } from '@/content/state';
+import { TTDB } from '@/content/core/state';
 import { createButton, setDownloadButtonIconVariant } from '@/content/ui/buttons';
-import { itemData } from '@/content/item-data';
-import { downloadHook } from '@/content/download/download-hook';
+import { itemData } from '@/content/items/data-registry';
+import { downloadHook } from '@/content/download/flow/download-hook';
 import { collectSlideshowImageUrls } from '@/content/slideshow/collect-image-urls';
 import { injectActionButton } from '@/content/modes/shared/action-button';
 import { attachSlideshowLauncher } from '@/content/modes/shared/slideshow-launcher';

@@ -1,5 +1,5 @@
 // Object traversal helpers for nested data extraction.
-import { UTIL } from '@/content/state';
+import { UTIL } from '@/content/core/state';
 
 export const setupObjectUtils = () => {
 	// Check for a nested property chain without throwing.

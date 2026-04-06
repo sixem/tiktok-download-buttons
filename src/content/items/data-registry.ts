@@ -1,5 +1,5 @@
 // Entry point for item metadata extraction by mode.
-import { TTDB } from '@/content/state';
+import { TTDB } from '@/content/core/state';
 import { extractFeedData } from '@/content/item-data/feed';
 import { extractGridData } from '@/content/item-data/grid';
 import { extractBrowserData } from '@/content/item-data/browser';

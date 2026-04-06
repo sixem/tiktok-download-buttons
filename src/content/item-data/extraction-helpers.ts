@@ -1,6 +1,6 @@
 // Shared helpers for extracting item metadata across modes.
-import { TTDB } from '@/content/state';
-import { DOM } from '@/content/dom';
+import { TTDB } from '@/content/core/state';
+import { DOM } from '@/content/core/dom';
 import { getVideoUrlFromElement } from '@/content/extractors/video-url';
 import { isQueryable } from '@/content/utils';
 

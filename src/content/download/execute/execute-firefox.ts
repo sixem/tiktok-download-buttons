@@ -4,13 +4,13 @@
 // fetch->blob retry when the browser reports SERVER_FORBIDDEN.
 
 import { sendRuntimeMessage } from '@/content/utils';
-import type { DownloadMethodTag } from './download-method';
-import { registerPendingDownloadSession } from './session-store';
-import type { DownloadToastPresenter } from './toast-presenter';
+import type { DownloadMethodTag } from '@/content/download/flow/download-method';
+import { registerPendingDownloadSession } from '@/content/download/state/session-store';
+import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 import {
 	executeInPageFetchBlobFallback,
 	formatChainedMethodTag
-} from './in-page-fetch-fallback';
+} from '@/content/download/execute/in-page-fetch-fallback';
 
 export const executeFirefoxDownload = async ({
 	url,
@@ -78,8 +78,7 @@ export const executeFirefoxDownload = async ({
 		toastTag: chainedTag,
 		sourceTag: methodTag || null,
 		probeMode: 'video-content-type',
-		logDownload,
-		showFailureToast: false
+		logDownload
 	});
 
 	if (!inPageStarted) {

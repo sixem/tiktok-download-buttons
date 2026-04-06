@@ -6,13 +6,13 @@
 // - service worker emits `downloadStatus` (complete/error) back to the tab
 //
 // The coordinator is intentionally small and explicit so behavior is easy to inspect.
-import { SPLASH, TTDB } from '@/content/state';
+import { SPLASH, TTDB } from '@/content/core/state';
 import {
 	getStoredSetting,
 	normalizeAssetList,
 	sendRuntimeMessage
 } from '@/content/utils';
-import { IMAGE_BATCH } from './constants';
+import { IMAGE_BATCH } from '@/content/download/constants';
 
 type DownloadableImageAsset = {
 	id?: string;

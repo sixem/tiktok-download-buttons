@@ -6,9 +6,9 @@
 // This module listens for `play` events and seeds the preview URL cache from a short lookback
 // window in ResourceTiming entries, then arms a normal capture window for any follow-up requests.
 
-import { TTDB } from '@/content/state';
-import { AUTOPLAY_PREVIEW } from './constants';
-import { armPreviewCapture, seedPreviewUrlFromLookback } from '@/content/download/preview-url-cache';
+import { TTDB } from '@/content/core/state';
+import { AUTOPLAY_PREVIEW } from '@/content/download/constants';
+import { armPreviewCapture, seedPreviewUrlFromLookback } from '@/content/download/state/preview-url-cache';
 
 const findVideoIdForVideoElement = (videoEl: HTMLVideoElement) => {
 	// Walk up a few ancestors and look for the TTDB button that holds `video-id`.

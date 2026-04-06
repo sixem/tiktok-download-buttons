@@ -1,4 +1,4 @@
-import { TTDB } from '@/content/state';
+import { TTDB } from '@/content/core/state';
 
 export const setupLogging = () => {
 	if (TTDB.LOG) {

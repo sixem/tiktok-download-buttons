@@ -5,8 +5,8 @@
 // configured subfolder path.
 
 import { sendRuntimeMessage } from '@/content/utils';
-import type { DownloadMethodTag } from './download-method';
-import type { DownloadToastPresenter } from './toast-presenter';
+import type { DownloadMethodTag } from '@/content/download/flow/download-method';
+import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 
 const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
 	try {

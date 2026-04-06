@@ -3,7 +3,7 @@
 // Feed and browser photo-mode cards use the same picker UX and image batch download flow.
 // This keeps call-sites small and prevents drift between modes.
 
-import { downloadImageBatch } from '@/content/download/image-batch-coordinator';
+import { downloadImageBatch } from '@/content/download/batch/image-batch-coordinator';
 import { openAssetPickerModal } from '@/content/ui/asset-picker-modal';
 
 type OpenSlideshowPickerArgs = {

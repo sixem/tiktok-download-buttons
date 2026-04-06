@@ -5,26 +5,26 @@
 // - shared setup/teardown (toast ID, listener wiring, button state)
 // - immediate blob: URL short-circuit
 
-import { TTDB, UTIL } from '@/content/state';
+import { TTDB, UTIL } from '@/content/core/state';
 import {
 	clearButtonLoading,
 	getRuntimeInfo,
 	getStoredSetting,
 	hashString
 } from '@/content/utils';
-import { type DownloadMethodTag } from './download-method';
-import { executeChromiumBlobDownload } from './execute-chromium-blob';
-import { executeChromiumDownload } from './execute-chromium';
-import { executeFirefoxDownload } from './execute-firefox';
+import { type DownloadMethodTag } from '@/content/download/flow/download-method';
+import { executeChromiumBlobDownload } from '@/content/download/execute/execute-chromium-blob';
+import { executeChromiumDownload } from '@/content/download/execute/execute-chromium';
+import { executeFirefoxDownload } from '@/content/download/execute/execute-firefox';
 import {
 	executeInPageFetchBlobFallback,
 	formatChainedMethodTag
-} from './in-page-fetch-fallback';
+} from '@/content/download/execute/in-page-fetch-fallback';
 import {
 	ensureDownloadStatusListener,
 	prunePendingDownloadSessions
-} from './session-store';
-import { createDownloadToastPresenter } from './toast-presenter';
+} from '@/content/download/state/session-store';
+import { createDownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 
 export type DownloadContext = {
 	videoKey?: string;
@@ -104,8 +104,14 @@ const ensureCoordinatorDownloadStatusListener = () => {
 				toastTag: chainedTag,
 				sourceTag: session.sourceTag || null,
 				probeMode: 'video-content-type',
-				logDownload: TTDB.LOG?.ns?.('download'),
-				showFailureToast: true
+				logDownload: TTDB.LOG?.ns?.('download')
+			}).then((started) => {
+				if (!started) {
+					retryPresenter.showInPageFetchResult({
+						started: false,
+						tag: chainedTag
+					});
+				}
 			});
 		},
 		onTerminalStatus: ({ itemId, state, error, session }) => {

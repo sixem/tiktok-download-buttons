@@ -1,8 +1,8 @@
 // Observes the TikTok app DOM and queues new video items for processing.
-import { TTDB } from '@/content/state';
-import { DOM } from '@/content/dom';
-import { pipe } from '@/content/logging';
-import { itemSetup } from '@/content/item-setup';
+import { TTDB } from '@/content/core/state';
+import { DOM } from '@/content/core/dom';
+import { pipe } from '@/content/core/logging';
+import { itemSetup } from '@/content/items/setup-registry';
 import { isElement, isParentNode } from '@/content/utils';
 
 const VIDEO_ITEM_SELECTORS = DOM.multiSelector({
@@ -30,16 +30,12 @@ const APP_BROWSER_ROOT_SELECTOR = [
 	'div.feed-item-content'
 ].join(', ');
 
-// --- Update loop (safe, bounded, non-stacking) -----------------------------
-//
 // TikTok is a very dynamic SPA. Some UI changes can happen without a clean "new node added"
 // signal (virtualized lists, delayed hydration, etc.). We keep a small "update window"
 // that re-checks pending roots for a short time after user interaction (scroll/click)
 // or DOM mutations.
 //
-// The original implementation used an always-on `setInterval`. That is simple but wastes
-// CPU by waking up forever even when there's no work. Here we keep the same semantics,
-// but make the loop:
+// The loop is:
 // - singleton (can't stack multiple timers),
 // - self-stopping (no idle wakeups once `counter` reaches 0),
 // - restartable (any call to `TTDB.setInterval()` will ensure the loop is running).
@@ -67,7 +63,7 @@ const ensureUpdateLoopRunning = () => {
 };
 
 const ensureSetIntervalStartsLoop = () => {
-	// Wrap once per page lifetime. (Defensive: in case the content script is injected twice.)
+	// Wrap once per page lifetime so repeated bootstrap does not stack wrappers.
 	if ((TTDB as any).__ttdbSetIntervalWrapped) return;
 	(TTDB as any).__ttdbSetIntervalWrapped = true;
 

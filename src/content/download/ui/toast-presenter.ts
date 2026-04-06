@@ -3,8 +3,8 @@
 // Keeps toast wording and state transitions centralized so download executors
 // can focus on control flow.
 
-import { SPLASH } from '@/content/state';
-import type { DownloadMethodTag } from './download-method';
+import { SPLASH } from '@/content/core/state';
+import type { DownloadMethodTag } from '@/content/download/flow/download-method';
 
 type ToastTag = DownloadMethodTag | string | null;
 
@@ -17,7 +17,6 @@ type TerminalToastArgs = {
 type InPageFetchResultArgs = {
 	started: boolean;
 	tag: ToastTag;
-	showFailureToast?: boolean;
 };
 
 const getOptionTag = (options: any, fallbackTag: ToastTag, isProgressToast: boolean) => {
@@ -137,13 +136,8 @@ export const createDownloadToastPresenter = ({
 		},
 		showInPageFetchResult: ({
 			started,
-			tag,
-			showFailureToast = true
+			tag
 		}: InPageFetchResultArgs) => {
-			if (!started && !showFailureToast) {
-				return null;
-			}
-
 			return renderToast({
 				toastId,
 				fallbackTag: methodTag,

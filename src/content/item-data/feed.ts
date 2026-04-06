@@ -1,5 +1,5 @@
 // Feed-mode extraction for scrolling timeline items.
-import { TTDB } from '@/content/state';
+import { TTDB } from '@/content/core/state';
 import { findVideoUrls } from '@/content/extractors/share';
 import { extractDescriptionId, getTextContent, getUserFromProfileLink, selectFirst } from '@/content/item-data/extraction-helpers';
 
