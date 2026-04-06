@@ -79,7 +79,7 @@ export const setupActiveDownloads = () => {
 	ACTIVE.ping = (item) => {
 		const hash = ACTIVE.hash(item.id);
 
-		if (!ACTIVE.running.hasOwnProperty(hash) && item.percentage === 0) {
+		if (!Object.hasOwn(ACTIVE.running, hash) && item.percentage === 0) {
 			ACTIVE.running[hash] = {
 				item,
 				timeout: setTimeout(() => ACTIVE.remove(hash), 1E4)

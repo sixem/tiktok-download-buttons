@@ -27,10 +27,10 @@ const injectFeedActionButton = (data) => {
 			actionBar.prepend(nextButton);
 		},
 		resolveObserveTarget: (actionBar) => {
-			return actionBar && actionBar.parentNode ? actionBar.parentNode : null;
+			return actionBar?.parentNode ? actionBar.parentNode : null;
 		},
 		isButtonAlreadyPresent: (actionBar, nextButton) => {
-			return !!actionBar.querySelector('a.' + [...nextButton.classList].join('.'));
+			return !!actionBar.querySelector(`a.${[...nextButton.classList].join('.')}`);
 		}
 	});
 };
@@ -45,13 +45,13 @@ const getFeedActionBar = (item, data) => {
 const extractFeedVideoId = (element) => {
 	// Prefer the canonical link-based ID when available.
 	const shareData = findVideoUrls(element);
-	if (shareData && shareData.videoId) {
+	if (shareData?.videoId) {
 		return shareData.videoId;
 	}
 
 	const xgWrapper = element.querySelector('div.xgplayer-container, div[id^="xgwrapper-"]');
 
-	if (!xgWrapper || !xgWrapper.hasAttribute('id')) {
+	if (!xgWrapper?.hasAttribute('id')) {
 		return false;
 	}
 

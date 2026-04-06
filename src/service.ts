@@ -130,7 +130,7 @@ const ensureDownloadChangeListener = () => {
 		pruneDownloadSessions();
 
 		if (!delta || typeof delta.id !== 'number') return;
-		if (!globalState.downloadSessions || !globalState.downloadSessions.has(delta.id)) return;
+		if (!globalState.downloadSessions?.has(delta.id)) return;
 
 		const session = globalState.downloadSessions.get(delta.id);
 		const tabId = session && typeof session.tabId === 'number' ? session.tabId : null;
@@ -209,7 +209,7 @@ const ensureBlobSuggestListener = () => {
 /** Set default storage values */
 for (const [key, option] of Object.entries(options)) {
 	chrome.storage.local.get(key, (result) => {
-		const hasValue = !!result && Object.prototype.hasOwnProperty.call(result, key);
+		const hasValue = !!result && Object.hasOwn(result, key);
 		const currentValue = hasValue ? result[key] : undefined;
 
 		// Migrate legacy sentinel values + ensure defaults exist.
@@ -242,7 +242,7 @@ const fileDownload = async (args) => {
 	const referer = typeof args.data.referer === 'string' ? args.data.referer : '';
 
 	if (subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
-		subFolder = subFolder + '/';
+		subFolder = `${subFolder}/`;
 	}
 
 	try {

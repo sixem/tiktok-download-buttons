@@ -4,7 +4,7 @@ import { storageGet } from '@/content/utils/browser/extension';
 export const getStoredSetting = async (key) => {
 	const stored = await storageGet(key);
 
-	if (stored && Object.prototype.hasOwnProperty.call(stored, key)) {
+	if (stored && Object.hasOwn(stored, key)) {
 		return stored[key];
 	}
 

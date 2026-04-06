@@ -141,7 +141,9 @@ const collectVideoItems = (root: ParentNode) => {
 		items.add(root);
 	}
 
-	root.querySelectorAll(VIDEO_ITEM_SELECTORS).forEach((item) => items.add(item));
+	root.querySelectorAll(VIDEO_ITEM_SELECTORS).forEach((item) => {
+		items.add(item);
+	});
 
 	return items;
 };

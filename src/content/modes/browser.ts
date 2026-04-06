@@ -78,7 +78,7 @@ const resolveBrowserActionSlot = (item, data) => {
 };
 
 const placeBrowserButton = (slot, button) => {
-	if (!slot || !slot.container) return;
+	if (!slot?.container) return;
 
 	if (slot.insert === 'before') {
 		slot.container.before(button);
@@ -106,7 +106,7 @@ const injectBrowserActionButton = (data) => {
 		init: initializeButton,
 		place: placeBrowserButton,
 		resolveObserveTarget: (slot) => {
-			if (slot && slot.container) {
+			if (slot?.container) {
 				return slot.insert === 'append' || slot.insert === 'prepend'
 					? slot.container
 					: slot.container.parentNode;
