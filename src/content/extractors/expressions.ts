@@ -5,7 +5,7 @@ export const setupExpressions = () => {
 		let expression = ('https?:\\/\\/(?:www\\.)?tiktok\\.com\\/@([^\\/]+)\\/video\\/([0-9]+)');
 
 		if (options.strict) {
-			expression = ('^' + expression + '$');
+			expression = (`^${expression}$`);
 		}
 
 		const matches = new RegExp(expression).exec(haystack);

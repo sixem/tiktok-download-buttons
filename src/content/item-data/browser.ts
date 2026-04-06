@@ -44,7 +44,7 @@ export const extractBrowserData = (data) => {
 		if (xgWrapper) {
 			const xgId = xgWrapper.getAttribute('id').split('-').pop();
 
-			if (parseInt(xgId) > 0) {
+			if (parseInt(xgId, 10) > 0) {
 				videoData.videoApiId = xgId;
 
 				if (spanUniqueId) {

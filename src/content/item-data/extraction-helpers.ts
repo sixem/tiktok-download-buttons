@@ -68,7 +68,7 @@ export const extractDescriptionId = (container, env = TTDB.ENV.APP) => {
 			? container.querySelector(DESCRIPTION_SELECTORS.app)
 			: null;
 
-		if (description && description.parentElement) {
+		if (description?.parentElement) {
 			extracted = description.parentElement.textContent;
 		}
 	} else if (env === TTDB.ENV.__NEXT) {

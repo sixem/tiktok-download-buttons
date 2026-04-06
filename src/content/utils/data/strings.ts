@@ -10,7 +10,7 @@ export const setupStringUtils = () => {
 	// Remove characters and prefixes that are unsafe for filenames.
 	UTIL.sanitizeFilename = (string) => {
 		string = string.replace(
-			/[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\wÃÂ°-Ã‘Â0-9a-zA-Z-._ #()\[\]]/g, ''
+			/[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\wÃƒÂÃ‚Â°-Ãƒâ€˜Ã‚Â0-9a-zA-Z-._ #()[\]]/g, ''
 		).replace(/\s\s+/g, ' ').trim();
 
 		while (string[0] === '.') {

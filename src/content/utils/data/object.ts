@@ -5,7 +5,7 @@ export const setupObjectUtils = () => {
 	// Check for a nested property chain without throwing.
 	UTIL.checkNested = (obj, level, ...rest) => {
 		if (obj === undefined) return false;
-		if (rest.length == 0 && obj.hasOwnProperty(level)) return true;
+		if (rest.length === 0 && Object.hasOwn(obj, level)) return true;
 
 		return UTIL.checkNested(obj[level], ...rest);
 	};

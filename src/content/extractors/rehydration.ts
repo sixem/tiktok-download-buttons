@@ -51,7 +51,7 @@ export const extractMetaVideoInfo = (rootDocument = document) => {
 
 const matchesVideoId = (item, videoId) => {
 	if (!item || !videoId) return false;
-	const itemId = item.id || item.aweme_id || (item.video && item.video.id) || (item.itemStruct && item.itemStruct.id);
+	const itemId = item.id || item.aweme_id || item.video?.id || item.itemStruct?.id;
 	return itemId && String(itemId) === String(videoId);
 };
 
@@ -62,7 +62,7 @@ const findVideoStructById = (root, videoId, seen = new Set()) => {
 
 	if (matchesVideoId(root, videoId)) {
 		if (root.video) return root;
-		if (root.itemStruct && root.itemStruct.video) return root.itemStruct;
+		if (root.itemStruct?.video) return root.itemStruct;
 	}
 
 	if (root.itemStruct && matchesVideoId(root.itemStruct, videoId)) {

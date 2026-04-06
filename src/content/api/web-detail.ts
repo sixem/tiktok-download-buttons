@@ -56,7 +56,7 @@ const extractJsonLdVideoInfo = (rootDocument) => {
 			if (!item || typeof item !== 'object') continue;
 
 			const type = String(item['@type'] || item.type || '');
-			const url = item.contentUrl || item.embedUrl || item.url || (item.video && item.video.contentUrl);
+			const url = item.contentUrl || item.embedUrl || item.url || item.video?.contentUrl;
 
 			if (url && (type.includes('Video') || type.includes('Social'))) {
 				return {
@@ -86,13 +86,21 @@ const extractVideoUrlFromHtml = (html) => {
 
 	for (const pattern of patterns) {
 		const match = pattern.exec(html);
-		if (match && match[1]) {
+		if (match?.[1]) {
 			const decoded = decodeEscapedValue(match[1]);
 			if (decoded) return decoded;
 		}
 	}
 
 	return null;
+};
+
+// Export parsing helpers so the fallback behavior can be tested without wiring full fetch/DOM flows.
+export const webDetailHelpers = {
+	normalizePageUrl,
+	decodeEscapedValue,
+	extractJsonLdVideoInfo,
+	extractVideoUrlFromHtml
 };
 
 export const getWebApiData = (videoData) => {
@@ -156,7 +164,7 @@ export const getWebApiData = (videoData) => {
 
 			reject(`Video is not available (status code: ${status})`);
 		}).catch((error) => {
-			reject('Error fetching web data: ' + error);
+			reject(`Error fetching web data: ${error}`);
 		});
 	});
 };

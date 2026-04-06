@@ -18,11 +18,11 @@ export const getItemDetailApiData = async (videoId) => {
 			.replace(/^\)\]\}',?\s*/, '');
 
 		data = JSON.parse(cleaned);
-	} catch (error) {
+	} catch (_error) {
 		throw new Error(`Item detail API JSON parse failed (${contentType})`);
 	}
 
-	const itemStruct = data && data.itemInfo ? data.itemInfo.itemStruct : null;
+	const itemStruct = data?.itemInfo ? data.itemInfo.itemStruct : null;
 	if (!itemStruct) {
 		throw new Error('Item detail API returned no itemStruct');
 	}

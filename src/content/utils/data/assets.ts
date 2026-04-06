@@ -21,7 +21,7 @@ export const normalizeAssetList = <T extends AssetWithUrl>(
 	const normalized: Array<T & { url: string }> = [];
 
 	(assets || []).forEach((asset) => {
-		if (!asset || !asset.url) return;
+		if (!asset?.url) return;
 
 		const url = String(asset.url).trim();
 		if (!url) return;
