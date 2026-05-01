@@ -4,13 +4,13 @@
 // fetch->blob retry when the browser reports SERVER_FORBIDDEN.
 
 import { sendRuntimeMessage } from '@/content/utils';
-import type { DownloadTag } from '@/content/download/flow/download-tag';
 import { registerPendingDownloadSession } from '@/content/download/state/session-store';
 import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 import {
 	executeInPageFetchBlobFallback,
 	formatChainedDownloadTag
 } from '@/content/download/execute/in-page-fetch-fallback';
+import type { DownloadTag } from '@/types';
 
 export const executeFirefoxDownload = async ({
 	url,

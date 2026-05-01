@@ -5,26 +5,10 @@
 
 import { TTDB, UTIL } from '@/content/core/state';
 import { IN_PAGE_FETCH } from '@/content/download/constants';
+import { attemptBlobAnchorDownload } from '@/content/download/execute/blob-anchor';
 import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
 
 export type InPageFetchProbeMode = 'strict' | 'video-content-type';
-
-const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
-	try {
-		const anchor = document.createElement('a');
-		anchor.href = blobUrl;
-		anchor.download = filename || 'video.mp4';
-		anchor.style.display = 'none';
-
-		document.body.appendChild(anchor);
-		anchor.click();
-		anchor.remove();
-
-		return true;
-	} catch (_) {
-		return false;
-	}
-};
 
 const validateProbeResponse = (response: Response, probeMode: InPageFetchProbeMode) => {
 	if (probeMode === 'strict') {

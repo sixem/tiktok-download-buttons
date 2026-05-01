@@ -1,8 +1,3 @@
-// Object URL cleanup timing for Chromium's fetch -> blob -> downloads flow.
-export const CHROMIUM_DOWNLOAD = {
-	safetyRevokeMs: 2 * 60 * 60 * 1000 // 2 hours
-};
-
 // Delay before revoking in-page fallback blob URLs after the anchor click is triggered.
 export const IN_PAGE_FETCH = {
 	blobRevokeDelayMs: 60_000

@@ -5,10 +5,11 @@
 
 import { TTDB, UTIL } from '@/content/core/state';
 import { sendRuntimeMessage } from '@/content/utils';
-import { CHROMIUM_DOWNLOAD } from '@/content/download/constants';
-import type { DownloadTag } from '@/content/download/flow/download-tag';
 import { registerPendingDownloadSession } from '@/content/download/state/session-store';
 import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
+import type { DownloadTag } from '@/types';
+
+const CHROMIUM_SAFETY_REVOKE_MS = 2 * 60 * 60 * 1000;
 
 const revokeObjectUrl = (objectUrl: string) => {
 	try {
@@ -71,6 +72,8 @@ export const executeChromiumDownload = async ({
 		}
 
 		if (response?.success && typeof response.itemId === 'number') {
+			// Chromium only needs terminal state. The service worker installs a minimal
+			// active-session `downloads.onChanged` listener and sends one final status.
 			registerPendingDownloadSession({
 				itemId: response.itemId,
 				session: {
@@ -82,7 +85,7 @@ export const executeChromiumDownload = async ({
 					originalUrl: url,
 					hasRetried: false
 				},
-				safetyTimeoutMs: CHROMIUM_DOWNLOAD.safetyRevokeMs
+				safetyTimeoutMs: CHROMIUM_SAFETY_REVOKE_MS
 			});
 
 			logDownload.info(`Attempt ${attemptLabel}: download started`, {

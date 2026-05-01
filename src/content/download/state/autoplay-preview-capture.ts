@@ -10,26 +10,35 @@ import { TTDB } from '@/content/core/state';
 import { AUTOPLAY_PREVIEW } from '@/content/download/constants';
 import { armPreviewCapture, seedPreviewUrlFromLookback } from '@/content/download/state/preview-url-cache';
 
-const findVideoIdForVideoElement = (videoEl: HTMLVideoElement) => {
-	// Walk up a few ancestors and look for the TTDB button that holds `video-id`.
-	// This keeps the lookup cheap and avoids scanning the whole document.
-	let current: any = videoEl as any;
-	for (let i = 0; i < 10 && current; i += 1) {
-		const el: Element | null = current instanceof Element ? current : null;
-		if (el) {
-			const button = el.querySelector(AUTOPLAY_PREVIEW.buttonSelector) as Element | null;
-			const id = button?.getAttribute?.('video-id') || null;
-			if (id) return id;
-		}
-		current = current.parentElement || current.parentNode;
-	}
+const AUTOPLAY_ITEM_ROOT_SELECTOR = [
+	'article[data-e2e="recommend-list-item-container"]',
+	'article[id^="one-column-item-"]',
+	'div.video-feed-item',
+	'div.feed-item-content',
+	'div.video-card-big.browse-mode',
+	'div[class*="-DivBrowserModeContainer"]',
+	'div[class*="-DivItemContainer"]',
+	'[is-downloadable]'
+].join(', ');
+
+export const findVideoIdForVideoElement = (videoEl: HTMLVideoElement) => {
+	// Scope the lookup to the video card that owns this media element.
+	// During fast feed scrolling, a new article can start playing before TTDB has
+	// injected its button. A loose ancestor walk can then reach the feed container
+	// and accidentally grab the previous or next article's button.
+	const itemRoot = videoEl.closest(AUTOPLAY_ITEM_ROOT_SELECTOR);
+	if (!itemRoot) return null;
+
+	const button = itemRoot.querySelector(AUTOPLAY_PREVIEW.buttonSelector) as Element | null;
+	const id = button?.getAttribute?.('video-id') || null;
+	if (id) return id;
 
 	return null;
 };
 
 export const setupAutoplayPreviewCapture = () => {
-	if ((TTDB as any).autoplayPreviewCaptureInstalled) return;
-	(TTDB as any).autoplayPreviewCaptureInstalled = true;
+	if (TTDB.autoplayPreviewCaptureInstalled) return;
+	TTDB.autoplayPreviewCaptureInstalled = true;
 
 	// Capture phase ensures we see the event even if TikTok stops propagation.
 	document.addEventListener('play', (event) => {

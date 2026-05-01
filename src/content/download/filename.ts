@@ -1,4 +1,3 @@
-import { UTIL } from '@/content/core/state';
 import { pipe } from '@/content/core/logging';
 
 const _get = (obj, path, defValue) => {
@@ -38,8 +37,11 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 			for (const item of value) {
 				if (!Array.isArray(item) && item) {
 					keyData = item; break;
-				} else if (Array.isArray(item) && UTIL.checkNested(apiData, ...item)) {
-					keyData = _get(apiData, item.join('.'), undefined); break;
+				} else if (Array.isArray(item)) {
+					const resolvedValue = _get(apiData, item, undefined);
+					if (resolvedValue !== undefined) {
+						keyData = resolvedValue; break;
+					}
 				}
 			}
 

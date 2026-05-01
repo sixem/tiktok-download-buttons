@@ -4,47 +4,54 @@
 // - MV3 service workers (and content scripts) are loaded as classic scripts.
 // - That means they cannot use ESM `import ... from ...` unless the manifest opts into modules.
 //
-// Vite/Rollup will emit `import` statements if two entrypoints share a module. To keep the
-// extension compatible across browsers (especially Firefox), we keep this settings schema
-// local to the service worker to avoid cross-entry shared chunks.
-//
-// Keep this in sync with `src/options.ts` (popup UI defaults).
-const TTDB_OPTIONS = {
-	'download-subfolder-path': {
-		type: 'text',
-		default: ''
-	},
-	'download-naming-template': {
-		type: 'text',
-		default: '{uploader} - {id}'
-	}
-} as const;
+// Vite/Rollup can emit `import` statements when entrypoints share modules. Keep
+// service-worker helpers local until the manifest/build explicitly supports module workers.
 
-// Extension settings exposed to the popup UI (via `optionsGet`).
-//
-// Note on defaults:
-// Historically we used `false` as a sentinel. That made "Reset" confusing
-// (it would literally reset text inputs to `false`). We now use real defaults
-// and migrate legacy values in storage on startup.
-const options: Record<string, { type: string; default: unknown; current: unknown }> = Object.fromEntries(
-	Object.entries(TTDB_OPTIONS).map(([key, schema]) => ([key, { ...schema, current: null }]))
-);
+import type {
+	DownloadStatusMessage,
+	FileDownloadMessage,
+	FileDownloadResponse,
+	RuntimeInfoResponse,
+	RuntimeTask
+} from '@/types';
 
 const SERVICE = {
 	downloadSessions: {
 		maxEntries: 800,
 		ttlMs: 12 * 60 * 60 * 1000 // 12 hours
-	},
-	blobSuggest: {
-		ttlMs: 90 * 1000,
-		prefix: '__ttdb_blob__'
 	}
 } as const;
 
-/** Active download sessions */
-const globalState = globalThis as any;
+type DownloadSession = {
+	tabId: number | null;
+	startedAt: number;
+	browser: 'firefox' | 'chromium';
+};
+
+type ServiceGlobalState = typeof globalThis & {
+	downloadSessions: Map<number, DownloadSession>;
+	__ttdbDownloadChangeListener?: (delta: any) => void;
+	__ttdbDownloadChangeListenerInstalled?: boolean;
+};
+
+type ServiceTaskArgs<TData = Record<string, unknown>> = {
+	data: TData;
+	sender?: {
+		tab?: {
+			id?: number;
+		};
+	};
+	sendResponse: (response?: unknown) => void;
+};
+
+// Active TTDB download sessions.
+//
+// Chromium and Brave download events are global to the browser. Registering
+// `chrome.downloads.onChanged` can make unrelated downloads consult/wake this
+// extension and delay filename dialogs or browser download UI, so the listener
+// below is installed only while we have TTDB item IDs to watch.
+const globalState = globalThis as ServiceGlobalState;
 globalState.downloadSessions = globalState.downloadSessions || new Map();
-globalState.blobSuggests = globalState.blobSuggests || new Map();
 
 // Safety guard: the service worker can miss `downloads.onChanged` terminal signals (tab closes,
 // browser restarts, service worker suspension, etc.). Keep downloadSessions bounded so we don't
@@ -52,7 +59,7 @@ globalState.blobSuggests = globalState.blobSuggests || new Map();
 //
 // We prune opportunistically (on download requests + on change events) to avoid an always-on timer.
 const pruneDownloadSessions = () => {
-	const sessions: Map<number, any> = globalState.downloadSessions;
+	const sessions = globalState.downloadSessions;
 	if (!sessions || typeof sessions.size !== 'number' || sessions.size === 0) return;
 
 	const nowMs = Date.now();
@@ -81,16 +88,18 @@ const pruneDownloadSessions = () => {
 	}
 };
 
-const pruneBlobSuggests = () => {
-	const entries: Map<string, any> = globalState.blobSuggests;
-	if (!entries || typeof entries.size !== 'number' || entries.size === 0) return;
+const hasDownloadSessions = () => {
+	const sessions = globalState.downloadSessions;
+	return !!sessions && typeof sessions.size === 'number' && sessions.size > 0;
+};
 
-	const nowMs = Date.now();
-	for (const [token, entry] of entries.entries()) {
-		if (!entry || typeof entry.expiresAt !== 'number' || entry.expiresAt <= nowMs) {
-			entries.delete(token);
-		}
-	}
+const removeDownloadChangeListenerIfIdle = () => {
+	if (hasDownloadSessions()) return;
+	if (!globalState.__ttdbDownloadChangeListenerInstalled) return;
+	if (typeof globalState.__ttdbDownloadChangeListener !== 'function') return;
+
+	chrome.downloads.onChanged.removeListener(globalState.__ttdbDownloadChangeListener);
+	globalState.__ttdbDownloadChangeListenerInstalled = false;
 };
 
 const buildDownloadPath = (filename, subFolder) => {
@@ -101,131 +110,56 @@ const buildDownloadPath = (filename, subFolder) => {
 	return `${prefix}${filename}`;
 };
 
-const buildBlobTempName = (filename, token) => `${SERVICE.blobSuggest.prefix}${token}__${filename}`;
-
-const getBlobSuggestToken = (filename) => {
-	const value = typeof filename === 'string' ? filename : '';
-	if (!value.startsWith(SERVICE.blobSuggest.prefix)) return null;
-
-	const remainder = value.slice(SERVICE.blobSuggest.prefix.length);
-	const markerIndex = remainder.indexOf('__');
-	if (markerIndex <= 0) return null;
-
-	return remainder.slice(0, markerIndex);
-};
-
 /**
- * Install a single `downloads.onChanged` listener for this service worker.
+ * Install one minimal `downloads.onChanged` listener while TTDB downloads are active.
  *
- * Why: Firefox MV3 service workers can be suspended between events. We avoid
+ * Firefox MV3 service workers can be suspended between events. We avoid
  * holding open message channels waiting for `onChanged` and instead:
  * - respond to the content script immediately when a download *starts*
  * - send a separate runtime message back to the originating tab on complete/error
+ *
+ * Chromium/Brave download change events are global, so this handler does the least
+ * possible work for unrelated IDs and removes itself as soon as TTDB has no sessions.
  */
 const ensureDownloadChangeListener = () => {
 	if (globalState.__ttdbDownloadChangeListenerInstalled) return;
+
+	if (typeof globalState.__ttdbDownloadChangeListener !== 'function') {
+		globalState.__ttdbDownloadChangeListener = (delta: any) => {
+			// Fast path for unrelated browser downloads. This is the important Chromium
+			// guard: ignore global events unless the ID belongs to a TTDB-started download.
+			if (!delta || typeof delta.id !== 'number') return;
+			if (!globalState.downloadSessions?.has(delta.id)) return;
+
+			const session = globalState.downloadSessions.get(delta.id);
+			const tabId = session && typeof session.tabId === 'number' ? session.tabId : null;
+
+			const isComplete = !!delta.endTime || (delta.state && delta.state.current === 'complete');
+			const isError = !!delta.error;
+
+			if (!isComplete && !isError) return;
+
+			globalState.downloadSessions.delete(delta.id);
+
+			// Best-effort: if the tab navigated away, `sendMessage` can fail.
+			if (typeof tabId === 'number') {
+				const payload: DownloadStatusMessage = isComplete
+					? { task: 'downloadStatus', itemId: delta.id, state: 'complete' }
+					: { task: 'downloadStatus', itemId: delta.id, state: 'error', error: delta.error?.current || delta.error };
+
+				chrome.tabs.sendMessage(tabId, payload, () => {
+					// Ignore lastError (tab not available / no content script).
+					void chrome.runtime?.lastError;
+				});
+			}
+
+			pruneDownloadSessions();
+			removeDownloadChangeListenerIfIdle();
+		};
+	}
+
+	chrome.downloads.onChanged.addListener(globalState.__ttdbDownloadChangeListener);
 	globalState.__ttdbDownloadChangeListenerInstalled = true;
-
-	chrome.downloads.onChanged.addListener((delta) => {
-		pruneDownloadSessions();
-
-		if (!delta || typeof delta.id !== 'number') return;
-		if (!globalState.downloadSessions?.has(delta.id)) return;
-
-		const session = globalState.downloadSessions.get(delta.id);
-		const tabId = session && typeof session.tabId === 'number' ? session.tabId : null;
-
-		const isComplete = !!delta.endTime || (delta.state && delta.state.current === 'complete');
-		const isError = !!delta.error;
-
-		if (!isComplete && !isError) return;
-
-		globalState.downloadSessions.delete(delta.id);
-
-		// Best-effort: if the tab navigated away, `sendMessage` can fail.
-		if (typeof tabId === 'number') {
-			const payload = isComplete
-				? { task: 'downloadStatus', itemId: delta.id, state: 'complete' }
-				: { task: 'downloadStatus', itemId: delta.id, state: 'error', error: delta.error?.current || delta.error };
-
-			chrome.tabs.sendMessage(tabId, payload, () => {
-				// Ignore lastError (tab not available / no content script).
-				void chrome.runtime?.lastError;
-			});
-		}
-	});
-};
-
-const ensureBlobSuggestListener = () => {
-	if (globalState.__ttdbBlobSuggestListenerInstalled) return;
-	globalState.__ttdbBlobSuggestListenerInstalled = true;
-
-	chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
-		pruneBlobSuggests();
-
-		const token = getBlobSuggestToken(item?.filename || '');
-		if (!token) return;
-
-		const entry = globalState.blobSuggests.get(token);
-		if (!entry) return;
-		if (typeof item?.url !== 'string' || item.url !== entry.blobUrl) return;
-
-		const tabId = typeof entry.tabId === 'number' ? entry.tabId : null;
-		pruneDownloadSessions();
-		if (typeof item.id === 'number') {
-			globalState.downloadSessions.set(item.id, {
-				tabId,
-				startedAt: Date.now()
-			});
-		}
-
-		if (typeof tabId === 'number' && typeof item.id === 'number') {
-			const originalUrl = String(entry.originalUrl || entry.blobUrl || '');
-			chrome.tabs.sendMessage(tabId, {
-				task: 'suggestDownloadStarted',
-				itemId: item.id,
-				session: {
-					objectUrl: null,
-					startedAtMs: Date.now(),
-					toastId: String(entry.toastId || ''),
-					filename: String(entry.filename || 'video.mp4'),
-					sourceTag: entry.sourceTag || null,
-					originalUrl: originalUrl.startsWith('blob:') ? '' : originalUrl,
-					hasRetried: false
-				}
-			}, () => {
-				void chrome.runtime?.lastError;
-			});
-		}
-
-		globalState.blobSuggests.delete(token);
-		suggest({
-			filename: entry.finalPath,
-			conflictAction: 'uniquify'
-		});
-	});
-};
-
-/** Set default storage values */
-for (const [key, option] of Object.entries(options)) {
-	chrome.storage.local.get(key, (result) => {
-		const hasValue = !!result && Object.hasOwn(result, key);
-		const currentValue = hasValue ? result[key] : undefined;
-
-		// Migrate legacy sentinel values + ensure defaults exist.
-		const isValidText = option?.type === 'text' ? typeof currentValue === 'string' : true;
-		const shouldSetDefault = !hasValue || !isValidText || currentValue === false || currentValue === null;
-		if (!shouldSetDefault) return;
-
-		chrome.storage.local.set({ [key]: option.default });
-	});
-}
-
-/**
- * Options getter
- */
-const optionsGet = (args) => {
-	return args.sendResponse(options);
 };
 
 /**
@@ -233,7 +167,7 @@ const optionsGet = (args) => {
  * 
  * @param {object} args 
  */
-const fileDownload = async (args) => {
+const fileDownload = async (args: ServiceTaskArgs<FileDownloadMessage>) => {
 	let [filename, url, subFolder] = [
 		args.data.filename,
 		args.data.url,
@@ -257,10 +191,11 @@ const fileDownload = async (args) => {
 				filename: buildDownloadPath(filename, subFolder),
 				url
 			});
-			args.sendResponse({
+			const response: FileDownloadResponse = {
 				success: false,
 				error: 'Cannot download blob URLs from the background script.'
-			});
+			};
+			args.sendResponse(response);
 			return;
 		}
 
@@ -268,8 +203,10 @@ const fileDownload = async (args) => {
 			filename: buildDownloadPath(filename, subFolder), url: url
 		});
 
+		// Clear stale watched IDs before starting another download. If that leaves no
+		// TTDB sessions, the global Chromium/Brave listener is removed.
 		pruneDownloadSessions();
-		ensureDownloadChangeListener();
+		removeDownloadChangeListenerIfIdle();
 
 		// Firefox background downloads come from the extension context instead of the
 		// page, so some signed TikTok URLs need an explicit referer to succeed.
@@ -296,7 +233,8 @@ const fileDownload = async (args) => {
 					url,
 					error: lastError.message || String(lastError)
 				});
-				args.sendResponse({ success: false, error: lastError.message || String(lastError) });
+				const response: FileDownloadResponse = { success: false, error: lastError.message || String(lastError) };
+				args.sendResponse(response);
 				return;
 			}
 
@@ -305,70 +243,31 @@ const fileDownload = async (args) => {
 					filename: buildDownloadPath(filename, subFolder),
 					url
 				});
-				args.sendResponse({ success: false, error: 'Download did not start (no itemId).' });
+				const response: FileDownloadResponse = { success: false, error: 'Download did not start (no itemId).' };
+				args.sendResponse(response);
 				return;
 			}
 
-			// Store the originating tab so we can notify it later when the download ends.
+			// Store only the originating tab and start time. We only care about terminal
+			// download state, not progress updates. Firefox uses errors for retry/fallback;
+			// Chromium uses completion/error to update the UI while keeping the listener
+			// installed only during active TTDB downloads.
 			const tabId = args.sender?.tab?.id;
 			globalState.downloadSessions.set(itemId, {
 				tabId: typeof tabId === 'number' ? tabId : null,
-				startedAt: Date.now()
+				startedAt: Date.now(),
+				browser: isFirefox ? 'firefox' : 'chromium'
 			});
+			ensureDownloadChangeListener();
 
 			// IMPORTANT: respond immediately. Holding the message channel open until the
 			// download completes is fragile in Firefox MV3 (service worker suspension).
-			args.sendResponse({ itemId, success: true });
+			const response: FileDownloadResponse = { itemId, success: true };
+			args.sendResponse(response);
 		});
 	} catch (error) {
-		args.sendResponse({ success: false, error });
-	}
-};
-
-const armBlobSuggest = async (args) => {
-	try {
-		const blobUrl = String(args.data.blobUrl || '');
-		const originalUrl = String(args.data.originalUrl || blobUrl || '');
-		const filename = String(args.data.filename || 'video.mp4');
-		const subFolder = typeof args.data.subFolder === 'string' ? args.data.subFolder : '';
-		const toastId = String(args.data.toastId || '');
-		const sourceTag = typeof args.data.sourceTag === 'string' ? args.data.sourceTag : null;
-		const tabId = args.sender?.tab?.id;
-
-		if (!blobUrl.startsWith('blob:')) {
-			args.sendResponse({ success: false, error: 'Expected blob URL.' });
-			return;
-		}
-
-		pruneBlobSuggests();
-		ensureBlobSuggestListener();
-		ensureDownloadChangeListener();
-
-		const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-		const tempName = buildBlobTempName(filename, token);
-		const finalPath = buildDownloadPath(filename, subFolder);
-
-		globalState.blobSuggests.set(token, {
-			token,
-			blobUrl,
-			originalUrl,
-			tempName,
-			finalPath,
-			filename,
-			toastId,
-			sourceTag,
-			tabId: typeof tabId === 'number' ? tabId : null,
-			createdAt: Date.now(),
-			expiresAt: Date.now() + SERVICE.blobSuggest.ttlMs
-		});
-
-		args.sendResponse({
-			success: true,
-			token,
-			tempName
-		});
-	} catch (error) {
-		args.sendResponse({ success: false, error });
+		const response: FileDownloadResponse = { success: false, error };
+		args.sendResponse(response);
 	}
 };
 
@@ -380,19 +279,21 @@ const armBlobSuggest = async (args) => {
  * - The service worker runs in the extension context and can reliably detect Firefox via
  *   `runtime.getBrowserInfo`.
  */
-const runtimeInfo = async (args) => {
+const runtimeInfo = async (args: ServiceTaskArgs) => {
 	try {
 		const rt = ((globalThis as any).browser ?? (globalThis as any).chrome ?? chrome)?.runtime as any;
 		const isFirefox = typeof rt?.getBrowserInfo === 'function';
 
 		// Keep the response minimal; content scripts only need stable booleans for behavior.
-		args.sendResponse({
+		const response: RuntimeInfoResponse = {
 			success: true,
 			isFirefox,
 			isChromium: !isFirefox
-		});
+		};
+		args.sendResponse(response);
 	} catch (error) {
-		args.sendResponse({ success: false, error });
+		const response: RuntimeInfoResponse = { success: false, error };
+		args.sendResponse(response);
 	}
 };
 
@@ -408,16 +309,15 @@ const showDefaultFolder = () => {
  */
 chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 	// Task IDs and their corresponding methods
-	const tasks = {
+	const tasks: Partial<Record<RuntimeTask, (args: ServiceTaskArgs<any>) => unknown>> = {
 		'fileDownload': fileDownload,
 		'fileShow': showDefaultFolder,
-		'optionsGet': optionsGet,
-		'runtimeInfo': runtimeInfo,
-		'armBlobSuggest': armBlobSuggest
+		'runtimeInfo': runtimeInfo
 	};
 
-	if (tasks[data.task]) {
-		tasks[data.task]({ // Perform task
+	const task = data?.task as RuntimeTask | undefined;
+	if (task && tasks[task]) {
+		tasks[task]({ // Perform task
 			data,
 			sender,
 			sendResponse

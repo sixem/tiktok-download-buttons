@@ -6,9 +6,8 @@
 // - listens for `downloadStatus` events from the service worker
 
 import { TTDB } from '@/content/core/state';
-import { CHROMIUM_DOWNLOAD } from '@/content/download/constants';
 import { PENDING_DOWNLOAD } from '@/content/download/constants';
-import type { DownloadTag } from '@/content/download/flow/download-tag';
+import type { DownloadStatusMessage, DownloadTag } from '@/types';
 
 export type PendingDownloadSession = {
 	objectUrl: string | null;
@@ -39,9 +38,10 @@ type DownloadStatusHandlers = {
 	onRetryRequested?: (payload: DownloadStatusRetryPayload) => void;
 };
 
-type SuggestDownloadStartedPayload = {
-	itemId: number;
-	session: Omit<PendingDownloadSession, 'revokeTimerId'>;
+const isDownloadStatusMessage = (data: unknown): data is DownloadStatusMessage => {
+	if (!data || typeof data !== 'object') return false;
+	const message = data as Partial<DownloadStatusMessage>;
+	return message.task === 'downloadStatus' && typeof message.itemId === 'number' && typeof message.state === 'string';
 };
 
 const globalState = globalThis as any;
@@ -159,31 +159,13 @@ export const ensureDownloadStatusListener = (handlers: DownloadStatusHandlers = 
 	chrome.runtime.onMessage.addListener((data) => {
 		prunePendingDownloadSessions('downloadStatus:message');
 
-		if (!data || typeof data !== 'object') return;
-		if ((data as any).task === 'suggestDownloadStarted') {
-			const payload = data as any as SuggestDownloadStartedPayload & { task: 'suggestDownloadStarted' };
-			if (typeof payload.itemId !== 'number' || !payload.session) return;
+		if (!isDownloadStatusMessage(data)) return;
 
-			registerPendingDownloadSession({
-				itemId: payload.itemId,
-				session: payload.session,
-				safetyTimeoutMs: typeof payload.session.objectUrl === 'string'
-					? CHROMIUM_DOWNLOAD.safetyRevokeMs
-					: null
-			});
-			return;
-		}
-
-		if ((data as any).task !== 'downloadStatus') return;
-
-		const itemId = (data as any).itemId;
-		if (typeof itemId !== 'number') return;
-
+		const { itemId, state } = data;
 		const session = pendingDownloadSessions.get(itemId);
 		if (!session) return;
 
-		const state = (data as any).state;
-		const error = (data as any).error || null;
+		const error = data.error || null;
 		const isError = state === 'error';
 
 		clearSessionResources(session);

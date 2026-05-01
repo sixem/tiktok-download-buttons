@@ -12,8 +12,7 @@ import {
 	getStoredSetting,
 	hashString
 } from '@/content/utils';
-import type { DownloadTag } from '@/content/download/flow/download-tag';
-import { executeChromiumBlobDownload } from '@/content/download/execute/execute-chromium-blob';
+import { attemptBlobAnchorDownload } from '@/content/download/execute/blob-anchor';
 import { executeChromiumDownload } from '@/content/download/execute/execute-chromium';
 import { executeFirefoxDownload } from '@/content/download/execute/execute-firefox';
 import {
@@ -25,6 +24,7 @@ import {
 	prunePendingDownloadSessions
 } from '@/content/download/state/session-store';
 import { createDownloadToastPresenter } from '@/content/download/ui/toast-presenter';
+import type { DownloadTag } from '@/types';
 
 export type DownloadContext = {
 	videoKey?: string;
@@ -52,32 +52,6 @@ const createToastId = ({
 }) => {
 	const keyHash = hashString(videoKey) || Date.now();
 	return `download-${keyHash}${attemptId ? `-${attemptId}` : ''}`;
-};
-
-const attemptBlobAnchorDownload = (blobUrl: string, filename: string) => {
-	try {
-		const anchor = document.createElement('a');
-		anchor.href = blobUrl;
-		anchor.download = filename || 'video.mp4';
-		anchor.style.display = 'none';
-
-		document.body.appendChild(anchor);
-		anchor.click();
-		anchor.remove();
-
-		return true;
-	} catch (_) {
-		return false;
-	}
-};
-
-const resolveRuntime = async () => {
-	const runtimeInfo = await getRuntimeInfo();
-
-	return {
-		firefox: runtimeInfo.isFirefox,
-		chromium: runtimeInfo.isChromium
-	};
 };
 
 const resolveSubFolder = async () => {
@@ -152,7 +126,7 @@ export const startDownload = async ({
 		videoKey,
 		attemptId
 	});
-	const runtime = await resolveRuntime();
+	const runtimeInfo = await getRuntimeInfo();
 	const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
 
 	let normalizedFilename = UTIL.sanitizeFilename(filename);
@@ -182,21 +156,6 @@ export const startDownload = async ({
 	try {
 		const subFolder = await resolveSubFolder();
 
-		if (isBlobUrl && runtime.chromium && subFolder) {
-			await executeChromiumBlobDownload({
-				url,
-				originalUrl: url,
-				filename: normalizedFilename,
-				subFolder,
-				toastId,
-				sourceTag,
-				attemptLabel,
-				toastPresenter,
-				logDownload
-			});
-			return;
-		}
-
 		if (isBlobUrl) {
 			const started = attemptBlobAnchorDownload(url, normalizedFilename || 'video.mp4');
 			logDownload.info(`Attempt ${attemptLabel}: blob anchor ${started ? 'triggered' : 'failed'}`);
@@ -207,7 +166,7 @@ export const startDownload = async ({
 			return;
 		}
 
-		if (runtime.chromium) {
+		if (runtimeInfo.isChromium) {
 			await executeChromiumDownload({
 				url,
 				filename: normalizedFilename,

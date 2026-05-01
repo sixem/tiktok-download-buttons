@@ -4,7 +4,7 @@
 // can focus on control flow.
 
 import { SPLASH } from '@/content/core/state';
-import type { DownloadTag } from '@/content/download/flow/download-tag';
+import type { DownloadTag } from '@/types';
 
 type ToastTag = DownloadTag | string | null;
 
