@@ -1,8 +1,34 @@
-export const TTDB: any = {};
-export const EXPR: any = {};
-export const UTIL: any = {};
-export const SPLASH: any = {};
-export const ACTIVE: any = {};
+// Shared runtime state for the content script.
+//
+// The original extension grew around mutable globals. These interfaces keep that
+// public surface explicit while we gradually move features toward smaller modules.
+
+import type {
+	ExpressionRegistry,
+	SplashState,
+	TTDBState,
+	UtilityRegistry
+} from '@/types';
+
+export type {
+	ExpressionRegistry,
+	SplashMessage,
+	SplashOptions,
+	SplashState,
+	TTDBEnvironment,
+	TTDBLogger,
+	TTDBLoggerNamespace,
+	TTDBMode,
+	TTDBObserverRegistry,
+	TTDBState,
+	TTDBTimerRegistry,
+	UtilityRegistry
+} from '@/types';
+
+export const TTDB = {} as TTDBState;
+export const EXPR = {} as ExpressionRegistry;
+export const UTIL = {} as UtilityRegistry;
+export const SPLASH = {} as SplashState;
 
 TTDB.observers = {};
 TTDB.timers = {};
@@ -28,11 +54,9 @@ TTDB.setInterval = (count) => {
 	}
 };
 
-ACTIVE.running = {};
-
 TTDB.ENV = {
-	APP: Symbol(true),
-	__NEXT: Symbol(true)
+	APP: Symbol('APP'),
+	__NEXT: Symbol('__NEXT')
 };
 
 TTDB.DEFAULT_ENV = TTDB.ENV.APP;

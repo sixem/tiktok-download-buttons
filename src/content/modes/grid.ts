@@ -75,7 +75,7 @@ export const createGridMode = () => (item, data) => {
 		: null;
 
 	(coverContainer || item).appendChild(button);
-	setTimeout(() => { button.style.opacity = 1; }, 100);
+	setTimeout(() => { button.style.opacity = '1'; }, 100);
 
 	return true;
 };

@@ -5,10 +5,12 @@ import { pipe } from '@/content/core/logging';
 import { itemSetup } from '@/content/items/setup-registry';
 import { isElement, isParentNode } from '@/content/utils';
 
+const APP_BROWSER_CONTROL_SELECTOR = '[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]';
+
 const VIDEO_ITEM_SELECTORS = DOM.multiSelector({
 	appItemContainer: 'div[class*="-DivItemContainer"]:not([is-downloadable]):not([class*="-kdocy-"])',
 	appBrowserMode: 'div[class*="-DivBrowserModeContainer"]:not([is-downloadable])',
-	appBrowserControls: '[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]',
+	appBrowserControls: APP_BROWSER_CONTROL_SELECTOR,
 	appForYouArticle: 'main > div#column-list-container > article:not([is-downloadable])',
 	appForYouArticleData: 'article[data-e2e="recommend-list-item-container"]:not([is-downloadable])',
 	appForYouArticleId: 'article[id^="one-column-item-"]:not([is-downloadable])',
@@ -22,7 +24,6 @@ const pendingRoots = new Set<ParentNode>();
 let flushScheduled = false;
 let initialScanQueued = false;
 const MAX_ROOTS_PER_FLUSH = 8;
-const APP_BROWSER_CONTROL_SELECTOR = '[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]';
 const APP_BROWSER_ROOT_SELECTOR = [
 	'div[class*="-DivBrowserModeContainer"]',
 	'div[class*="-DivVideoContainer"]',
@@ -64,8 +65,8 @@ const ensureUpdateLoopRunning = () => {
 
 const ensureSetIntervalStartsLoop = () => {
 	// Wrap once per page lifetime so repeated bootstrap does not stack wrappers.
-	if ((TTDB as any).__ttdbSetIntervalWrapped) return;
-	(TTDB as any).__ttdbSetIntervalWrapped = true;
+	if (TTDB.__ttdbSetIntervalWrapped) return;
+	TTDB.__ttdbSetIntervalWrapped = true;
 
 	const original = TTDB.setInterval;
 	if (typeof original !== 'function') return;
@@ -179,9 +180,7 @@ const isAppFeedSlideshowCard = (item: Element) => {
 // Browser overlay cards expose dedicated controls (`browse-close`, arrows, sound).
 // Use these markers so photo-mode browser cards route to BROWSER mode consistently.
 const isAppBrowserOverlayCard = (item: Element) => {
-	return !!item.querySelector(
-		'[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]'
-	);
+	return !!item.querySelector(APP_BROWSER_CONTROL_SELECTOR);
 };
 
 const detectItemMode = (item: Element) => {
@@ -345,7 +344,7 @@ const scheduleFlush = () => {
 		flushPendingRoots(deadline);
 	};
 
-	const idleCallback = (window as any).requestIdleCallback;
+	const idleCallback = window.requestIdleCallback;
 
 	if (typeof idleCallback === 'function') {
 		idleCallback.call(window, runFlush, { timeout: 1000 });

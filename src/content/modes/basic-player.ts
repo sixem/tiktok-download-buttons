@@ -5,33 +5,33 @@ import { downloadHook } from '@/content/download/flow/download-hook';
 
 export const createBasicPlayerMode = () => (item, data) => {
 	const videoElement = item.querySelector('video');
-	if (!videoElement) return;
+	if (!videoElement) return false;
 
 	item.setAttribute('is-downloadable', 'true');
 
-	let button = createButton.BASIC_PLAYER();
+	const buttonWrapper = createButton.BASIC_PLAYER();
 	const parent = data.container.closest('div[class*="-DivLeftContainer "]');
-	if (!parent) return;
+	if (!parent) return false;
 
-	const existingButton = parent.querySelector(`.${button.classList[0]}`);
+	const existingButton = parent.querySelector(`.${buttonWrapper.classList[0]}`);
 	if (existingButton) existingButton.remove();
 
-	parent.children[0].parentNode.insertBefore(
-		button, parent.children[0].nextSibling
-	);
+	parent.insertBefore(buttonWrapper, parent.children[0].nextSibling);
 
-	button = button.querySelector('a');
+	const button = buttonWrapper.querySelector<HTMLAnchorElement>('a');
+	if (!button) return false;
 	button.ttdbItem = item;
 
-	const widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]');
+	const widthTarget = parent.querySelector('div[class*="-DivInfoContainer "]') as HTMLElement | null;
 	DOM.setStyle(button, { width: `${Math.min(widthTarget ? widthTarget.offsetWidth : 240, 240)}px` });
 
 	const videoData = itemData.get(item, data);
-	if (!videoData.url || button.ttIsProcessed) return;
+	if (!videoData.url || button.ttIsProcessed) return false;
 
-	button.parentNode.style.display = 'inherit';
+	buttonWrapper.style.display = 'inherit';
 	setTimeout(() => button.style.opacity = '1', 50);
 	downloadHook(button, videoData);
 	button.ttIsProcessed = true;
+	return true;
 };
 

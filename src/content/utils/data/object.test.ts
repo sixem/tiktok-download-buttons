@@ -7,19 +7,6 @@ describe('setupObjectUtils', () => {
 		setupObjectUtils();
 	});
 
-	it('registers checkNested for nested property checks', () => {
-		const value = {
-			video: {
-				stats: {
-					plays: 42
-				}
-			}
-		};
-
-		expect(UTIL.checkNested(value, 'video', 'stats', 'plays')).toBe(true);
-		expect(UTIL.checkNested(value, 'video', 'stats', 'likes')).toBe(false);
-	});
-
 	it('registers traverseObj for recursive key-path lookup', () => {
 		const value = {
 			wrapper: {

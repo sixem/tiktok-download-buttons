@@ -1,5 +1,20 @@
+type DomStyleValues = Record<string, string | number | null | undefined>;
+type DomAttributeValues = Record<string, string | number | boolean | null | undefined>;
+
+type PolygonSvgValues = {
+	dimensions: [number, number];
+	points: Array<string | number>;
+	style?: DomStyleValues;
+};
+
+type CreateButtonValues = {
+	class?: string;
+	content?: false | ['textContent', string] | ['appendChild', Element];
+	innerType?: keyof HTMLElementTagNameMap;
+};
+
 export const DOM = {
-	createPolygonSvg: (values) => {
+	createPolygonSvg: (values: PolygonSvgValues) => {
 		const w3Url = 'http://www.w3.org/2000/svg';
 		const [width, height] = values.dimensions;
 
@@ -21,39 +36,44 @@ export const DOM = {
 
 		return elementSvg;
 	},
-	setStyle: (element, values) => {
+	setStyle: (element: HTMLElement | SVGElement, values: DomStyleValues) => {
 		Object.keys(values).forEach((key) => {
-			element.style[key] = values[key];
+			const value = values[key];
+			if (value === null || value === undefined) return;
+			element.style.setProperty(key, String(value));
 		});
 	},
-	setAttributes: (element, attributes) => {
+	setAttributes: <T extends Element>(element: T, attributes: DomAttributeValues) => {
 		Object.keys(attributes).forEach((key) => {
-			element.setAttribute(key, attributes[key]);
+			const value = attributes[key];
+			if (value === null || value === undefined) return;
+			element.setAttribute(key, String(value));
 		});
 
 		return element;
 	},
-	multiSelector: (values) => {
+	multiSelector: (values: Record<string, string>) => {
 		return Object.keys(values).map((key) => values[key]).join(', ');
 	},
-	selectorNamed: (values) => {
+	selectorNamed: (values: Record<string, string>) => {
+		const selected: Record<string, Element | null> = {};
 		for (const [name, value] of Object.entries(values)) {
-			values[name] = document.querySelector(value) || null;
+			selected[name] = document.querySelector(value) || null;
 		}
 
-		return values;
+		return selected;
 	},
-	createButton: (values) => {
+	createButton: (values: CreateButtonValues) => {
 		const container = document.createElement('a');
 		const inner = document.createElement(values.innerType ? values.innerType : 'span');
 
 		if (values.content) {
 			const [contentMode, content] = values.content || ['textContent', 'Download'];
 
-			if (content instanceof Element) {
-				inner[contentMode](content);
+			if (contentMode === 'appendChild' && content instanceof Element) {
+				inner.appendChild(content);
 			} else {
-				inner[contentMode] = content;
+				inner.textContent = String(content);
 			}
 		}
 

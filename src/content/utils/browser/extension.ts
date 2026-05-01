@@ -1,10 +1,9 @@
 // Content-script helpers for extension APIs.
 // Keeps callback-based chrome APIs usable with async/await in Firefox MV3.
 
-export type RuntimeInfo = {
-	isFirefox: boolean;
-	isChromium: boolean;
-};
+import type { RuntimeInfo } from '@/types';
+
+export type { RuntimeInfo } from '@/types';
 
 const wrapCallback = (resolve, reject) => (result) => {
 	const error = chrome.runtime?.lastError;

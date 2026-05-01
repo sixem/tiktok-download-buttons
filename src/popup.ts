@@ -1,7 +1,8 @@
 // Popup UI logic for extension settings.
 import './popup.scss';
 import { storageGet, storageSet } from '@/popup-utils';
-import { TTDB_OPTIONS, type TTDBOptionKey } from '@/options';
+import { TTDB_OPTIONS } from '@/options';
+import type { TTDBOptionKey } from '@/types';
 
 const normalizeSubfolderPath = (value: string) => {
 	return value
@@ -21,7 +22,7 @@ const getInputElement = (id: TTDBOptionKey) => {
 window.addEventListener('DOMContentLoaded', async () => {
 	const manifest = chrome.runtime.getManifest();
 
-	const versionElement = document.querySelector('#version');
+	const versionElement = document.querySelector<HTMLElement>('#version');
 	const repoLinkElements = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-repo-link]'));
 	const issuesLinkElements = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-issues-link]'));
 

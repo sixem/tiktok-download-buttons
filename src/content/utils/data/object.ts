@@ -1,15 +1,7 @@
-// Object traversal helpers for nested data extraction.
+// Object traversal helper for nested data extraction.
 import { UTIL } from '@/content/core/state';
 
 export const setupObjectUtils = () => {
-	// Check for a nested property chain without throwing.
-	UTIL.checkNested = (obj, level, ...rest) => {
-		if (obj === undefined) return false;
-		if (rest.length === 0 && Object.hasOwn(obj, level)) return true;
-
-		return UTIL.checkNested(obj[level], ...rest);
-	};
-
 	// Walk nested objects to locate a key path anywhere in the tree.
 	UTIL.traverseObj = (obj, needles, index = 0) => {
 		if (obj !== null && typeof obj === 'object' && index < needles.length) {
