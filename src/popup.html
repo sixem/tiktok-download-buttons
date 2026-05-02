@@ -28,7 +28,7 @@
                 </div>
                 <p class="help">
                     Subfolder to download videos to. Leaving it empty will download videos to your default directory.
-                    <span class="help__note">Note: some fallback methods (like blob downloads) must save directly to Downloads (browser limitation).</span>
+                    <span class="help__note">Note: some fallback methods may save directly to Downloads due to browser limitations.</span>
                 </p>
                 <input type="text" spellcheck="false" id="download-subfolder-path" placeholder="Subfolder path ...">
             </section>
@@ -37,7 +37,9 @@
                 <div class="card__header">
                     <h3>Naming</h3>
                 </div>
-                <p class="help">Naming template for downloaded videos. Use placeholders like <code>{uploader}</code> and <code>{id}</code>. See <a class="link" target="_blank" rel="noopener noreferrer" href="https://github.com/sixem/tiktok-download-buttons/blob/main/TEMPLATE.md">templating</a>.</p>
+                <p class="help">
+                    Naming template for downloaded videos. Use placeholders like <code>{uploader}</code> and <code>{id}</code>. See <a class="link" target="_blank" rel="noopener noreferrer" href="https://github.com/sixem/tiktok-download-buttons/blob/main/TEMPLATE.md">templating</a>.
+                </p>
                 <input type="text" spellcheck="false" id="download-naming-template" placeholder="{uploader} - {id}">
             </section>
 
