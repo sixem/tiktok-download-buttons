@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { findVideoIdForVideoElement } from '@/content/download/state/autoplay-preview-capture';
 
 const createButton = (videoId: string) => {
@@ -9,32 +9,44 @@ const createButton = (videoId: string) => {
 
 const createItemRoot = (button: Element | null) => {
 	return {
-		querySelector: () => button
+		querySelector: vi.fn(() => button)
 	} as Element;
 };
 
 const createVideoElement = (itemRoot: Element | null) => {
+	const closest = vi.fn(() => itemRoot);
+
 	return {
-		closest: () => itemRoot
-	} as HTMLVideoElement;
+		video: {
+			closest
+		} as unknown as HTMLVideoElement,
+		closest
+	};
 };
 
 describe('findVideoIdForVideoElement', () => {
 	it('returns the TTDB button id from the same item root', () => {
-		const video = createVideoElement(createItemRoot(createButton('12345')));
+		const itemRoot = createItemRoot(createButton('12345'));
+		const { video, closest } = createVideoElement(itemRoot);
 
 		expect(findVideoIdForVideoElement(video)).toBe('12345');
+		expect(closest).toHaveBeenCalledTimes(1);
+		expect(itemRoot.querySelector).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not borrow a neighboring button when the item has no local TTDB button yet', () => {
-		const video = createVideoElement(createItemRoot(null));
+		const itemRoot = createItemRoot(null);
+		const { video, closest } = createVideoElement(itemRoot);
 
 		expect(findVideoIdForVideoElement(video)).toBeNull();
+		expect(closest).toHaveBeenCalledTimes(1);
+		expect(itemRoot.querySelector).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not scan outside the owning item root', () => {
-		const video = createVideoElement(null);
+		const { video, closest } = createVideoElement(null);
 
 		expect(findVideoIdForVideoElement(video)).toBeNull();
+		expect(closest).toHaveBeenCalledTimes(1);
 	});
 });
