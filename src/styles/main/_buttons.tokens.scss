@@ -1,16 +1,31 @@
-// Shared tokens and mixins for TTDB button styling.
-$ttdb-transition: background-color 0.35s, color 0.35s, opacity 1s;
-$ttdb-accent-hover: #fe4569;
-$ttdb-button-radius: 4px;
+// Premium TikTok Download Buttons — Design Tokens
+$ttdb-transition: background-color .22s cubic-bezier(.2,.8,.2,1), color .22s, opacity .22s, transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s, border-color .22s;
+$ttdb-accent: #FE2C55;
+$ttdb-accent-hover: #FF3B64;
+$ttdb-accent-cyan: #25F4EE;
+$ttdb-button-radius: 10px;
+$ttdb-button-radius-pill: 999px;
 $ttdb-feed-size: 48px;
-$ttdb-feed-icon-size: 55%;
-$ttdb-grid-bg: #0000007d;
-$ttdb-grid-bg-hover: #000000b5;
-$ttdb-grid-shadow: 0 0 4px rgb(0 0 0 / 50%);
-$ttdb-basic-player-accent: rgba(254, 44, 85, 1.0);
-$ttdb-basic-player-hover: rgba(254, 44, 85, 0.15);
+$ttdb-feed-icon-size: 56%;
+$ttdb-grid-bg: rgba(12,16,30,.72);
+$ttdb-grid-bg-hover: rgba(20,26,48,.88);
+$ttdb-grid-border: rgba(255,255,255,.08);
+$ttdb-grid-border-hover: rgba(254,44,85,.28);
+$ttdb-grid-shadow: 0 4px 16px rgba(0,0,0,.38), 0 1px 0 rgba(255,255,255,.06) inset;
+$ttdb-grid-shadow-hover: 0 8px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(254,44,85,.18), 0 1px 0 rgba(255,255,255,.08) inset;
+$ttdb-basic-player-accent: #FE2C55;
+$ttdb-basic-player-hover: rgba(254,44,85,.10);
 
-@mixin ttdb-transition
-{
-    transition: $ttdb-transition !important;
+@mixin ttdb-transition { transition: $ttdb-transition !important; }
+@mixin ttdb-glass {
+    background: rgba(12,16,30,.72);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: $ttdb-grid-shadow;
+}
+@mixin ttdb-glass-hover {
+    background: rgba(20,26,48,.88);
+    border-color: rgba(254,44,85,.22);
+    box-shadow: $ttdb-grid-shadow-hover;
 }

@@ -36,6 +36,12 @@
 		"*://*.tiktok.com/*",
 		"https://tiktok.com/*",
 		"https://*.tiktokcdn.com/*",
-		"https://*.tiktokv.com/*"
+		"https://*.tiktokcdn-us.com/*",
+		"https://*.tiktokcdn-eu.com/*",
+		"https://*.tiktokv.com/*",
+		"https://*.muscdn.com/*",
+		"https://*.byteoversea.com/*",
+		"https://*.ibytedtos.com/*",
+		"https://*.ttwstatic.com/*"
 	]
 }

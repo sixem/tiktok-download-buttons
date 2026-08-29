@@ -1,18 +1,23 @@
-// Shared button states for all TTDB controls.
+// Shared states — premium polish
 @use './buttons.tokens' as *;
 
-:where(a.ttdb__button_feed, a.ttdb__button_grid, a.ttdb__button_basic-player)
-{
-    @include ttdb-transition;
-    cursor: not-allowed;
-    opacity: 0;
-    outline: none;
+:where(a.ttdb__button_feed, a.ttdb__button_grid, a.ttdb__button_basic-player) {
+    @include ttdb-transition; cursor: pointer; opacity: 0; outline: none;
+    &:focus-visible { outline: 2px solid $ttdb-accent; outline-offset: 2px; }
 }
+:where(a.ttdb__button_grid, a.ttdb__button_browser, a.ttdb__button_basic-player) {
+    font-family: 'Space Grotesk', 'Outfit', system-ui, sans-serif;
+}
+
+// reveal animation when injected
+a.ttdb__button_feed, a.ttdb__button_grid, a.ttdb__button_basic-player, a.ttdb__button_browser {
+    animation: ttdb-reveal .32s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes ttdb-reveal { from { opacity:0; transform: translateY(6px) scale(.96); } to { opacity:1; transform:none; } }
 
 a.ttdb__button_feed:where(.loading),
 a.ttdb__button_grid:where(.loading),
 a.ttdb__button_basic-player:where(.loading),
-a.ttdb__button_browser:where(.loading)
-{
+a.ttdb__button_browser:where(.loading) {
     cursor: progress !important;
 }

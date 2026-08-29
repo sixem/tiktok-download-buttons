@@ -1,69 +1,78 @@
-// Feed button styling for the vertical action rail.
+// Feed — vertical rail premium glass button
 @use './buttons.tokens' as *;
 
-a.ttdb__button_feed
-{
+a.ttdb__button_feed {
     text-align: center;
     width: $ttdb-feed-size;
     height: $ttdb-feed-size;
     line-height: $ttdb-feed-size;
-    border-radius: 100%;
+    border-radius: 50%;
     font-size: 1.5em;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     padding: 0;
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
     cursor: pointer;
     flex-direction: column;
-}
-
-a.ttdb__button_feed:where(:hover)
-{
-    color: $ttdb-accent-hover;
-}
-
-a.ttdb__button_feed:where(.loading) > div
-{
-    display: none !important;
-}
-
-a.ttdb__button_feed:where(.loading)::after
-{
-    width: 100%;
-    height: 100%;
-    background-repeat: no-repeat;
-    background-position: center center;
-    color: inherit;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 6px;
-    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E");
-}
-
-a.ttdb__button_feed > div
-{
-    width: 100%;
-    height: 100%;
-    background-repeat: no-repeat;
-    background-position: center center;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-a.ttdb__button_feed > div > svg
-{
+    background: rgba(255,255,255,.06);
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    border: 1px solid rgba(255,255,255,.09);
+    box-shadow: 0 4px 16px rgba(0,0,0,.18), 0 1px 0 rgba(255,255,255,.07) inset;
     @include ttdb-transition;
-    fill: currentColor;
-    width: $ttdb-feed-icon-size;
-    margin-left: 1px;
-    margin-top: -1px;
+    overflow: hidden;
+
+    // subtle gradient sheen
+    &::before {
+        content:""; position:absolute; inset:0; border-radius:50%;
+        background: radial-gradient(120px 120px at 30% 20%, rgba(255,255,255,.14), transparent 60%);
+        opacity:0; transition: opacity .22s; pointer-events:none;
+    }
+
+    &:hover {
+        color: #fff;
+        background: linear-gradient(135deg, rgba(254,44,85,.92), rgba(200,20,50,.96));
+        border-color: rgba(254,44,85,.55);
+        box-shadow: 0 8px 24px rgba(254,44,85,.38), 0 1px 0 rgba(255,255,255,.18) inset;
+        transform: translateY(-1px) scale(1.03);
+        &::before { opacity:1; }
+    }
+    &:active { transform: translateY(0) scale(.98); box-shadow: 0 2px 10px rgba(254,44,85,.28); }
+
+    // tooltip on hover (pure CSS)
+    &::after {
+        content: "Download"; position:absolute; left: 50%; bottom: -30px; transform: translateX(-50%) translateY(4px);
+        background: rgba(8,10,18,.92); color:#fff; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+        padding: 4px 8px; border-radius: 6px; border:1px solid rgba(255,255,255,.08);
+        white-space: nowrap; opacity:0; pointer-events:none; transition: all .18s; backdrop-filter: blur(8px);
+        box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    }
+    &:hover::after { opacity:1; transform: translateX(-50%) translateY(0); }
 }
 
-a.ttdb__button_feed:where(:hover) > div > svg
-{
-    color: $ttdb-accent-hover !important;
+a.ttdb__button_feed:where(.loading) > div { display: none !important; }
+a.ttdb__button_feed:where(.loading) {
+    pointer-events:none;
+    background: rgba(255,255,255,.04) !important;
 }
+a.ttdb__button_feed:where(.loading)::after {
+    content: "" !important;
+    position: absolute; inset:0; display:grid; place-items:center;
+    width:100%; height:100%; margin:0;
+    background: none;
+    opacity:1; transform:none; border:none; box-shadow:none; backdrop-filter:none;
+    background-image: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50' stroke='white' stroke-width='4' fill='none' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' dur='.8s' from='0 50 50' to='360 50 50' repeatCount='indefinite'/%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center;
+}
+
+a.ttdb__button_feed > div {
+    width: 100%; height: 100%; background-repeat:no-repeat; background-position:center; color:#fff;
+    display:flex; align-items:center; justify-content:center; position:relative; z-index:1;
+}
+a.ttdb__button_feed > div > svg {
+    @include ttdb-transition; fill: currentColor; width: $ttdb-feed-icon-size; margin:0;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
+}
+a.ttdb__button_feed:where(:hover) > div > svg { color:#fff !important; transform: scale(1.06); }

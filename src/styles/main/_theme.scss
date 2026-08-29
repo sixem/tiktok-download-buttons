@@ -15,39 +15,51 @@ $light-theme-roots: (
 @include ttdb-light-theme {
     body > div.ttdb_downloading-active > div.item {
         color: #fff;
+        background: rgba(255,255,255,.96);
+        color: #0B0F1E;
+        border-color: rgba(0,0,0,.06);
+        box-shadow: 0 8px 24px rgba(0,0,0,.12);
     }
 
     a.ttdb__button_feed {
-        background-color: rgb(0 0 0 / 10%);
-        color: #000;
-
-        svg {
-            color: #161823;
-        }
-
-        &:hover > div > svg {
-            color: #fe2c55 !important;
+        background: rgba(0,0,0,.06);
+        border-color: rgba(0,0,0,.08);
+        color: #0B0F1E;
+        svg { color: #0B0F1E; }
+        &:hover {
+            background: linear-gradient(135deg, #FE2C55, #C41E3A) !important;
+            color:#fff !important;
+            svg { color:#fff !important; }
         }
     }
 
     a.ttdb__button_browser {
-        background-color: #f1f1f2;
-        color: #000;
+        background: #0B0F1E;
+        color: #fff !important;
+    }
+    a.ttdb__button_grid {
+        background: rgba(255,255,255,.88);
+        color: #0B0F1E !important;
+        border-color: rgba(0,0,0,.06);
+        box-shadow: 0 4px 16px rgba(0,0,0,.12);
+        &:hover { background: #0B0F1E !important; color:#fff !important; }
     }
 }
 
 html[data-theme='dark'] {
     a.ttdb__button_feed {
-        background-color: rgb(255 255 255 / 10%);
+        background: rgba(255,255,255,.07);
+        border-color: rgba(255,255,255,.08);
         color: #fff;
-
-        svg {
-            color: #fff;
+        svg { color: #fff; }
+        &:hover {
+            background: linear-gradient(135deg, #FE2C55, #C41E3A) !important;
+            border-color: rgba(254,44,85,.5) !important;
         }
     }
 
     a.ttdb__button_browser {
-        background-color: rgb(41, 41, 41);
+        background: linear-gradient(135deg, #FE2C55, #C41E3A);
         color: #fff;
     }
 }

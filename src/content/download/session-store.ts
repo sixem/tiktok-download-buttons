@@ -71,7 +71,8 @@ const dropSession = (itemId: number, session: PendingDownloadSession) => {
 const shouldRetryWithInPageFetch = (error: unknown) => {
 	if (!error) return false;
 	const text = String(error).toUpperCase();
-	return text.includes('SERVER_FORBIDDEN') || text.includes('FORBIDDEN');
+	// Original só cobria SERVER_FORBIDDEN, mas NETWORK_FAILED/FAILED também precisam fallback
+	return text.includes('SERVER_FORBIDDEN') || text.includes('FORBIDDEN') || text.includes('NETWORK_FAILED') || text.includes('NETWORK') || text.includes('FAILED') || text.includes('SERVER_FAILED');
 };
 
 export const prunePendingDownloadSessions = (reason: string) => {

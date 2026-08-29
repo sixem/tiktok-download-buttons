@@ -38,21 +38,86 @@ export const executeChromiumDownload = async ({
 	toastPresenter: DownloadToastPresenter;
 	logDownload: any;
 }) => {
+	// Helper para fallback in-page quando probe falha ou chrome.downloads falha com NETWORK_FAILED
+	const tryInPageFallback = async (reason: string) => {
+		try {
+			const { executeInPageFetchBlobFallback, formatChainedMethodTag } = await import('./in-page-fetch-fallback');
+			const chainedTag = formatChainedMethodTag(methodTag, 'BLOB');
+			logDownload.warn(`Attempt ${attemptLabel}: probe falhou (${reason}), tentando fallback in-page BLOB`, { url });
+			const ok = await executeInPageFetchBlobFallback({
+				url,
+				filename,
+				toastPresenter,
+				toastTag: chainedTag,
+				sourceTag: methodTag,
+				probeMode: 'video-content-type',
+				logDownload,
+				showFailureToast: true
+			});
+			return ok;
+		} catch (e) {
+			logDownload.warn(`Attempt ${attemptLabel}: fallback error`, e);
+			return false;
+		}
+	};
+
+	let probeResponse: Response | null = null;
 	try {
-		const probeResponse = await fetch(url, TTDB.headers);
-		if (!UTIL.validateVideoRequest(probeResponse) || !probeResponse.body) {
-			logDownload.warn(
-				`Attempt ${attemptLabel}: probe failed (${probeResponse.headers.get('Content-Type') || ''} - ${probeResponse.status})`,
-				probeResponse
-			);
-			logDownload.warn(`Attempt ${attemptLabel}: download blocked (no tab fallback)`);
-			toastPresenter.showBlockedNoTabFallback();
+		// Tenta fetch com headers padrão, se falhar tenta sem credentials (CORS)
+		try {
+			probeResponse = await fetch(url, TTDB.headers);
+		} catch (e) {
+			logDownload.warn(`Attempt ${attemptLabel}: fetch com credentials falhou, retry sem credentials`, e);
+			probeResponse = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-cache', redirect: 'follow' } as any);
+		}
+
+		// Validação leniente: se Content-Length ausente mas é video, permite
+		const isValid = probeResponse && (UTIL.validateVideoRequest(probeResponse) || UTIL.validateVideoRequestLenient?.(probeResponse)) && !!probeResponse.body;
+		if (!isValid || !probeResponse) {
+			const ct = probeResponse?.headers.get('Content-Type') || '';
+			const status = probeResponse?.status ?? 'no-response';
+			// Se probe falhou mas status é 200 e body existe, tenta blob direto (alguns CDNs não enviam content-type correto no HEAD)
+			if (probeResponse && probeResponse.ok && probeResponse.body) {
+				logDownload.warn(`Attempt ${attemptLabel}: probe strict falhou mas response ok, tentando blob direto`, { ct, status });
+			} else {
+				logDownload.warn(
+					`Attempt ${attemptLabel}: probe failed (${ct} - ${status})`,
+					probeResponse
+				);
+				await tryInPageFallback(`probe ${status} ${ct}`);
+				return;
+			}
+		}
+
+		// Se probeResponse é html (challenge) detecta e fallback
+		const ctProbe = probeResponse.headers.get('Content-Type') || '';
+		if (ctProbe.includes('text/html')) {
+			logDownload.warn(`Attempt ${attemptLabel}: probe retornou HTML (challenge?)`, { ct: ctProbe });
+			await tryInPageFallback('HTML challenge');
 			return;
 		}
 
 		logDownload.info(`Attempt ${attemptLabel}: probe valid`, probeResponse);
 
-		const responseBlob = await probeResponse.blob();
+		// Se probeResponse não é reutilizável (já consumida?), refetch como blob se necessário
+		let responseBlob: Blob;
+		try {
+			responseBlob = await probeResponse.blob();
+		} catch (e) {
+			logDownload.warn(`Attempt ${attemptLabel}: blob() falhou, refetch`, e);
+			const r2 = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-cache', redirect: 'follow' } as any);
+			if (!r2.ok || !r2.body) {
+				await tryInPageFallback('blob retry failed');
+				return;
+			}
+			responseBlob = await r2.blob();
+		}
+
+		// Garante filename tem .mp4
+		if (!filename.toLowerCase().endsWith('.mp4')) {
+			filename = filename.replace(/\.[^/.]+$/, '') + '.mp4';
+		}
+
 		const objectUrl = URL.createObjectURL(responseBlob);
 
 		let response: any = null;
@@ -66,8 +131,9 @@ export const executeChromiumDownload = async ({
 		} catch (error) {
 			logDownload.warn(`Attempt ${attemptLabel}: download request failed`, error);
 			revokeObjectUrl(objectUrl);
-			logDownload.warn(`Attempt ${attemptLabel}: download blocked (no tab fallback)`);
-			toastPresenter.showBlockedNoTabFallback();
+			// tenta fallback in-page antes de mostrar bloqueado
+			const fell = await tryInPageFallback('download request failed');
+			if (!fell) toastPresenter.showBlockedNoTabFallback();
 			return;
 		}
 
@@ -97,11 +163,21 @@ export const executeChromiumDownload = async ({
 
 		logDownload.warn(`Attempt ${attemptLabel}: download failed`, response);
 		revokeObjectUrl(objectUrl);
-		logDownload.warn(`Attempt ${attemptLabel}: download blocked (no tab fallback)`);
-		toastPresenter.showBlockedNoTabFallback();
+		// Se chrome.downloads falhou (ex: NETWORK_FAILED, SERVER_FAILED), tenta fallback
+		const fell = await tryInPageFallback(`downloads API failed: ${response?.error || 'unknown'}`);
+		if (!fell) toastPresenter.showBlockedNoTabFallback();
 	} catch (error) {
 		logDownload.error(`Attempt ${attemptLabel}: fetch error`, error);
-		logDownload.warn(`Attempt ${attemptLabel}: download blocked (no tab fallback)`);
+		// fallback direto para BLOB via fetch in-page (bypassa downloads API)
+		try {
+			const { executeInPageFetchBlobFallback, formatChainedMethodTag } = await import('./in-page-fetch-fallback');
+			const chainedTag = formatChainedMethodTag(methodTag, 'BLOB');
+			await executeInPageFetchBlobFallback({
+				url, filename, toastPresenter, toastTag: chainedTag, sourceTag: methodTag,
+				probeMode: 'video-content-type', logDownload, showFailureToast: true
+			});
+			return;
+		} catch (e) {}
 		toastPresenter.showBlockedNoTabFallback();
 	}
 };

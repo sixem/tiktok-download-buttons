@@ -1,46 +1,46 @@
-// Basic player button styling.
+// Basic player — centered premium CTA
 @use './buttons.tokens' as *;
 
-div.ttdb__button_basic-player_wrapper
-{
-    margin: 18px auto 10px auto;
-    display: none;
+div.ttdb__button_basic-player_wrapper {
+    margin: 16px auto 14px auto; display:none; text-align:center;
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player
-{
-    padding: 8px 10px 6px 10px;
-    border-radius: $ttdb-button-radius;
-    text-align: center;
-    font-weight: bold;
-    display: inline-block;
-    text-decoration: none;
-    position: relative;
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player {
+    padding: 10px 18px 10px 36px;
+    border-radius: $ttdb-button-radius-pill;
+    text-align:center; font-weight:750; font-size:13px; letter-spacing:-.01em;
+    display:inline-flex; align-items:center; gap:6px;
+    text-decoration:none; position:relative;
+    background: linear-gradient(135deg, #FE2C55, #C41E3A);
+    color:#fff !important;
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: 0 4px 16px rgba(254,44,85,.3), 0 1px 0 rgba(255,255,255,.14) inset;
+    @include ttdb-transition;
+    overflow:hidden;
+    &::before { content:""; position:absolute; inset:0; border-radius:$ttdb-button-radius-pill; background: linear-gradient(135deg, rgba(255,255,255,.14), transparent 60%); opacity:0; transition:opacity .2s; }
+    &:hover::before { opacity:1; }
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player,
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:visited
-{
-    color: $ttdb-basic-player-accent;
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:where(:hover) {
+    transform: translateY(-1px); box-shadow: 0 8px 24px rgba(254,44,85,.4); background: linear-gradient(135deg, #FF3B64, #FE2C55);
+}
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:active { transform:none; }
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player::after {
+    content:""; position:absolute; left:14px; top:50%; transform: translateY(-50%);
+    width:16px; height:16px;
+    background: #fff;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E") center/contain no-repeat;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E") center/contain no-repeat;
+    font-size:inherit; left:14px; top:50%;
 }
 
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:where(:hover)
-{
-    background-color: $ttdb-basic-player-hover !important;
-}
-
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player::after
-{
-    content: "ðŸ¡“";
-    position: absolute;
-    left: 10px;
-    font-size: 20px;
-    top: 4px;
-}
-
-div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:where(.loading)::after
-{
-    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgba(254, 44, 85, 1.0)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
-    top: 6px !important;
-    left: 6px !important;
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:where(.loading) {
+    pointer-events:none; opacity:.9;
+    &::after {
+        content:""; width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%;
+        background:none; mask:none; -webkit-mask:none;
+        animation: ttdb-spin .7s linear infinite;
+        top:50%; left:14px; transform: translateY(-50%);
+    }
 }

@@ -1,47 +1,67 @@
-// Grid thumbnail overlay button styling.
+// Grid thumbnail overlay — premium pill with glass + icon
 @use './buttons.tokens' as *;
 
-a.ttdb__button_grid
-{
-    position: absolute;
-    z-index: 1;
-    top: 4px;
-    right: 4px;
-    background-color: $ttdb-grid-bg;
-    border-radius: $ttdb-button-radius;
-    color: #fff !important;
-    // Prevent browser default link underlines (some states can re-introduce them on hover/focus).
-    text-decoration: none !important;
-    box-shadow: $ttdb-grid-shadow;
-    backdrop-filter: blur(2px);
+a.ttdb__button_grid {
+    position: absolute; z-index: 2; top: 8px; right: 8px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 10px 6px 8px;
+    @include ttdb-glass;
+    border-radius: $ttdb-button-radius-pill;
+    color: #fff !important; text-decoration: none !important;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em; line-height: 1;
+    @include ttdb-transition;
+    overflow: hidden;
+
+    // accent line on left
+    &::before {
+        content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+        background: linear-gradient(180deg, #FE2C55, #FF6B8A);
+        opacity:0; transition: opacity .2s;
+    }
+
+    // shimmer on hover
+    &::after {
+        content:""; position:absolute; inset:0; border-radius: $ttdb-button-radius-pill;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+        transform: translateX(-100%); transition: transform .6s;
+    }
+    &:hover::after { transform: translateX(100%); }
 }
 
-a.ttdb__button_grid > span
-{
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    height: 24px;
-    line-height: 24px;
-    width: 18px;
+a.ttdb__button_grid > span {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin: 0; text-align:center; height: auto; line-height:1; width:auto;
+    position: relative; z-index: 1;
+    // icon container
+    &::before {
+        content:""; width:14px; height:14px; flex:0 0 14px;
+        background: #FE2C55;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E") center/contain no-repeat;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpolyline points='7 10 12 15 17 10'/%3E%3Cline x1='12' y1='15' x2='12' y2='3'/%3E%3C/svg%3E") center/contain no-repeat;
+        transition: transform .2s;
+    }
+    &::after {
+        content: "Baixar"; font-size: 11px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase;
+    }
 }
 
-a.ttdb__button_grid:where(:not(.loading)) > span::after
-{
-    content: '\01F853';
-    font-size: 16px !important;
+a.ttdb__button_grid:where(.loading) {
+    pointer-events:none; opacity:.9;
+    > span::before {
+        background: transparent;
+        mask: none; -webkit-mask: none;
+        width:14px; height:14px;
+        border:2px solid rgba(255,255,255,.28); border-top-color:#fff; border-radius:50%;
+        animation: ttdb-spin .7s linear infinite;
+    }
+    > span::after { content:"Baixando..."; }
 }
 
-a.ttdb__button_grid:where(.loading) > span::after
-{
-    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='white' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
-    margin-left: -2px;
+a.ttdb__button_grid:where(:hover) {
+    @include ttdb-glass-hover;
+    color:#fff !important; transform: translateY(-1px);
+    &::before { opacity:1; }
+    > span::before { transform: translateY(1px); }
 }
 
-a.ttdb__button_grid:where(:hover)
-{
-    background-color: $ttdb-grid-bg-hover;
-    color: #00ff80 !important;
-    text-decoration: none !important;
-}
+@keyframes ttdb-spin { to { transform: rotate(360deg); } }

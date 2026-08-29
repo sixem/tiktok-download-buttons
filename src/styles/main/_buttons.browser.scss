@@ -1,77 +1,46 @@
-// Browser mode button styling for top-level controls.
+// Browser mode — premium CTA pill
 @use './buttons.tokens' as *;
 
-a.ttdb__button_browser
-{
-    padding: 5px 8px 4px 8px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    border-radius: $ttdb-button-radius;
-    text-align: center;
-    display: block;
-    font-size: 14px;
-    pointer-events: none;
-    position: relative;
-    text-decoration: none !important;
+a.ttdb__button_browser {
+    padding: 9px 14px 9px 16px;
+    font-weight: 750; letter-spacing: -.01em; font-size: 13px;
+    border-radius: $ttdb-button-radius-pill;
+    text-align:center; display:block; position:relative;
+    text-decoration:none !important;
+    background: linear-gradient(135deg, #FE2C55 0%, #C41E3A 100%);
+    color:#fff !important;
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: 0 4px 16px rgba(254,44,85,.32), 0 1px 0 rgba(255,255,255,.16) inset;
+    @include ttdb-transition;
+    overflow:hidden;
+    &::before { content:""; position:absolute; inset:0; border-radius: $ttdb-button-radius-pill; background: linear-gradient(135deg, rgba(255,255,255,.14), transparent 60%); opacity:0; transition: opacity .2s; }
+    &:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(254,44,85,.42), 0 1px 0 rgba(255,255,255,.2) inset; }
+    &:hover::before { opacity:1; }
+    &:active { transform: translateY(0); }
 }
 
-a.ttdb__button_browser:visited
-{
-    text-decoration: none !important;
+a.ttdb__button_browser:visited { text-decoration:none !important; }
+a.ttdb__button_browser > span.ttdb__button_browser-inner {
+    width:100%; display:flex; align-items:center; justify-content:center; position:relative; padding-right:22px; gap:6px;
+}
+a.ttdb__button_browser > span.ttdb__button_browser-inner > span.ttdb__button_browser-text {
+    display:block; width:100%; min-width:0; text-align:center; position:relative; z-index:1;
+    &::before { content:"⬇"; margin-right:6px; font-size:11px; }
+}
+a.ttdb__button_browser > span.ttdb__button_browser-inner > svg.ttdb__button_browser-icon {
+    width:16px; height:16px; position:absolute; right:0; top:50%; transform:translateY(-50%);
+    flex:0 0 auto; fill: currentColor; opacity:.92;
 }
 
-a.ttdb__button_browser > span.ttdb__button_browser-inner
-{
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    padding-right: 20px;
+a.ttdb__button_browser:where(.loading) {
+    pointer-events:none; opacity:.9;
+    &::after {
+        position:absolute; left:10px; top:50%; transform: translateY(-50%);
+        content:""; width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation: ttdb-spin .7s linear infinite;
+    }
+    > span { opacity:.55; }
 }
 
-a.ttdb__button_browser > span.ttdb__button_browser-inner > span.ttdb__button_browser-text
-{
-    display: block;
-    width: 100%;
-    min-width: 0;
-    text-align: center;
-}
-
-a.ttdb__button_browser > span.ttdb__button_browser-inner > svg.ttdb__button_browser-icon
-{
-    width: 15px;
-    height: 15px;
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    flex: 0 0 auto;
-    fill: currentColor;
-}
-
-a.ttdb__button_browser:where(.loading)::after
-{
-    position: absolute;
-    left: 4px;
-    top: 4px;
-    content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
-}
-
-a.ttdb__button_browser:where([ttdb_mode="__NEXT"])
-{
-    margin-bottom: 10px !important;
-    margin-top: -12px !important;
-    padding: 4px 8px 6px 8px !important;
-}
-
-a.ttdb__button_browser:where([ttdb_mode="APP"])
-{
-    margin: 10px 0px 10px 0px !important;
-}
-
-a.ttdb__button_browser:where(:hover)
-{
-    color: $ttdb-accent-hover !important;
-    text-decoration: none !important;
-}
+a.ttdb__button_browser:where([ttdb_mode="__NEXT"]) { margin-bottom:10px !important; margin-top:-12px !important; }
+a.ttdb__button_browser:where([ttdb_mode="APP"]) { margin:10px 0 !important; }
+a.ttdb__button_browser:where(:hover) { color:#fff !important; }
