@@ -1,12 +1,11 @@
-import { TTDB } from '../state';
-import { createButton } from '../ui/buttons';
-import { itemData } from '../item-data';
-import { downloadHook } from '../download/download-hook';
-import { findVideoUrls } from '../extractors/share';
-import { collectSlideshowImageUrls } from '../slideshow/collect-image-urls';
-import { setDownloadButtonIconVariant } from '../ui/buttons';
-import { injectActionButton } from './shared/action-button';
-import { attachSlideshowLauncher } from './shared/slideshow-launcher';
+import { TTDB } from '@/content/core/state';
+import { createButton, setDownloadButtonIconVariant } from '@/content/ui/buttons';
+import { itemData } from '@/content/items/data-registry';
+import { downloadHook } from '@/content/download/flow/download-hook';
+import { findVideoUrls } from '@/content/extractors/share';
+import { collectSlideshowImageUrls } from '@/content/slideshow/collect-image-urls';
+import { injectActionButton } from '@/content/modes/shared/action-button';
+import { attachSlideshowLauncher } from '@/content/modes/shared/slideshow-launcher';
 
 const FEED_MEDIA_PREVIEW_SELECTORS = {
 	app: ':scope > div:first-child',
@@ -28,10 +27,10 @@ const injectFeedActionButton = (data) => {
 			actionBar.prepend(nextButton);
 		},
 		resolveObserveTarget: (actionBar) => {
-			return actionBar && actionBar.parentNode ? actionBar.parentNode : null;
+			return actionBar?.parentNode ? actionBar.parentNode : null;
 		},
 		isButtonAlreadyPresent: (actionBar, nextButton) => {
-			return !!actionBar.querySelector('a.' + [...nextButton.classList].join('.'));
+			return !!actionBar.querySelector(`a.${[...nextButton.classList].join('.')}`);
 		}
 	});
 };
@@ -43,16 +42,16 @@ const getFeedActionBar = (item, data) => {
 	);
 };
 
-const extractFeedVideoId = (element) => {
+export const extractFeedVideoId = (element) => {
 	// Prefer the canonical link-based ID when available.
 	const shareData = findVideoUrls(element);
-	if (shareData && shareData.videoId) {
+	if (shareData) {
 		return shareData.videoId;
 	}
 
 	const xgWrapper = element.querySelector('div.xgplayer-container, div[id^="xgwrapper-"]');
 
-	if (!xgWrapper || !xgWrapper.hasAttribute('id')) {
+	if (!xgWrapper?.hasAttribute('id')) {
 		return false;
 	}
 

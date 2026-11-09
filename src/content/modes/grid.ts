@@ -1,8 +1,8 @@
-import { DOM } from '../dom';
-import { pipe } from '../logging';
-import { createButton } from '../ui/buttons';
-import { itemData } from '../item-data';
-import { downloadHook } from '../download/download-hook';
+import { DOM } from '@/content/core/dom';
+import { pipe } from '@/content/core/logging';
+import { createButton } from '@/content/ui/buttons';
+import { itemData } from '@/content/items/data-registry';
+import { downloadHook } from '@/content/download/flow/download-hook';
 
 export const createGridMode = () => (item, data) => {
 	item.setAttribute('is-downloadable', 'true');
@@ -10,9 +10,8 @@ export const createGridMode = () => (item, data) => {
 	const button = createButton.GRID();
 	button.ttdbItem = item;
 
-	// Grid items sometimes require a short "await" period before `itemData` is populated.
-	// The previous implementation used a single global interval ID, which meant hovering
-	// multiple items could cancel each other's timers. Keep the timer per-item instead.
+	// Grid items sometimes need a brief wait before `itemData` is available.
+	// Keep the timer on the item so different cards do not interfere with each other.
 	const clearAwaitTimer = () => {
 		if (typeof item.ttdbAwaitVideoDataTimerId === 'number') {
 			clearInterval(item.ttdbAwaitVideoDataTimerId);
@@ -76,7 +75,7 @@ export const createGridMode = () => (item, data) => {
 		: null;
 
 	(coverContainer || item).appendChild(button);
-	setTimeout(() => { button.style.opacity = 1; }, 100);
+	setTimeout(() => { button.style.opacity = '1'; }, 100);
 
 	return true;
 };

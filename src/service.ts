@@ -4,34 +4,53 @@
 // - MV3 service workers (and content scripts) are loaded as classic scripts.
 // - That means they cannot use ESM `import ... from ...` unless the manifest opts into modules.
 //
-// Vite/Rollup will emit `import` statements if two entrypoints share a module. To keep the
-// extension compatible across browsers (especially Firefox), we keep this settings schema
-// local to the service worker to avoid cross-entry shared chunks.
-//
-// Keep this in sync with `src/options.ts` (popup UI defaults).
-const TTDB_OPTIONS = {
-	'download-subfolder-path': {
-		type: 'text',
-		default: ''
-	},
-	'download-naming-template': {
-		type: 'text',
-		default: '{uploader} - {id}'
+// Vite/Rollup can emit `import` statements when entrypoints share modules. Keep
+// service-worker helpers local until the manifest/build explicitly supports module workers.
+
+import type {
+	DownloadStatusMessage,
+	FileDownloadMessage,
+	FileDownloadResponse,
+	RuntimeInfoResponse,
+	RuntimeTask
+} from '@/types';
+
+const SERVICE = {
+	downloadSessions: {
+		maxEntries: 800,
+		ttlMs: 12 * 60 * 60 * 1000 // 12 hours
 	}
 } as const;
 
-// Extension settings exposed to the popup UI (via `optionsGet`).
-//
-// Note on defaults:
-// Historically we used `false` as a sentinel. That made "Reset" confusing
-// (it would literally reset text inputs to `false`). We now use real defaults
-// and migrate legacy values in storage on startup.
-const options: Record<string, { type: string; default: unknown; current: unknown }> = Object.fromEntries(
-	Object.entries(TTDB_OPTIONS).map(([key, schema]) => ([key, { ...schema, current: null }]))
-);
+type DownloadSession = {
+	tabId: number | null;
+	startedAt: number;
+	browser: 'firefox' | 'chromium';
+};
 
-/** Active download sessions */
-const globalState = globalThis as any;
+type ServiceGlobalState = typeof globalThis & {
+	downloadSessions: Map<number, DownloadSession>;
+	__ttdbDownloadChangeListener?: (delta: any) => void;
+	__ttdbDownloadChangeListenerInstalled?: boolean;
+};
+
+type ServiceTaskArgs<TData = Record<string, unknown>> = {
+	data: TData;
+	sender?: {
+		tab?: {
+			id?: number;
+		};
+	};
+	sendResponse: (response?: unknown) => void;
+};
+
+// Active TTDB download sessions.
+//
+// Chromium and Brave download events are global to the browser. Registering
+// `chrome.downloads.onChanged` can make unrelated downloads consult/wake this
+// extension and delay filename dialogs or browser download UI, so the listener
+// below is installed only while we have TTDB item IDs to watch.
+const globalState = globalThis as ServiceGlobalState;
 globalState.downloadSessions = globalState.downloadSessions || new Map();
 
 // Safety guard: the service worker can miss `downloads.onChanged` terminal signals (tab closes,
@@ -39,11 +58,8 @@ globalState.downloadSessions = globalState.downloadSessions || new Map();
 // retain IDs forever within a long-lived worker.
 //
 // We prune opportunistically (on download requests + on change events) to avoid an always-on timer.
-const MAX_DOWNLOAD_SESSIONS = 800;
-const DOWNLOAD_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
-
 const pruneDownloadSessions = () => {
-	const sessions: Map<number, any> = globalState.downloadSessions;
+	const sessions = globalState.downloadSessions;
 	if (!sessions || typeof sessions.size !== 'number' || sessions.size === 0) return;
 
 	const nowMs = Date.now();
@@ -51,13 +67,13 @@ const pruneDownloadSessions = () => {
 	// 1) TTL prune
 	for (const [id, session] of sessions.entries()) {
 		const startedAt = typeof session?.startedAt === 'number' ? session.startedAt : nowMs;
-		if (nowMs - startedAt > DOWNLOAD_SESSION_TTL_MS) {
+		if (nowMs - startedAt > SERVICE.downloadSessions.ttlMs) {
 			sessions.delete(id);
 		}
 	}
 
 	// 2) Cap prune (evict oldest)
-	if (sessions.size > MAX_DOWNLOAD_SESSIONS) {
+	if (sessions.size > SERVICE.downloadSessions.maxEntries) {
 		const ordered = Array.from(sessions.entries())
 			.map(([id, session]) => ({
 				id,
@@ -66,74 +82,99 @@ const pruneDownloadSessions = () => {
 			.sort((a, b) => a.startedAt - b.startedAt);
 
 		let idx = 0;
-		while (sessions.size > MAX_DOWNLOAD_SESSIONS && idx < ordered.length) {
+		while (sessions.size > SERVICE.downloadSessions.maxEntries && idx < ordered.length) {
 			sessions.delete(ordered[idx++].id);
 		}
 	}
 };
 
+const hasDownloadSessions = () => {
+	const sessions = globalState.downloadSessions;
+	return !!sessions && typeof sessions.size === 'number' && sessions.size > 0;
+};
+
+const removeDownloadChangeListenerIfIdle = () => {
+	if (hasDownloadSessions()) return;
+	if (!globalState.__ttdbDownloadChangeListenerInstalled) return;
+	if (typeof globalState.__ttdbDownloadChangeListener !== 'function') return;
+
+	chrome.downloads.onChanged.removeListener(globalState.__ttdbDownloadChangeListener);
+	globalState.__ttdbDownloadChangeListenerInstalled = false;
+};
+
+const sanitizePathPart = (value: string) => {
+	const cleaned = Array.from(value, (character) => character.charCodeAt(0) < 32 ? '-' : character)
+		.join('').replace(/[<>:"/\\|?*]/g, '-').trim().replace(/[. ]+$/, '');
+	if (!cleaned || cleaned === '.' || cleaned === '..') return '_';
+	return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(cleaned) ? `_${cleaned}` : cleaned;
+};
+
+const buildDownloadPath = (filename: string, subFolder: unknown) => {
+	const folders = typeof subFolder === 'string'
+		? subFolder.replace(/\\/g, '/').split('/').filter(Boolean).map(sanitizePathPart)
+		: [];
+	return [...folders, sanitizePathPart(filename)].join('/');
+};
+
+const isSupportedDownloadUrl = (url: unknown): url is string => {
+	if (typeof url !== 'string') return false;
+	try {
+		return ['http:', 'https:', 'blob:'].includes(new URL(url).protocol);
+	} catch (_) {
+		return false;
+	}
+};
+
 /**
- * Install a single `downloads.onChanged` listener for this service worker.
+ * Install one minimal `downloads.onChanged` listener while TTDB downloads are active.
  *
- * Why: Firefox MV3 service workers can be suspended between events. We avoid
+ * Firefox MV3 service workers can be suspended between events. We avoid
  * holding open message channels waiting for `onChanged` and instead:
  * - respond to the content script immediately when a download *starts*
  * - send a separate runtime message back to the originating tab on complete/error
+ *
+ * Chromium/Brave download change events are global, so this handler does the least
+ * possible work for unrelated IDs and removes itself as soon as TTDB has no sessions.
  */
 const ensureDownloadChangeListener = () => {
 	if (globalState.__ttdbDownloadChangeListenerInstalled) return;
+
+	if (typeof globalState.__ttdbDownloadChangeListener !== 'function') {
+		globalState.__ttdbDownloadChangeListener = (delta: any) => {
+			// Fast path for unrelated browser downloads. This is the important Chromium
+			// guard: ignore global events unless the ID belongs to a TTDB-started download.
+			if (!delta || typeof delta.id !== 'number') return;
+			if (!globalState.downloadSessions?.has(delta.id)) return;
+
+			const session = globalState.downloadSessions.get(delta.id);
+			const tabId = session && typeof session.tabId === 'number' ? session.tabId : null;
+
+			const isComplete = !!delta.endTime || (delta.state && delta.state.current === 'complete');
+			const isError = !!delta.error;
+
+			if (!isComplete && !isError) return;
+
+			globalState.downloadSessions.delete(delta.id);
+
+			// Best-effort: if the tab navigated away, `sendMessage` can fail.
+			if (typeof tabId === 'number') {
+				const payload: DownloadStatusMessage = isComplete
+					? { task: 'downloadStatus', itemId: delta.id, state: 'complete' }
+					: { task: 'downloadStatus', itemId: delta.id, state: 'error', error: delta.error?.current || delta.error };
+
+				chrome.tabs.sendMessage(tabId, payload, () => {
+					// Ignore lastError (tab not available / no content script).
+					void chrome.runtime?.lastError;
+				});
+			}
+
+			pruneDownloadSessions();
+			removeDownloadChangeListenerIfIdle();
+		};
+	}
+
+	chrome.downloads.onChanged.addListener(globalState.__ttdbDownloadChangeListener);
 	globalState.__ttdbDownloadChangeListenerInstalled = true;
-
-	chrome.downloads.onChanged.addListener((delta) => {
-		pruneDownloadSessions();
-
-		if (!delta || typeof delta.id !== 'number') return;
-		if (!globalState.downloadSessions || !globalState.downloadSessions.has(delta.id)) return;
-
-		const session = globalState.downloadSessions.get(delta.id);
-		const tabId = session && typeof session.tabId === 'number' ? session.tabId : null;
-
-		const isComplete = !!delta.endTime || (delta.state && delta.state.current === 'complete');
-		const isError = !!delta.error;
-
-		if (!isComplete && !isError) return;
-
-		globalState.downloadSessions.delete(delta.id);
-
-		// Best-effort: if the tab navigated away, `sendMessage` can fail.
-		if (typeof tabId === 'number') {
-			const payload = isComplete
-				? { task: 'downloadStatus', itemId: delta.id, state: 'complete' }
-				: { task: 'downloadStatus', itemId: delta.id, state: 'error', error: delta.error?.current || delta.error };
-
-			chrome.tabs.sendMessage(tabId, payload, () => {
-				// Ignore lastError (tab not available / no content script).
-				void chrome.runtime?.lastError;
-			});
-		}
-	});
-};
-
-/** Set default storage values */
-for (const [key, option] of Object.entries(options)) {
-	chrome.storage.local.get(key, (result) => {
-		const hasValue = !!result && Object.prototype.hasOwnProperty.call(result, key);
-		const currentValue = hasValue ? result[key] : undefined;
-
-		// Migrate legacy sentinel values + ensure defaults exist.
-		const isValidText = option?.type === 'text' ? typeof currentValue === 'string' : true;
-		const shouldSetDefault = !hasValue || !isValidText || currentValue === false || currentValue === null;
-		if (!shouldSetDefault) return;
-
-		chrome.storage.local.set({ [key]: option.default });
-	});
-}
-
-/**
- * Options getter
- */
-const optionsGet = (args) => {
-	return args.sendResponse(options);
 };
 
 /**
@@ -141,15 +182,17 @@ const optionsGet = (args) => {
  * 
  * @param {object} args 
  */
-const fileDownload = async (args) => {
-	let [filename, url, subFolder] = [
+const fileDownload = async (args: ServiceTaskArgs<FileDownloadMessage>) => {
+	const [filename, url, subFolder] = [
 		args.data.filename,
 		args.data.url,
 		args.data.subFolder
 	];
+	const referer = typeof args.data.referer === 'string' ? args.data.referer : '';
 
-	if (subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
-		subFolder = subFolder + '/';
+	if (typeof filename !== 'string' || !filename.trim() || !isSupportedDownloadUrl(url)) {
+		args.sendResponse({ success: false, error: 'Invalid download filename or URL.' } satisfies FileDownloadResponse);
+		return;
 	}
 
 	try {
@@ -161,63 +204,86 @@ const fileDownload = async (args) => {
 		const isFirefox = typeof rt?.getBrowserInfo === 'function';
 		if (isFirefox && typeof url === 'string' && url.startsWith('blob:')) {
 			console.warn('[TTDB]', 'Download blocked (blob URL)', {
-				filename: `${subFolder ? subFolder : ''}${filename}`,
+				filename: buildDownloadPath(filename, subFolder),
 				url
 			});
-			args.sendResponse({
+			const response: FileDownloadResponse = {
 				success: false,
 				error: 'Cannot download blob URLs from the background script.'
-			});
+			};
+			args.sendResponse(response);
 			return;
 		}
 
 		console.log('[TTDB]', 'Attempting download', {
-			filename: `${subFolder ? subFolder : ''}${filename}`, url: url
+			filename: buildDownloadPath(filename, subFolder), url: url
 		});
 
+		// Clear stale watched IDs before starting another download. If that leaves no
+		// TTDB sessions, the global Chromium/Brave listener is removed.
 		pruneDownloadSessions();
-		ensureDownloadChangeListener();
+		removeDownloadChangeListenerIfIdle();
+
+		// Firefox background downloads come from the extension context instead of the
+		// page, so some signed TikTok URLs need an explicit referer to succeed.
+		const downloadHeaders = [];
+		if (isFirefox && /^https?:/i.test(referer)) {
+			downloadHeaders.push({
+				name: 'Referer',
+				value: referer
+			});
+		}
 
 		chrome.downloads.download({
 			conflictAction: 'uniquify',
-			filename: `${subFolder ? subFolder : ''}${filename}`,
+			filename: buildDownloadPath(filename, subFolder),
 			url: url,
-			...(url.startsWith('http') && { method: 'GET' }),
+			...(/^https?:/i.test(url) && { method: 'GET' }),
+			...(downloadHeaders.length ? { headers: downloadHeaders } : {}),
 			saveAs: false
 		}, (itemId) => {
 			const lastError = chrome.runtime?.lastError;
 			if (lastError) {
 				console.warn('[TTDB]', 'Download failed to start', {
-					filename: `${subFolder ? subFolder : ''}${filename}`,
+					filename: buildDownloadPath(filename, subFolder),
 					url,
 					error: lastError.message || String(lastError)
 				});
-				args.sendResponse({ success: false, error: lastError.message || String(lastError) });
+				const response: FileDownloadResponse = { success: false, error: lastError.message || String(lastError) };
+				args.sendResponse(response);
 				return;
 			}
 
 			if (typeof itemId !== 'number') {
 				console.warn('[TTDB]', 'Download failed to start (no itemId)', {
-					filename: `${subFolder ? subFolder : ''}${filename}`,
+					filename: buildDownloadPath(filename, subFolder),
 					url
 				});
-				args.sendResponse({ success: false, error: 'Download did not start (no itemId).' });
+				const response: FileDownloadResponse = { success: false, error: 'Download did not start (no itemId).' };
+				args.sendResponse(response);
 				return;
 			}
 
-			// Store the originating tab so we can notify it later when the download ends.
+			// Store only the originating tab and start time. We only care about terminal
+			// download state, not progress updates. Firefox uses errors for retry/fallback;
+			// Chromium uses completion/error to update the UI while keeping the listener
+			// installed only during active TTDB downloads.
 			const tabId = args.sender?.tab?.id;
 			globalState.downloadSessions.set(itemId, {
 				tabId: typeof tabId === 'number' ? tabId : null,
-				startedAt: Date.now()
+				startedAt: Date.now(),
+				browser: isFirefox ? 'firefox' : 'chromium'
 			});
+			ensureDownloadChangeListener();
 
 			// IMPORTANT: respond immediately. Holding the message channel open until the
 			// download completes is fragile in Firefox MV3 (service worker suspension).
-			args.sendResponse({ itemId, success: true });
+			const response: FileDownloadResponse = { itemId, success: true };
+			args.sendResponse(response);
 		});
 	} catch (error) {
-		args.sendResponse({ success: false, error });
+		const response: FileDownloadResponse = { success: false, error: error instanceof Error ? error.message : String(error) };
+		args.sendResponse(response);
 	}
 };
 
@@ -229,18 +295,21 @@ const fileDownload = async (args) => {
  * - The service worker runs in the extension context and can reliably detect Firefox via
  *   `runtime.getBrowserInfo`.
  */
-const runtimeInfo = async (args) => {
+const runtimeInfo = async (args: ServiceTaskArgs) => {
 	try {
 		const rt = ((globalThis as any).browser ?? (globalThis as any).chrome ?? chrome)?.runtime as any;
 		const isFirefox = typeof rt?.getBrowserInfo === 'function';
 
 		// Keep the response minimal; content scripts only need stable booleans for behavior.
-		args.sendResponse({
+		const response: RuntimeInfoResponse = {
 			success: true,
-			isFirefox
-		});
+			isFirefox,
+			isChromium: !isFirefox
+		};
+		args.sendResponse(response);
 	} catch (error) {
-		args.sendResponse({ success: false, error });
+		const response: RuntimeInfoResponse = { success: false, error };
+		args.sendResponse(response);
 	}
 };
 
@@ -256,20 +325,21 @@ const showDefaultFolder = () => {
  */
 chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 	// Task IDs and their corresponding methods
-	const tasks = {
+	const tasks: Partial<Record<RuntimeTask, (args: ServiceTaskArgs<any>) => unknown>> = {
 		'fileDownload': fileDownload,
 		'fileShow': showDefaultFolder,
-		'optionsGet': optionsGet,
 		'runtimeInfo': runtimeInfo
 	};
 
-	if (tasks[data.task]) {
-		tasks[data.task]({ // Perform task
+	const task = data?.task as RuntimeTask | undefined;
+	if (task && Object.hasOwn(tasks, task) && tasks[task]) {
+		tasks[task]({ // Perform task
 			data,
 			sender,
 			sendResponse
 		});
+		return task !== 'fileShow';
 	}
 
-	return true;
+	return false;
 });

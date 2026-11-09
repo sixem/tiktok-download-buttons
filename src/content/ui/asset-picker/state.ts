@@ -3,6 +3,8 @@
 // This file intentionally keeps mutable runtime state in one place so DOM, render,
 // and event modules can stay focused and predictable.
 
+import { normalizeAssetList } from '@/content/utils';
+
 export type PickerAsset = {
 	id?: string;
 	url: string;
@@ -77,18 +79,7 @@ export const assetPickerState: {
 };
 
 export const normalizeAssets = (assets: PickerAsset[]) => {
-	const seen = new Set<string>();
-	const normalized: PickerAsset[] = [];
-
-	(assets || []).forEach((asset) => {
-		if (!asset || !asset.url) return;
-		const url = String(asset.url).trim();
-		if (!url || seen.has(url)) return;
-		seen.add(url);
-		normalized.push({ ...asset, url });
-	});
-
-	return normalized;
+	return normalizeAssetList(assets);
 };
 
 export const setEntriesFromAssets = (assets: PickerAsset[]) => {

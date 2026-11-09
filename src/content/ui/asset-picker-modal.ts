@@ -6,10 +6,10 @@
 // - render.ts : list/status rendering
 // - events.ts : listeners and open/close lifecycle
 
-import { TTDB } from '../state';
-import { attachAssetPickerDomListeners } from './asset-picker/events';
-import { ensureAssetPickerDom, setButtonContent } from './asset-picker/dom';
-import { renderEntries, updateStatus } from './asset-picker/render';
+import { TTDB } from '@/content/core/state';
+import { attachAssetPickerDomListeners } from '@/content/ui/asset-picker/events';
+import { ensureAssetPickerDom, setButtonContent } from '@/content/ui/asset-picker/dom';
+import { renderEntries, updateStatus } from '@/content/ui/asset-picker/render';
 import {
 	assetPickerState,
 	BODY_OPEN_CLASS,
@@ -62,23 +62,4 @@ export const openAssetPickerModal = (options: OpenAssetPickerOptions) => {
 export const setupAssetPickerModal = () => {
 	TTDB.assetPicker = TTDB.assetPicker || {};
 	TTDB.assetPicker.open = openAssetPickerModal;
-};
-
-// Backwards-compatible helpers while we migrate call-sites.
-export const openSlideshowModal = (imageUrls: string[]) => {
-	openAssetPickerModal({
-		assets: (imageUrls || []).map((url, index) => ({
-			id: `image-${index + 1}`,
-			url,
-			label: `Image ${index + 1}`
-		})),
-		title: 'Select images',
-		subtitle: 'Choose the slides you want. All are selected by default.',
-		primaryLabel: 'Download selected',
-		hint: DEFAULT_HINT
-	});
-};
-
-export const setupSlideshowModal = () => {
-	setupAssetPickerModal();
 };

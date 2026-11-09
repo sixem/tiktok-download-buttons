@@ -1,11 +1,11 @@
-import { EXPR } from '../state';
+import { EXPR } from '@/content/core/state';
 
 export const setupExpressions = () => {
 	EXPR.vanillaVideoUrl = (haystack, options = {}) => {
 		let expression = ('https?:\\/\\/(?:www\\.)?tiktok\\.com\\/@([^\\/]+)\\/video\\/([0-9]+)');
 
 		if (options.strict) {
-			expression = ('^' + expression + '$');
+			expression = (`^${expression}$`);
 		}
 
 		const matches = new RegExp(expression).exec(haystack);

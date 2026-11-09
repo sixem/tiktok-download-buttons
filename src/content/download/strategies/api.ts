@@ -2,8 +2,8 @@
 //
 // Used when we resolved a signed video URL via TikTok's API (web API or item-detail API).
 
-import type { DownloadContext } from '../download-coordinator';
-import { downloadWithMethodTag } from '../download-coordinator';
+import type { DownloadContext } from '@/content/download/flow/download-coordinator';
+import { startDownload } from '@/content/download/flow/download-coordinator';
 
 export const downloadViaApi = (
 	url: string,
@@ -12,13 +12,12 @@ export const downloadViaApi = (
 	attemptId: string | number | null = null,
 	context: DownloadContext | null = null
 ) => {
-	return downloadWithMethodTag({
+	return startDownload({
 		url,
 		filename,
 		buttonElement,
 		attemptId,
 		context,
-		methodTag: 'API'
+		sourceTag: 'API'
 	});
 };
-

@@ -4,7 +4,9 @@
 // - resolve a live slot container
 // - initialize button once
 // - place/re-place button when DOM mutates
-// - observe and self-disconnect after inactivity
+// - stop observing detached content after inactivity
+
+import { isNode } from '@/content/utils';
 
 type AnySlot = unknown;
 
@@ -21,10 +23,6 @@ type InjectActionButtonArgs<TSlot = AnySlot> = {
 
 const DEFAULT_DISCONNECT_MS = 1E5;
 const DEFAULT_FADE_IN_DELAY_MS = 50;
-
-const isNode = (value: unknown): value is Node => {
-	return !!value && typeof value === 'object' && 'nodeType' in (value as any);
-};
 
 const defaultObserveTarget = (slot: AnySlot): Node | null => {
 	if (!slot || typeof slot !== 'object') return null;
@@ -77,20 +75,30 @@ export const injectActionButton = <TSlot = AnySlot>({
 	const observeTarget = resolveObserveTarget(resolveSlot());
 	if (!observeTarget || !isNode(observeTarget)) return;
 
-	const observer = new MutationObserver(() => {
-		ensureInjected();
-
-		if (typeof timer === 'number') {
+	const scheduleDisconnect = () => {
+		if (timer !== null) {
 			clearTimeout(timer);
 		}
 
 		timer = setTimeout(() => {
-			observer.disconnect();
+			// Keep repairing controls for as long as their page is still mounted.
+			// A video viewer can remain open long after the inactivity interval.
+			if (observeTarget.isConnected) {
+				scheduleDisconnect();
+			} else {
+				observer.disconnect();
+			}
 		}, observerDisconnectMs) as unknown as number;
+	};
+
+	const observer = new MutationObserver(() => {
+		ensureInjected();
+		scheduleDisconnect();
 	});
 
 	observer.observe(observeTarget, {
 		childList: true,
 		subtree: true
 	});
+	scheduleDisconnect();
 };

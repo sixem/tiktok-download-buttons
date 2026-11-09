@@ -1,0 +1,105 @@
+// Shared in-page fetch->blob fallback.
+//
+// This keeps retry behavior in one place so Firefox retry paths and future
+// fallback call-sites do not drift in probe logic or toast semantics.
+
+import { TTDB, UTIL } from '@/content/core/state';
+import { IN_PAGE_FETCH } from '@/content/download/constants';
+import { attemptBlobAnchorDownload } from '@/content/download/execute/blob-anchor';
+import type { DownloadToastPresenter } from '@/content/download/ui/toast-presenter';
+
+export type InPageFetchProbeMode = 'strict' | 'video-content-type';
+
+const validateProbeResponse = (response: Response, probeMode: InPageFetchProbeMode) => {
+	if (probeMode === 'strict') {
+		return {
+			isValid: !!UTIL.validateVideoRequest(response) && !!response?.body,
+			contentType: response?.headers?.get?.('Content-Type') || ''
+		};
+	}
+
+	const contentType = response?.headers?.get?.('Content-Type') || '';
+	const looksLikeVideo = contentType.includes('video/') || contentType.includes('application/octet-stream');
+	return {
+		isValid: !!response?.ok && !!response?.body && looksLikeVideo,
+		contentType
+	};
+};
+
+export const formatChainedDownloadTag = (fromTag: string | null | undefined, toTag: string) => {
+	if (!toTag) return fromTag || null;
+	if (!fromTag) return toTag;
+	if (fromTag === toTag) return toTag;
+	return `${fromTag}->${toTag}`;
+};
+
+export const executeInPageFetchBlobFallback = async ({
+	url,
+	filename,
+	toastPresenter,
+	toastTag,
+	sourceTag = null,
+	probeMode = 'video-content-type',
+	logDownload
+}: {
+	url: string;
+	filename: string;
+	toastPresenter: DownloadToastPresenter;
+	toastTag?: string | null;
+	sourceTag?: string | null;
+	probeMode?: InPageFetchProbeMode;
+	logDownload: any;
+}) => {
+	const resolvedToastTag = typeof toastTag === 'string' ? toastTag : sourceTag;
+
+	if (!url || typeof url !== 'string' || !/^https?:/i.test(url)) {
+		return false;
+	}
+
+	try {
+		toastPresenter.showRetryingInPageFetch();
+
+		const response = await fetch(url, TTDB.headers);
+		const probe = validateProbeResponse(response, probeMode);
+		if (!probe.isValid) {
+			logDownload?.warn?.('in-page fetch fallback probe failed', {
+				status: response?.status,
+				contentType: probe.contentType || null,
+				probeMode,
+				sourceTag: sourceTag || null
+			});
+			return false;
+		}
+
+		const blob = await response.blob();
+		const blobUrl = URL.createObjectURL(blob);
+		const started = attemptBlobAnchorDownload(blobUrl, filename);
+
+		setTimeout(() => {
+			try {
+				URL.revokeObjectURL(blobUrl);
+			} catch (_) {
+				// Best-effort cleanup.
+			}
+		}, IN_PAGE_FETCH.blobRevokeDelayMs);
+
+		toastPresenter.showInPageFetchResult({
+			started,
+			tag: resolvedToastTag
+		});
+
+		logDownload?.info?.('in-page fetch fallback result', {
+			started,
+			probeMode,
+			sourceTag: sourceTag || null
+		});
+		return started;
+	} catch (error) {
+		logDownload?.warn?.('in-page fetch fallback error', {
+			error,
+			probeMode,
+			sourceTag: sourceTag || null
+		});
+		return false;
+	}
+};

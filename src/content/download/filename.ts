@@ -1,5 +1,4 @@
-import { UTIL } from '../state';
-import { pipe } from '../logging';
+import { pipe } from '@/content/core/logging';
 
 const _get = (obj, path, defValue) => {
 	if (!path) {
@@ -8,7 +7,7 @@ const _get = (obj, path, defValue) => {
 
 	const pathArray = Array.isArray(path) ? path : path.match(/([^.[\]])+/g);
 	const result = pathArray.reduce(
-		(prevObj, key) => prevObj && prevObj[key],
+		(prevObj, key) => prevObj?.[key],
 		obj
 	);
 
@@ -33,13 +32,17 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 	};
 
 	for (const [key, value] of Object.entries(templateKeys)) {
-		if (!templateValues.hasOwnProperty(key)) {
+		if (!Object.hasOwn(templateValues, key)) {
 			let keyData = null;
 			for (const item of value) {
 				if (!Array.isArray(item) && item) {
 					keyData = item; break;
-				} else if (Array.isArray(item) && UTIL.checkNested(apiData, ...item)) {
-					keyData = _get(apiData, item.join('.'), undefined); break;
+				} else if (Array.isArray(item)) {
+					const resolvedValue = _get(apiData, item, undefined);
+					if (resolvedValue !== undefined && resolvedValue !== null
+						&& !(typeof resolvedValue === 'string' && !resolvedValue.trim())) {
+						keyData = resolvedValue; break;
+					}
 				}
 			}
 
@@ -48,7 +51,7 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 	}
 
 	for (const timestamp of ['uploaded', 'timestamp']) {
-		templateValues[timestamp] = parseInt(templateValues[timestamp]);
+		templateValues[timestamp] = parseInt(templateValues[timestamp], 10);
 
 		if (Number.isInteger(templateValues[timestamp]) && templateValues[timestamp] > 0) {
 			const ts = new Date(templateValues[timestamp] * 1000);

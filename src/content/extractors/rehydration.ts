@@ -1,5 +1,15 @@
-import { UTIL } from '../state';
-import { pipe } from '../logging';
+import { UTIL } from '@/content/core/state';
+import { pipe } from '@/content/core/logging';
+
+type TikTokVideoStruct = {
+	id?: string | number;
+	aweme_id?: string | number;
+	itemStruct?: TikTokVideoStruct;
+	video?: {
+		id?: string | number;
+	};
+	[key: string]: unknown;
+};
 
 export const parseRehydrationData = (rootDocument = document) => {
 	const script = rootDocument.querySelector('script#__UNIVERSAL_DATA_FOR_REHYDRATION__')
@@ -7,7 +17,7 @@ export const parseRehydrationData = (rootDocument = document) => {
 		|| rootDocument.querySelector('script#__NEXT_DATA__');
 	if (!script) return null;
 
-	const raw = (script.textContent || script.innerText || '').trim();
+	const raw = (script.textContent || '').trim();
 	if (!raw) return null;
 
 	let jsonText = raw;
@@ -51,7 +61,7 @@ export const extractMetaVideoInfo = (rootDocument = document) => {
 
 const matchesVideoId = (item, videoId) => {
 	if (!item || !videoId) return false;
-	const itemId = item.id || item.aweme_id || (item.video && item.video.id) || (item.itemStruct && item.itemStruct.id);
+	const itemId = item.id || item.aweme_id || item.video?.id || item.itemStruct?.id;
 	return itemId && String(itemId) === String(videoId);
 };
 
@@ -62,7 +72,7 @@ const findVideoStructById = (root, videoId, seen = new Set()) => {
 
 	if (matchesVideoId(root, videoId)) {
 		if (root.video) return root;
-		if (root.itemStruct && root.itemStruct.video) return root.itemStruct;
+		if (root.itemStruct?.video) return root.itemStruct;
 	}
 
 	if (root.itemStruct && matchesVideoId(root.itemStruct, videoId)) {
@@ -82,13 +92,13 @@ export const extractWebappDetail = (UD, videoId = null) => {
 	if (!UD) return { status: null, webappDetail: null };
 
 	const scope = UD.__DEFAULT_SCOPE__ || UD;
-	let status = UTIL.traverseObj(scope, ['webapp.video-detail', 'statusCode']);
+	let status = UTIL.traverseObj<number>(scope, ['webapp.video-detail', 'statusCode']);
 	if (status === undefined || status === null) {
-		status = UTIL.traverseObj(UD, ['webapp.video-detail', 'statusCode']);
+		status = UTIL.traverseObj<number>(UD, ['webapp.video-detail', 'statusCode']);
 	}
 
-	let webappDetail = UTIL.traverseObj(scope, ['webapp.video-detail', 'itemInfo', 'itemStruct'])
-		|| UTIL.traverseObj(UD, ['webapp.video-detail', 'itemInfo', 'itemStruct']);
+	let webappDetail = UTIL.traverseObj<TikTokVideoStruct>(scope, ['webapp.video-detail', 'itemInfo', 'itemStruct'])
+		|| UTIL.traverseObj<TikTokVideoStruct>(UD, ['webapp.video-detail', 'itemInfo', 'itemStruct']);
 
 	if (videoId && webappDetail && !matchesVideoId(webappDetail, videoId)) {
 		webappDetail = null;
@@ -96,12 +106,12 @@ export const extractWebappDetail = (UD, videoId = null) => {
 	}
 
 	if (!webappDetail) {
-		const itemModule = UTIL.traverseObj(scope, ['webapp.video-detail', 'itemModule'])
-			|| UTIL.traverseObj(scope, ['itemModule'])
-			|| UTIL.traverseObj(scope, ['ItemModule'])
-			|| UTIL.traverseObj(UD, ['webapp.video-detail', 'itemModule'])
-			|| UTIL.traverseObj(UD, ['itemModule'])
-			|| UTIL.traverseObj(UD, ['ItemModule']);
+		const itemModule = UTIL.traverseObj<Record<string, TikTokVideoStruct>>(scope, ['webapp.video-detail', 'itemModule'])
+			|| UTIL.traverseObj<Record<string, TikTokVideoStruct>>(scope, ['itemModule'])
+			|| UTIL.traverseObj<Record<string, TikTokVideoStruct>>(scope, ['ItemModule'])
+			|| UTIL.traverseObj<Record<string, TikTokVideoStruct>>(UD, ['webapp.video-detail', 'itemModule'])
+			|| UTIL.traverseObj<Record<string, TikTokVideoStruct>>(UD, ['itemModule'])
+			|| UTIL.traverseObj<Record<string, TikTokVideoStruct>>(UD, ['ItemModule']);
 
 		if (itemModule && typeof itemModule === 'object') {
 			if (videoId && itemModule[videoId]) {

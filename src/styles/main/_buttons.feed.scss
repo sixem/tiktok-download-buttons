@@ -67,3 +67,39 @@ a.ttdb__button_feed:where(:hover) > div > svg
 {
     color: $ttdb-accent-hover !important;
 }
+
+// Keep the wide player's action rail clear of its separate navigation arrows.
+section.ttdb__anchored-feed-rail
+{
+    gap: 4px !important;
+}
+
+a.ttdb__button_feed.ttdb__button_feed--anchored
+{
+    width: 20px;
+    height: 20px;
+    margin: 0 0 8px;
+    background: transparent !important;
+}
+
+a.ttdb__button_feed.ttdb__button_feed--anchored > div
+{
+    width: 20px;
+    height: 20px;
+}
+
+a.ttdb__button_feed.ttdb__button_feed--anchored > div > svg
+{
+    width: 20px;
+    height: 20px;
+    margin: 0;
+}
+
+a.ttdb__button_feed.ttdb__button_feed--anchored:where(.loading)::after
+{
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    flex: 0 0 20px;
+    transform: translateY(6px);
+}

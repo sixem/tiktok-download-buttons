@@ -1,4 +1,4 @@
-// Prefer direct HTTP(S) sources over blob URLs when possible.
+// Prefer direct HTTP(s) sources over blob URLs when possible.
 // Blob sources are often MediaSource-backed streams and are not reliably downloadable.
 const pickBestVideoUrl = (candidates) => {
 	const normalize = (value) => {
@@ -43,21 +43,24 @@ export const getVideoUrlFromElement = (videoElement) => {
 };
 
 export const getVideoUrlFromButtonContext = (buttonElement) => {
-	const container = buttonElement.closest('[is-downloadable]')
-		|| buttonElement.closest('article')
-		|| buttonElement.ttdbItem;
+	if (!buttonElement) return null;
 
-	if (container) {
-		const containerVideo = container.querySelector('video');
-		const containerUrl = getVideoUrlFromElement(containerVideo);
-		if (containerUrl) return containerUrl;
+	const isArticleScopedButton = buttonElement.classList.contains('ttdb__button_feed')
+		|| buttonElement.classList.contains('ttdb__button_browser');
+
+	// Only resolve videos from this button's own item.
+	// If the local owner is unclear, fail instead of guessing.
+	const container = buttonElement.ttdbItem
+		|| buttonElement.closest('[is-downloadable]')
+		|| (isArticleScopedButton ? buttonElement.closest('article') : null);
+
+	if (!container || typeof container.querySelectorAll !== 'function') {
+		return null;
 	}
 
-	const videos = Array.from(document.querySelectorAll('video'));
-	const playing = videos.find((video) => !video.paused);
-	const playingUrl = getVideoUrlFromElement(playing);
-	if (playingUrl) return playingUrl;
-
+	// Some layouts can contain more than one <video> inside the same owned item root.
+	// Stay local and return the first usable URL from that container only.
+	const videos = container.querySelectorAll('video');
 	for (const video of videos) {
 		const url = getVideoUrlFromElement(video);
 		if (url) return url;

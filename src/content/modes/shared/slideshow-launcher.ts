@@ -6,8 +6,8 @@
 // - log visibility/debug context
 // - open the slideshow picker
 
-import { pipe } from '../../logging';
-import { openSlideshowPicker } from '../../slideshow/picker';
+import { pipe } from '@/content/core/logging';
+import { openSlideshowPicker } from '@/content/slideshow/picker';
 
 type AttachSlideshowLauncherArgs = {
 	button: HTMLElement;

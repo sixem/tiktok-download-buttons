@@ -33,9 +33,12 @@ Due to the constraints mentioned, this is a best-effort addon, and it may not al
 Requires Node `20.19+` or `22.12+`.
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
 pnpm run dev
 ```
+
+Run `pnpm test` and `pnpm lint` to check changes; `pnpm run package` builds
+Chrome and Firefox archives.
 
 ## Not working?
 

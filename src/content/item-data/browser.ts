@@ -1,9 +1,10 @@
 // Browser-mode extraction for single video pages.
-import { TTDB, EXPR } from '../state';
-import { pipe } from '../logging';
-import { findVideoUrls } from '../extractors/share';
+import { TTDB, EXPR } from '@/content/core/state';
+import { pipe } from '@/content/core/logging';
+import { findVideoUrls } from '@/content/extractors/share';
 import {
 	extractDescriptionId,
+	extractDescriptionText,
 	getTextContent,
 	getUserFromProfileLink,
 	selectNamed
@@ -22,6 +23,8 @@ const NEXT_SELECTORS = {
 
 export const extractBrowserData = (data) => {
 	const videoData: any = {};
+	const description = extractDescriptionText(data.container, data.env);
+	if (description) videoData.description = description;
 
 	if (data.env === TTDB.ENV.APP) {
 		const userLink = data.container.querySelector(APP_SELECTORS.userLink);
@@ -44,7 +47,7 @@ export const extractBrowserData = (data) => {
 		if (xgWrapper) {
 			const xgId = xgWrapper.getAttribute('id').split('-').pop();
 
-			if (parseInt(xgId) > 0) {
+			if (parseInt(xgId, 10) > 0) {
 				videoData.videoApiId = xgId;
 
 				if (spanUniqueId) {

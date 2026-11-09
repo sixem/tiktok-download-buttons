@@ -1,9 +1,8 @@
 // Shared option schema for the extension.
 //
 // Why this exists:
-// - The service worker needs defaults + migration rules.
 // - The popup UI needs the same defaults for "Reset" and first-run initialization.
-// Keeping the schema in one place avoids subtle drift over time.
+// - Content scripts read settings defensively and tolerate missing values.
 
 export type TTDBOptionType = 'text' | 'toggle';
 
@@ -22,4 +21,3 @@ export const TTDB_OPTIONS = {
 
 export type TTDBOptionKey = keyof typeof TTDB_OPTIONS;
 export type TTDBOptionSchema = (typeof TTDB_OPTIONS)[TTDBOptionKey];
-

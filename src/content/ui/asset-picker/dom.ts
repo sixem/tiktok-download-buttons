@@ -55,7 +55,7 @@ export const setButtonContent = (button: HTMLButtonElement, label: string, iconN
 };
 
 export const ensureAssetPickerDom = (): AssetPickerDom => {
-	if (assetPickerState.dom && assetPickerState.dom.wrapper.isConnected) {
+	if (assetPickerState.dom?.wrapper.isConnected) {
 		return assetPickerState.dom;
 	}
 

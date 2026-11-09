@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { createBuildToken, withBuildVersionName } from './scripts/utils/build.js';
 
 const ROOT = process.cwd();
 const SRC_DIR = path.join(ROOT, 'src');
@@ -13,6 +14,16 @@ const STATIC_FILES = [
 const copyFile = async (src, dest) => {
 	await fs.mkdir(path.dirname(dest), { recursive: true });
 	await fs.copyFile(src, dest);
+};
+
+const copyManifest = async (src, dest) => {
+	const raw = await fs.readFile(src, 'utf8');
+	const manifest = JSON.parse(raw);
+	// A watch process can rebuild many times; give each output its own identifier.
+	const output = withBuildVersionName(manifest, createBuildToken({ length: 5 }));
+
+	await fs.mkdir(path.dirname(dest), { recursive: true });
+	await fs.writeFile(dest, `${JSON.stringify(output, null, '\t')}\n`);
 };
 
 const copyExtensionAssets = () => ({
@@ -28,16 +39,31 @@ const copyExtensionAssets = () => ({
 	},
 	async closeBundle() {
 		await Promise.all(
-			STATIC_FILES.map((file) => copyFile(
-				path.join(SRC_DIR, file),
-				path.join(OUT_DIR, file)
-			))
+			STATIC_FILES.map((file) => {
+				const from = path.join(SRC_DIR, file);
+				const to = path.join(OUT_DIR, file);
+				return file === 'manifest.json'
+					? copyManifest(from, to)
+					: copyFile(from, to);
+			})
 		);
 	}
 });
 
 export default defineConfig({
 	publicDir: 'public',
+	resolve: {
+		alias: {
+			'@': SRC_DIR
+		}
+	},
+	test: {
+		environment: 'node',
+		include: [
+			'src/**/*.test.ts',
+			'scripts/**/*.test.js'
+		]
+	},
 	build: {
 		outDir: 'dist',
 		emptyOutDir: true,

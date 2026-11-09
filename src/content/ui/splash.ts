@@ -1,30 +1,12 @@
 // Toast-style notifications for the content scripts.
-import { SPLASH } from '../state';
-import { DOM } from '../dom';
+import { SPLASH } from '@/content/core/state';
+import type {
+	SplashMessage as ToastMessage,
+	SplashOptions as ToastOptions
+} from '@/types';
 
 const DEFAULT_TOAST_ID = 'global';
 const DEFAULT_META = 'Click to open downloads';
-
-type ToastMessage = string | {
-	title?: string;
-	detail?: string | null;
-	meta?: string | null;
-	spinner?: boolean;
-};
-
-type ToastOptions = {
-	id?: string | number;
-	detail?: string | null;
-	meta?: string | null;
-	// Small label shown at the far right of the toast title row.
-	// Used for short source indicators like "API", "DOM", "INTERCEPT", "BLOB".
-	tag?: string | null;
-	spinner?: boolean;
-	state?: number;
-	hideMeta?: boolean;
-	sticky?: boolean;
-	duration?: number;
-};
 
 type ToastPayload = {
 	title: string;
@@ -227,7 +209,7 @@ const setToastContent = (toast: HTMLElement, payload: ToastPayload) => {
 };
 
 const clearToastTimer = (toastId: string) => {
-	if (!SPLASH.timers || !SPLASH.timers.has(toastId)) return;
+	if (!SPLASH.timers?.has(toastId)) return;
 
 	clearTimeout(SPLASH.timers.get(toastId));
 	SPLASH.timers.delete(toastId);
@@ -349,7 +331,7 @@ export const setupSplash = () => {
 	};
 
 	SPLASH.dismiss = (toastId: string | number = DEFAULT_TOAST_ID) => {
-		if (!SPLASH.toasts || !SPLASH.toasts.size) return;
+		if (!SPLASH.toasts?.size) return;
 
 		const resolvedId = String(toastId);
 		const toast = SPLASH.toasts.get(resolvedId);
