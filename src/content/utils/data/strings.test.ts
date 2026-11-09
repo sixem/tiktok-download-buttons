@@ -24,6 +24,24 @@ describe('setupStringUtils', () => {
 		expect(UTIL.sanitizeFilename('[draft] #1 clip.mp4')).toBe('[draft] #1 clip.mp4');
 	});
 
+	it('preserves creator captions and names in multiple languages', () => {
+		expect(UTIL.sanitizeFilename('한글 مرحبا Привет café 日本語.mp4')).toBe('한글 مرحبا Привет café 日本語.mp4');
+	});
+
+	it('preserves the actual extension when an earlier part contains .mp4', () => {
+		const filename = UTIL.sanitizeFilename(`clip.mp4 ${'a'.repeat(260)}.mp4`);
+		expect(filename.startsWith('clip.mp4 ')).toBe(true);
+		expect(filename.endsWith('.mp4')).toBe(true);
+		expect(filename.length).toBeLessThanOrEqual(250);
+	});
+
+	it('limits multibyte names by UTF-8 bytes without splitting characters', () => {
+		const filename = UTIL.sanitizeFilename(`${'한😀'.repeat(100)}.mp4`);
+		expect(new TextEncoder().encode(filename).length).toBeLessThanOrEqual(250);
+		expect(filename.endsWith('.mp4')).toBe(true);
+		expect(filename).not.toContain('\uFFFD');
+	});
+
 	it('keeps long names within the current mp4 length limit', () => {
 		const filename = UTIL.sanitizeFilename(`${'a'.repeat(400)}.mp4`);
 		expect(filename.endsWith('.mp4')).toBe(true);

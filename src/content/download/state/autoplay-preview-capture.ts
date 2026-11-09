@@ -32,8 +32,9 @@ export const findVideoIdForVideoElement = (videoEl: HTMLVideoElement) => {
 	const button = itemRoot.querySelector(AUTOPLAY_PREVIEW.buttonSelector) as Element | null;
 	const id = button?.getAttribute?.('video-id') || null;
 	if (id) return id;
-
-	return null;
+	// The wide feed's button lives outside the article; its controller marks only
+	// the active article so preview capture stays scoped to the correct video.
+	return itemRoot.getAttribute?.('data-ttdb-anchored-video-id') || null;
 };
 
 export const setupAutoplayPreviewCapture = () => {

@@ -4,7 +4,7 @@
 // - resolve a live slot container
 // - initialize button once
 // - place/re-place button when DOM mutates
-// - observe and self-disconnect after inactivity
+// - stop observing detached content after inactivity
 
 import { isNode } from '@/content/utils';
 
@@ -75,20 +75,30 @@ export const injectActionButton = <TSlot = AnySlot>({
 	const observeTarget = resolveObserveTarget(resolveSlot());
 	if (!observeTarget || !isNode(observeTarget)) return;
 
-	const observer = new MutationObserver(() => {
-		ensureInjected();
-
-		if (typeof timer === 'number') {
+	const scheduleDisconnect = () => {
+		if (timer !== null) {
 			clearTimeout(timer);
 		}
 
 		timer = setTimeout(() => {
-			observer.disconnect();
+			// Keep repairing controls for as long as their page is still mounted.
+			// A video viewer can remain open long after the inactivity interval.
+			if (observeTarget.isConnected) {
+				scheduleDisconnect();
+			} else {
+				observer.disconnect();
+			}
 		}, observerDisconnectMs) as unknown as number;
+	};
+
+	const observer = new MutationObserver(() => {
+		ensureInjected();
+		scheduleDisconnect();
 	});
 
 	observer.observe(observeTarget, {
 		childList: true,
 		subtree: true
 	});
+	scheduleDisconnect();
 };

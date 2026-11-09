@@ -5,6 +5,7 @@
 
 declare global {
 	interface HTMLElement {
+		ttdbVideoData?: import('./item-data').ItemVideoData;
 		ttdbItem?: Element | null;
 		ttIsProcessed?: boolean;
 		ttIsInitialized?: boolean;

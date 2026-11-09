@@ -9,6 +9,9 @@ import { setupPreviewButtonInteractivity } from '@/content/download/flow/preview
 import type { ItemVideoData } from '@/types';
 
 export const downloadHook = async (button: HTMLElement, videoData: ItemVideoData) => {
+	// Browser-mode controls can survive navigation to a different post. Keep the
+	// current data on the button instead of closing over the first post forever.
+	button.ttdbVideoData = videoData;
 	const videoIdentifier = videoData.id ? videoData.id : Date.now();
 	const fileName = `${videoData.user ? `${videoData.user} - ` : ''}${videoIdentifier}`;
 
@@ -22,10 +25,16 @@ export const downloadHook = async (button: HTMLElement, videoData: ItemVideoData
 			button,
 			videoApiId: videoData.videoApiId
 		});
+	} else {
+		button.removeAttribute('video-id');
 	}
+	if (videoData.pageUrl) button.setAttribute('data-video-page-url', videoData.pageUrl);
+	else button.removeAttribute('data-video-page-url');
 
 	if (!button.hasListener) {
-		button.addEventListener('click', createDownloadClickHandler(button, videoData));
+		button.addEventListener('click', (event) => {
+			if (button.ttdbVideoData) void createDownloadClickHandler(button, button.ttdbVideoData)(event);
+		});
 		button.hasListener = true;
 	}
 

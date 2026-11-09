@@ -8,6 +8,15 @@ const normalizePageUrl = (pageUrl) => {
 	return normalizeUrl(pageUrl);
 };
 
+const videoIdFromPageUrl = (value: string | null) => {
+	if (!value) return null;
+	try {
+		const url = new URL(value, 'https://www.tiktok.com');
+		if (url.hostname !== 'tiktok.com' && !url.hostname.endsWith('.tiktok.com')) return null;
+		return /^\/@[^/]+\/video\/(\d+)\/?$/.exec(url.pathname)?.[1] || null;
+	} catch (_) { return null; }
+};
+
 // Decode JSON-escaped URL strings (e.g. \u002F or escaped slashes).
 const decodeEscapedValue = (value) => {
 	if (!value) return null;
@@ -24,7 +33,7 @@ const decodeEscapedValue = (value) => {
 };
 
 // Extract a usable URL from JSON-LD metadata when the rehydration data is missing.
-const extractJsonLdVideoInfo = (rootDocument) => {
+const extractJsonLdVideoInfo = (rootDocument, videoId: string | null = null) => {
 	if (!rootDocument) return null;
 
 	const scripts = rootDocument.querySelectorAll('script[type="application/ld+json"]');
@@ -54,9 +63,16 @@ const extractJsonLdVideoInfo = (rootDocument) => {
 
 		for (const item of items) {
 			if (!item || typeof item !== 'object') continue;
+			if (videoId) {
+				const page = item.mainEntityOfPage;
+				const ids = [item.url, item['@id'], typeof page === 'string' ? page : page?.['@id']]
+					.map(videoIdFromPageUrl).filter(Boolean);
+				// A verified page can also contain JSON-LD for recommended videos.
+				if (!ids.length || ids.some((id) => id !== videoId)) continue;
+			}
 
 			const type = String(item['@type'] || item.type || '');
-			const url = item.contentUrl || item.embedUrl || item.url || item.video?.contentUrl;
+			const url = item.contentUrl || item.video?.contentUrl;
 
 			if (url && (type.includes('Video') || type.includes('Social'))) {
 				return {
@@ -76,23 +92,57 @@ const extractVideoUrlFromHtml = (html) => {
 	if (!html) return null;
 
 	const patterns = [
-		/"downloadAddr":"([^"]+)"/,
-		/"playAddr":"([^"]+)"/,
-		/"playAddrH264":"([^"]+)"/,
-		/"playAddrBytevc1":"([^"]+)"/,
-		/"playAddr":\{"urlList":\["([^"]+)"/,
-		/"downloadAddr":\{"urlList":\["([^"]+)"/
+		/"downloadAddr":"([^"]+)"/g,
+		/"playAddr":"([^"]+)"/g,
+		/"playAddrH264":"([^"]+)"/g,
+		/"playAddrBytevc1":"([^"]+)"/g,
+		/"playAddr":\{"urlList":\["([^"]+)"/g,
+		/"downloadAddr":\{"urlList":\["([^"]+)"/g
 	];
 
+	const urls = new Set<string>();
 	for (const pattern of patterns) {
-		const match = pattern.exec(html);
-		if (match?.[1]) {
+		for (const match of html.matchAll(pattern)) {
 			const decoded = decodeEscapedValue(match[1]);
-			if (decoded) return decoded;
+			if (decoded && /^https?:\/\//i.test(decoded)) urls.add(decoded);
 		}
 	}
+	// A page can contain recommendations with their own playAddr values. Do not
+	// guess which video an unstructured URL belongs to when there is more than one.
+	return urls.size === 1 ? [...urls][0] : null;
+};
 
-	return null;
+// The raw HTML, meta and JSON-LD fallbacks are not keyed by video ID. Only use
+// them if the fetched page explicitly identifies the requested TikTok post.
+const pageIdentifiesVideo = (rootDocument, videoId: string, responseUrl: string) => {
+	if (!rootDocument || !/^\d+$/.test(String(videoId))) return false;
+	const finalId = videoIdFromPageUrl(responseUrl);
+	if (finalId && finalId !== String(videoId)) return false;
+	try {
+		if (new URL(responseUrl, 'https://www.tiktok.com').pathname === '/404') return false;
+	} catch (_) { return false; }
+	const candidates = [
+		rootDocument.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+		rootDocument.querySelector('meta[property="og:url"]')?.getAttribute('content'),
+		rootDocument.querySelector('meta[name="twitter:url"]')?.getAttribute('content')
+	].map(videoIdFromPageUrl).filter(Boolean);
+	if (candidates.length > 0) return candidates.every((id) => id === String(videoId));
+
+	// Some pages omit canonical metadata but identify their post in JSON-LD.
+	const structuredIds: string[] = [];
+	for (const script of rootDocument.querySelectorAll?.('script[type="application/ld+json"]') || []) {
+		try {
+			const parsed = JSON.parse(script.textContent || '');
+			const nodes = (Array.isArray(parsed) ? parsed : [parsed]).flatMap((value) => value?.['@graph'] || [value]);
+			for (const node of nodes) {
+				if (!String(node?.['@type'] || '').includes('Video')) continue;
+				const page = node.url || node['@id'] || node.mainEntityOfPage?.['@id'] || node.mainEntityOfPage;
+				const id = typeof page === 'string' ? videoIdFromPageUrl(page) : null;
+				if (id) structuredIds.push(id);
+			}
+		} catch (_) { /* Ignore malformed structured data. */ }
+	}
+	return structuredIds.length > 0 && structuredIds.every((id) => id === String(videoId));
 };
 
 // Export parsing helpers so the fallback behavior can be tested without wiring full fetch/DOM flows.
@@ -100,7 +150,8 @@ export const webDetailHelpers = {
 	normalizePageUrl,
 	decodeEscapedValue,
 	extractJsonLdVideoInfo,
-	extractVideoUrlFromHtml
+	extractVideoUrlFromHtml,
+	pageIdentifiesVideo
 };
 
 export const getWebApiData = (videoData) => {
@@ -130,7 +181,10 @@ export const getWebApiData = (videoData) => {
 				? `https://www.tiktok.com/@${videoData.user}/video/${videoId}`
 				: `https://www.tiktok.com/video/${videoId}`);
 
-		fetch(reqUrl, TTDB.headers).then((res) => res.text()).then((body) => {
+		fetch(reqUrl, TTDB.headers).then(async (res) => {
+			if (!res.ok) throw new Error(`Video page HTTP ${res.status}`);
+			return { body: await res.text(), responseUrl: res.url || reqUrl };
+		}).then(({ body, responseUrl }) => {
 			const webDocument = (new DOMParser()).parseFromString(body, 'text/html');
 			const UD = parseRehydrationData(webDocument);
 			const { status, webappDetail } = extractWebappDetail(UD, videoId);
@@ -143,8 +197,11 @@ export const getWebApiData = (videoData) => {
 				reject('Video is private'); return;
 			}
 
+			if (!pageIdentifiesVideo(webDocument, String(videoId), responseUrl)) {
+				reject('Video page identity could not be verified'); return;
+			}
 			const metaInfo = extractMetaVideoInfo(webDocument);
-			const jsonLdInfo = extractJsonLdVideoInfo(webDocument);
+			const jsonLdInfo = extractJsonLdVideoInfo(webDocument, String(videoId));
 			const htmlUrl = extractVideoUrlFromHtml(body);
 
 			const fallbackInfo = metaInfo || jsonLdInfo;

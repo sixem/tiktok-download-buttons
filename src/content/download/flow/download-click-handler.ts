@@ -44,7 +44,7 @@ const getNameTemplate = async () => {
 	return nameTemplate.trim();
 };
 
-const readButtonDownloadAttrs = (button: HTMLElement, videoData: ItemVideoData): DownloadAttemptAttrs & { hasPageUrlAttribute: boolean } => {
+const readButtonDownloadAttrs = (button: HTMLElement, videoData: ItemVideoData): DownloadAttemptAttrs => {
 	const filename = button.getAttribute('filename') || null;
 	const apiId = button.getAttribute('video-id') || null;
 	const url = button.getAttribute('href') || null;
@@ -54,8 +54,7 @@ const readButtonDownloadAttrs = (button: HTMLElement, videoData: ItemVideoData):
 		filename,
 		apiId,
 		url,
-		pageUrl: attrPageUrl || videoData.pageUrl || null,
-		hasPageUrlAttribute: !!attrPageUrl
+		pageUrl: attrPageUrl || videoData.pageUrl || null
 	};
 };
 
@@ -194,14 +193,12 @@ export const createDownloadClickHandler = (button: HTMLElement, videoData: ItemV
 	});
 
 	try {
+		// The viewer can replace its video while settings or browser info load.
+		// Capture the clicked post's media before yielding to the event loop.
+		const domVideoUrl = getVideoUrlFromButtonContext(button);
 		const nameTemplate = await getNameTemplate();
 		const runtimeInfo = await getRuntimeInfo();
 
-		if (attrs.pageUrl && !attrs.hasPageUrlAttribute) {
-			button.setAttribute('data-video-page-url', attrs.pageUrl);
-		}
-
-		const domVideoUrl = getVideoUrlFromButtonContext(button);
 		if (domVideoUrl) {
 			logDownload.info(`Attempt ${attemptLabel}: DOM URL found`, {
 				videoKey: attemptKey,

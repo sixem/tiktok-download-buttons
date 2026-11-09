@@ -4,6 +4,7 @@ import { DOM } from '@/content/core/dom';
 import { pipe } from '@/content/core/logging';
 import { itemSetup } from '@/content/items/setup-registry';
 import { isElement, isParentNode } from '@/content/utils';
+import { createAnchoredFeedController } from '@/content/modes/anchored-feed';
 
 const APP_BROWSER_CONTROL_SELECTOR = '[data-e2e="browse-close"], [data-e2e="browse-sound"], [data-e2e="arrow-left"], [data-e2e="arrow-right"], [data-e2e="browse-ellipsis"]';
 
@@ -23,6 +24,7 @@ const VIDEO_ITEM_SELECTORS = DOM.multiSelector({
 const pendingRoots = new Set<ParentNode>();
 let flushScheduled = false;
 let initialScanQueued = false;
+let anchoredFeed: ReturnType<typeof createAnchoredFeedController> | null = null;
 const MAX_ROOTS_PER_FLUSH = 8;
 const APP_BROWSER_ROOT_SELECTOR = [
 	'div[class*="-DivBrowserModeContainer"]',
@@ -361,12 +363,15 @@ export const updatePage = () => {
 
 export const observeApp = (container) => {
 	ensureSetIntervalStartsLoop();
+	anchoredFeed?.disconnect();
+	anchoredFeed = createAnchoredFeedController(container);
 
 	if (TTDB.observers.main) {
 		TTDB.observers.main.disconnect();
 	}
 
 	TTDB.observers.main = new MutationObserver((mutationsList) => {
+		anchoredFeed?.handleMutations(mutationsList);
 		let hasWork = false;
 
 		for (const mutation of mutationsList) {

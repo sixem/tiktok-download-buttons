@@ -39,7 +39,8 @@ export const getFileNameTemplate = (data, apiData, template = '{uploader} - {des
 					keyData = item; break;
 				} else if (Array.isArray(item)) {
 					const resolvedValue = _get(apiData, item, undefined);
-					if (resolvedValue !== undefined) {
+					if (resolvedValue !== undefined && resolvedValue !== null
+						&& !(typeof resolvedValue === 'string' && !resolvedValue.trim())) {
 						keyData = resolvedValue; break;
 					}
 				}

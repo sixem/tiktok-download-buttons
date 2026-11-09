@@ -10,7 +10,6 @@ const STATIC_FILES = [
 	'manifest.json',
 	'popup.html'
 ];
-const BUILD_TOKEN = createBuildToken({ length: 5 });
 
 const copyFile = async (src, dest) => {
 	await fs.mkdir(path.dirname(dest), { recursive: true });
@@ -20,7 +19,8 @@ const copyFile = async (src, dest) => {
 const copyManifest = async (src, dest) => {
 	const raw = await fs.readFile(src, 'utf8');
 	const manifest = JSON.parse(raw);
-	const output = withBuildVersionName(manifest, BUILD_TOKEN);
+	// A watch process can rebuild many times; give each output its own identifier.
+	const output = withBuildVersionName(manifest, createBuildToken({ length: 5 }));
 
 	await fs.mkdir(path.dirname(dest), { recursive: true });
 	await fs.writeFile(dest, `${JSON.stringify(output, null, '\t')}\n`);

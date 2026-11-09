@@ -102,12 +102,27 @@ const removeDownloadChangeListenerIfIdle = () => {
 	globalState.__ttdbDownloadChangeListenerInstalled = false;
 };
 
-const buildDownloadPath = (filename, subFolder) => {
-	let prefix = typeof subFolder === 'string' ? subFolder : '';
-	if (prefix && prefix.length > 1 && !prefix.endsWith('/')) {
-		prefix = `${prefix}/`;
+const sanitizePathPart = (value: string) => {
+	const cleaned = Array.from(value, (character) => character.charCodeAt(0) < 32 ? '-' : character)
+		.join('').replace(/[<>:"/\\|?*]/g, '-').trim().replace(/[. ]+$/, '');
+	if (!cleaned || cleaned === '.' || cleaned === '..') return '_';
+	return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(cleaned) ? `_${cleaned}` : cleaned;
+};
+
+const buildDownloadPath = (filename: string, subFolder: unknown) => {
+	const folders = typeof subFolder === 'string'
+		? subFolder.replace(/\\/g, '/').split('/').filter(Boolean).map(sanitizePathPart)
+		: [];
+	return [...folders, sanitizePathPart(filename)].join('/');
+};
+
+const isSupportedDownloadUrl = (url: unknown): url is string => {
+	if (typeof url !== 'string') return false;
+	try {
+		return ['http:', 'https:', 'blob:'].includes(new URL(url).protocol);
+	} catch (_) {
+		return false;
 	}
-	return `${prefix}${filename}`;
 };
 
 /**
@@ -168,15 +183,16 @@ const ensureDownloadChangeListener = () => {
  * @param {object} args 
  */
 const fileDownload = async (args: ServiceTaskArgs<FileDownloadMessage>) => {
-	let [filename, url, subFolder] = [
+	const [filename, url, subFolder] = [
 		args.data.filename,
 		args.data.url,
 		args.data.subFolder
 	];
 	const referer = typeof args.data.referer === 'string' ? args.data.referer : '';
 
-	if (subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
-		subFolder = `${subFolder}/`;
+	if (typeof filename !== 'string' || !filename.trim() || !isSupportedDownloadUrl(url)) {
+		args.sendResponse({ success: false, error: 'Invalid download filename or URL.' } satisfies FileDownloadResponse);
+		return;
 	}
 
 	try {
@@ -222,7 +238,7 @@ const fileDownload = async (args: ServiceTaskArgs<FileDownloadMessage>) => {
 			conflictAction: 'uniquify',
 			filename: buildDownloadPath(filename, subFolder),
 			url: url,
-			...(url.startsWith('http') && { method: 'GET' }),
+			...(/^https?:/i.test(url) && { method: 'GET' }),
 			...(downloadHeaders.length ? { headers: downloadHeaders } : {}),
 			saveAs: false
 		}, (itemId) => {
@@ -266,7 +282,7 @@ const fileDownload = async (args: ServiceTaskArgs<FileDownloadMessage>) => {
 			args.sendResponse(response);
 		});
 	} catch (error) {
-		const response: FileDownloadResponse = { success: false, error };
+		const response: FileDownloadResponse = { success: false, error: error instanceof Error ? error.message : String(error) };
 		args.sendResponse(response);
 	}
 };
@@ -316,13 +332,14 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
 	};
 
 	const task = data?.task as RuntimeTask | undefined;
-	if (task && tasks[task]) {
+	if (task && Object.hasOwn(tasks, task) && tasks[task]) {
 		tasks[task]({ // Perform task
 			data,
 			sender,
 			sendResponse
 		});
+		return task !== 'fileShow';
 	}
 
-	return true;
+	return false;
 });

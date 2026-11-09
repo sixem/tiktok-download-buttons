@@ -1,6 +1,6 @@
 // Basic player extraction for the standalone player layout.
 import { EXPR } from '@/content/core/state';
-import { getTextContent, getUserFromProfileLink } from '@/content/item-data/extraction-helpers';
+import { extractDescriptionText, getTextContent, getUserFromProfileLink } from '@/content/item-data/extraction-helpers';
 
 const BASIC_PLAYER_SELECTORS = {
 	parent: 'div[class*="-DivLeftContainer "]',
@@ -15,6 +15,8 @@ export const extractBasicPlayerData = (data) => {
 	const parent = data.container.closest(BASIC_PLAYER_SELECTORS.parent);
 
 	if (parent) {
+		const description = extractDescriptionText(parent);
+		if (description) videoData.description = description;
 		const userIdElement = parent.querySelector(BASIC_PLAYER_SELECTORS.userId);
 
 		if (userIdElement) {

@@ -42,7 +42,7 @@ const getFeedActionBar = (item, data) => {
 	);
 };
 
-const extractFeedVideoId = (element) => {
+export const extractFeedVideoId = (element) => {
 	// Prefer the canonical link-based ID when available.
 	const shareData = findVideoUrls(element);
 	if (shareData) {

@@ -41,4 +41,37 @@ describe('getItemDetailApiData', () => {
 
 		await expect(getItemDetailApiData('123')).rejects.toThrow('Item detail API returned no itemStruct');
 	});
+
+	it('preserves a pre-2020 video ID exactly when requesting and validating its response', async () => {
+		const oldVideoId = '6679641922576846086';
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			headers: { get: () => 'application/json' },
+			text: async () => JSON.stringify({ itemInfo: { itemStruct: { id: oldVideoId } } })
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		await expect(getItemDetailApiData(oldVideoId)).resolves.toEqual({ id: oldVideoId });
+		expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining(`itemId=${oldVideoId}`), expect.anything());
+	});
+
+	it('rejects an item-detail response for a different video', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: true,
+			headers: { get: () => 'application/json' },
+			text: async () => JSON.stringify({ itemInfo: { itemStruct: { id: '6679641922576846087' } } })
+		}));
+
+		await expect(getItemDetailApiData('6679641922576846086')).rejects.toThrow('Item detail API returned a different video');
+	});
+
+	it('accepts an item structure without an ID, preserving compatibility with partial responses', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: true,
+			headers: { get: () => 'application/json' },
+			text: async () => JSON.stringify({ itemInfo: { itemStruct: { video: { playAddr: 'https://cdn.example.com/video.mp4' } } } })
+		}));
+
+		await expect(getItemDetailApiData('123')).resolves.toEqual({ video: { playAddr: 'https://cdn.example.com/video.mp4' } });
+	});
 });

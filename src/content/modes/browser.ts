@@ -106,13 +106,29 @@ const injectBrowserActionButton = (data) => {
 		init: initializeButton,
 		place: placeBrowserButton,
 		resolveObserveTarget: (slot) => {
-			if (slot?.container) {
-				return slot.insert === 'append' || slot.insert === 'prepend'
-					? slot.container
-					: slot.container.parentNode;
+			// The information panel can be replaced when navigating between posts
+			// (for example when comments are disabled). Watching the old slot's
+			// parent would leave the observer attached to the discarded subtree.
+			const dialog = observeRoot?.closest?.('[role="dialog"]');
+			if (dialog && (!slot?.container || dialog.contains(slot.container))) return dialog;
+			const overlay = observeRoot?.closest?.('div[class*="-DivBrowserModeContainer"]');
+			if (overlay && slot?.container && overlay.contains(slot.container)) return overlay;
+			// Without a slot yet, TikTok may render the controls in a sibling of
+			// the video container. Watch their shared parent for that first insert.
+			if (overlay && !slot?.container) return overlay.parentNode || overlay;
+
+			if (slot?.container && observeRoot) {
+				let sharedRoot: Node | null = observeRoot;
+				while (sharedRoot && !sharedRoot.contains(slot.container)) sharedRoot = sharedRoot.parentNode;
+				if (sharedRoot) return sharedRoot;
 			}
 
-			return observeRoot || null;
+			return slot?.container?.parentNode || observeRoot?.parentNode || observeRoot || null;
+		},
+		isButtonAlreadyPresent: (slot, nextButton) => {
+			if (slot.insert === 'before') return nextButton.nextElementSibling === slot.container;
+			if (slot.insert === 'after') return nextButton.previousElementSibling === slot.container;
+			return nextButton.parentElement === slot.container;
 		}
 	});
 };
@@ -183,6 +199,19 @@ export const createBrowserMode = () => (item, data) => {
 
 	const button = createButton.BROWSER();
 	button.ttdbItem = item;
+	// TikTok can switch the viewer's post before the debounced content observer
+	// updates this reused button. Refuse a stale click instead of downloading a
+	// different post. Preserve legacy layouts where no post ID is available.
+	button.addEventListener('click', (event) => {
+		if (button.getAttribute('data-ttdb-content-type') !== 'video') return;
+		const buttonId = button.getAttribute('video-id');
+		const pageId = /^\/@[^/]+\/video\/(\d+)(?:\/|$)/.exec(window.location.pathname)?.[1];
+		const wrapperId = /(?:^|-)xgwrapper-\d+-(\d+)$/.exec(item.querySelector('[id^="xgwrapper-"]')?.id || '')?.[1];
+		if ((pageId && pageId !== buttonId) || (wrapperId && wrapperId !== buttonId)) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+		}
+	}, true);
 	button.setAttribute('ttdb_mode', data.env === TTDB.ENV.__NEXT ? '__NEXT' : 'APP');
 	injectBrowserActionButton({
 		resolveActionSlot: () => resolveBrowserActionSlot(item, data),

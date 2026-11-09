@@ -26,6 +26,12 @@ export const getItemDetailApiData = async (videoId) => {
 	if (!itemStruct) {
 		throw new Error('Item detail API returned no itemStruct');
 	}
+	// TikTok IDs exceed JavaScript's safe integer range. Compare their string
+	// representations and never use a response for a different post.
+	const returnedId = itemStruct.id ?? itemStruct.aweme_id;
+	if (returnedId != null && String(returnedId) !== String(videoId)) {
+		throw new Error('Item detail API returned a different video');
+	}
 
 	return itemStruct;
 };

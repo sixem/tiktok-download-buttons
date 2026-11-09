@@ -4,6 +4,7 @@ import { pipe } from '@/content/core/logging';
 import { findVideoUrls } from '@/content/extractors/share';
 import {
 	extractDescriptionId,
+	extractDescriptionText,
 	getTextContent,
 	getUserFromProfileLink,
 	selectNamed
@@ -22,6 +23,8 @@ const NEXT_SELECTORS = {
 
 export const extractBrowserData = (data) => {
 	const videoData: any = {};
+	const description = extractDescriptionText(data.container, data.env);
+	if (description) videoData.description = description;
 
 	if (data.env === TTDB.ENV.APP) {
 		const userLink = data.container.querySelector(APP_SELECTORS.userLink);

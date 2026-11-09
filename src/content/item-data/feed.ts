@@ -1,6 +1,6 @@
 // Feed-mode extraction for scrolling timeline items.
 import { findVideoUrls } from '@/content/extractors/share';
-import { extractDescriptionId, getTextContent, getUserFromProfileLink, selectFirst } from '@/content/item-data/extraction-helpers';
+import { extractDescriptionId, extractDescriptionText, getTextContent, getUserFromProfileLink, selectFirst } from '@/content/item-data/extraction-helpers';
 
 const FEED_USER_SELECTORS = {
 	app: 'a > [class*="AuthorTitle "]',
@@ -11,6 +11,8 @@ const PROFILE_LINK_SELECTOR = 'a[href^="/@"]';
 
 export const extractFeedData = (data) => {
 	const videoData: any = {};
+	const description = extractDescriptionText(data.container, data.env);
+	if (description) videoData.description = description;
 
 	const itemUser = selectFirst(data.container, FEED_USER_SELECTORS);
 

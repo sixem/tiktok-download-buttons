@@ -9,14 +9,29 @@ export const setupStringUtils = () => {
 
 	// Remove characters and prefixes that are unsafe for filenames.
 	UTIL.sanitizeFilename = (string) => {
-		string = string.replace(
-			/[^\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\wÃƒÂÃ‚Â°-Ãƒâ€˜Ã‚Â0-9a-zA-Z-._ #()[\]]/g, ''
-		).replace(/\s\s+/g, ' ').trim();
+		string = Array.from(String(string))
+			.filter((character) => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127)
+			.join('').replace(/[<>:"/\\|?*]/g, '').replace(/\s\s+/g, ' ').trim();
 
 		while (string[0] === '.') {
 			string = string.substring(1);
 		}
 
-		return (string.length - 4) >= 246 ? `${string.replace('.mp4', '').substring(0, 246).trim()}.mp4` : string;
+		// Filesystems commonly limit a filename component to 255 bytes, not
+		// characters. Truncate by UTF-8 bytes without splitting Unicode characters.
+		const encoder = new TextEncoder();
+		if (encoder.encode(string).length <= 250) return string;
+		const extension = /\.mp4$/i.test(string) ? string.slice(-4) : '';
+		const basename = extension ? string.slice(0, -extension.length) : string;
+		const budget = 250 - encoder.encode(extension).length;
+		let prefix = '';
+		let bytes = 0;
+		for (const character of basename) {
+			const size = encoder.encode(character).length;
+			if (bytes + size > budget) break;
+			prefix += character;
+			bytes += size;
+		}
+		return `${prefix.trimEnd()}${extension}`;
 	};
 };

@@ -64,11 +64,12 @@ const getWebVideoUrl = (webData: any) => {
 	];
 
 	for (const candidate of candidates) {
-		if (!candidate) continue;
-		if (typeof candidate === 'string') return candidate;
-		if (Array.isArray(candidate) && candidate.length) return candidate[0];
-		if (candidate.urlList?.length) return candidate.urlList[0];
-		if (candidate.url_list?.length) return candidate.url_list[0];
+		const values = typeof candidate === 'string' ? [candidate]
+			: Array.isArray(candidate) ? candidate
+			: candidate?.urlList || candidate?.url_list || [];
+		for (const value of values) {
+			if (typeof value === 'string' && isHttpUrl(value)) return value;
+		}
 	}
 
 	return null;
@@ -76,7 +77,7 @@ const getWebVideoUrl = (webData: any) => {
 
 // Resolve URL and metadata from API sources when needed.
 //
-// Item-detail API is only attempted when the web API throws.
+// Try item-detail when the web API fails or returns no usable video URL.
 const resolveApiSource = async ({
 	videoData,
 	apiId,
@@ -103,15 +104,14 @@ const resolveApiSource = async ({
 			};
 		}
 	} catch (_) {
+		// Try item-detail below.
+	}
+	if (apiId) {
 		try {
 			const itemDetailData = await getItemDetailApiData(apiId);
 			const itemDetailUrl = getWebVideoUrl(itemDetailData);
 			if (itemDetailUrl) {
-				return {
-					videoUrl: itemDetailUrl,
-					source: 'item-detail-api',
-					apiData: itemDetailData
-				};
+				return { videoUrl: itemDetailUrl, source: 'item-detail-api', apiData: itemDetailData };
 			}
 		} catch (_) {
 			// Fall through to unresolved result.

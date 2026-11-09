@@ -36,6 +36,15 @@ describe('getFileNameTemplate', () => {
 		expect(filename).toBe('nested-user - from-api.mp4');
 	});
 
+	it('uses local metadata when API fields are null or empty', () => {
+		const filename = getFileNameTemplate(
+			{ user: 'creator', description: 'local caption', videoApiId: '123' },
+			{ author: { uniqueId: '  ' }, desc: null },
+			'{uploader} - {desc}'
+		);
+		expect(filename).toBe('creator - local caption.mp4');
+	});
+
 	it('builds timestamp helper tokens from integer-like strings', () => {
 		const filename = getFileNameTemplate(
 			{},

@@ -9,6 +9,20 @@ const DESCRIPTION_SELECTORS = {
 	__next: 'div[class*="video-meta-caption"]'
 };
 
+// The API is not always available, so retain the caption shown on the current
+// item for naming templates that use {desc}. Keep this scoped to the item.
+export const extractDescriptionText = (container: ParentNode, env = TTDB.ENV.APP) => {
+	if (!isQueryable(container)) return null;
+	const selectors = env === TTDB.ENV.APP
+		? ['[data-e2e="browse-video-desc"]', '[data-e2e="video-desc"]', 'span[class*="-SpanText "]']
+		: ['div[class*="video-meta-caption"]'];
+	for (const selector of selectors) {
+		const value = container.querySelector(selector)?.textContent?.trim();
+		if (value) return value;
+	}
+	return null;
+};
+
 export const getTextContent = (element, { trim = true } = {}) => {
 	if (!element || element.textContent === null) return null;
 	return trim ? element.textContent.trim() : element.textContent;

@@ -10,7 +10,7 @@ const createButton = (videoId: string) => {
 const createItemRoot = (button: Element | null) => {
 	return {
 		querySelector: vi.fn(() => button)
-	} as Element;
+	} as unknown as Element;
 };
 
 const createVideoElement = (itemRoot: Element | null) => {

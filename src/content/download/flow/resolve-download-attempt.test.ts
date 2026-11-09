@@ -89,6 +89,30 @@ describe('resolveDownloadAttempt', () => {
 		expect(result.source).toBe('item-detail-api');
 	});
 
+	it('tries item-detail when web metadata has no usable media URL', async () => {
+		mocks.getWebApiDataMock.mockResolvedValue({ video: { playAddr: ['javascript:bad'] } });
+		mocks.getItemDetailApiDataMock.mockResolvedValue({ video: { playAddr: ['https://cdn.example.com/item.mp4'] } });
+		const result = await resolveDownloadAttempt({
+			videoData: {}, attrs: { filename: 'video.mp4', apiId: '123', url: null, pageUrl: null },
+			env: { chromium: true }, nameTemplate: false,
+			candidates: { domVideoUrl: null, previewCachedUrl: null, previewWaitedUrl: null, previewWaitAttempted: false }
+		});
+		expect(result.source).toBe('item-detail-api');
+		expect(result.videoUrl).toBe('https://cdn.example.com/item.mp4');
+	});
+
+	it('skips malformed API URL candidates and uses a later valid URL', async () => {
+		mocks.getWebApiDataMock.mockResolvedValue({ video: { playAddr: ['', 'https://cdn.example.com/valid.mp4'] } });
+		const result = await resolveDownloadAttempt({
+			videoData: {}, attrs: { filename: 'video.mp4', apiId: '123', url: null, pageUrl: null },
+			env: { chromium: true }, nameTemplate: false,
+			candidates: { domVideoUrl: null, previewCachedUrl: null, previewWaitedUrl: null, previewWaitAttempted: false }
+		});
+		expect(result.source).toBe('web-api');
+		expect(result.videoUrl).toBe('https://cdn.example.com/valid.mp4');
+		expect(mocks.getItemDetailApiDataMock).not.toHaveBeenCalled();
+	});
+
 	it('signals preview wait when no URL is resolved yet but an apiId exists', async () => {
 		mocks.getWebApiDataMock.mockResolvedValue(null);
 
