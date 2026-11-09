@@ -37,16 +37,8 @@ pnpm install --frozen-lockfile
 pnpm run dev
 ```
 
-Load the generated `dist` directory as an unpacked extension in Chrome or Brave.
-The watch command rebuilds it after source changes; reload the extension and refresh
-the TikTok tab to run the new content script.
-
-Use `pnpm test` and `pnpm lint` to check changes. `pnpm run build` creates a
-production build, and `pnpm run package` builds Chrome and Firefox archives.
-To test in Firefox, run `pnpm run build` followed by `pnpm run port:firefox`,
-then load the archive from `packages/firefox` via `about:debugging` → **This
-Firefox** → **Load Temporary Add-on**. The Chrome `dist` manifest is not the
-Firefox manifest; temporary add-ons are removed when Firefox closes.
+Run `pnpm test` and `pnpm lint` to check changes; `pnpm run package` builds
+Chrome and Firefox archives.
 
 ## Not working?
 
