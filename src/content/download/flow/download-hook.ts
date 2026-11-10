@@ -4,15 +4,22 @@
 // readiness lives in `preview-button-interactivity.ts`. This module only applies
 // stable button attributes and wires those pieces together.
 import { DOM } from '@/content/core/dom';
+import { getTikTokPostDetails } from '@/content/download/filename';
 import { createDownloadClickHandler } from '@/content/download/flow/download-click-handler';
 import { setupPreviewButtonInteractivity } from '@/content/download/flow/preview-button-interactivity';
 import type { ItemVideoData } from '@/types';
 
 export const downloadHook = async (button: HTMLElement, videoData: ItemVideoData) => {
+	const currentPost = getTikTokPostDetails(window.location.pathname);
+	if (currentPost && currentPost.id === (videoData.videoApiId || videoData.videoId)) {
+		videoData.user = currentPost.user;
+		videoData.pageUrl = currentPost.pageUrl;
+	}
 	// Browser-mode controls can survive navigation to a different post. Keep the
 	// current data on the button instead of closing over the first post forever.
 	button.ttdbVideoData = videoData;
-	const videoIdentifier = videoData.id ? videoData.id : Date.now();
+	const videoIdentifier = videoData.videoApiId || videoData.videoId
+		|| (typeof videoData.id === 'string' ? videoData.id : '') || 'video';
 	const fileName = `${videoData.user ? `${videoData.user} - ` : ''}${videoIdentifier}`;
 
 	DOM.setAttributes(button, {

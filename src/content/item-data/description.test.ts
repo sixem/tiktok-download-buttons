@@ -10,6 +10,7 @@ vi.mock('@/content/extractors/share', () => ({ findVideoUrls: () => false }));
 describe('caption metadata for naming', () => {
 	beforeEach(() => {
 		document.body.innerHTML = '';
+		window.history.replaceState({}, '', '/');
 		TTDB.LOG = { info: vi.fn() };
 	});
 
@@ -18,6 +19,38 @@ describe('caption metadata for naming', () => {
 		const article = document.querySelector('article') as HTMLElement;
 		const data = extractFeedData({ container: article, env: TTDB.ENV.APP });
 		expect(getFileNameTemplate(data, {}, '{uploader} - {desc}')).toBe('creator - A lovely clip.mp4');
+	});
+
+	it('uses the profile username instead of the display name for filenames', () => {
+		document.body.innerHTML = '<article><a href="/@creator/video/123"><span class="test-AuthorTitle name">Display Name</span></a></article>';
+		const article = document.querySelector('article') as HTMLElement;
+		const data = extractFeedData({ container: article, env: TTDB.ENV.APP });
+		expect(data.user).toBe('creator');
+	});
+
+	it('does not replace the profile username with the display name in the viewer', () => {
+		document.body.innerHTML = '<div id="viewer"><div class="x-DivInfoContainer "><a href="/@creator">Creator</a></div><div id="xgwrapper-0-123"></div><span class="x-SpanUniqueId">Display Name</span></div>';
+		const viewer = document.querySelector('#viewer') as HTMLElement;
+		const data = extractBrowserData({ container: viewer, env: TTDB.ENV.APP });
+		expect(data.user).toBe('creator');
+	});
+
+	it('uses the current post URL when viewer metadata omits the creator', () => {
+		window.history.replaceState({}, '', '/@creator/video/123');
+		document.body.innerHTML = '<div id="viewer"><div id="xgwrapper-0-123"></div></div>';
+		const viewer = document.querySelector('#viewer') as HTMLElement;
+		const data = extractBrowserData({ container: viewer, env: TTDB.ENV.APP });
+		expect(data).toMatchObject({ user: 'creator', videoApiId: '123', pageUrl: 'https://www.tiktok.com/@creator/video/123' });
+	});
+
+	it('does not use the URL of a different post while the viewer is changing', () => {
+		window.history.replaceState({}, '', '/@other/video/222');
+		document.body.innerHTML = '<div id="viewer"><div id="xgwrapper-0-123"></div></div>';
+		const viewer = document.querySelector('#viewer') as HTMLElement;
+		const data = extractBrowserData({ container: viewer, env: TTDB.ENV.APP });
+		expect(data.videoApiId).toBe('123');
+		expect(data.pageUrl).toBeUndefined();
+		expect(data.user).toBeUndefined();
 	});
 
 	it('keeps the viewer caption scoped to its own post', () => {

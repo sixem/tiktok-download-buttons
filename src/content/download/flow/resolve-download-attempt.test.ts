@@ -101,6 +101,22 @@ describe('resolveDownloadAttempt', () => {
 		expect(result.videoUrl).toBe('https://cdn.example.com/item.mp4');
 	});
 
+	it('keeps verified metadata for naming when the video URL comes from the page', async () => {
+		const metadata = { author: { uniqueId: 'creator' }, desc: 'A caption' };
+		mocks.getWebApiDataMock.mockResolvedValue(metadata);
+		mocks.getItemDetailApiDataMock.mockRejectedValue(new Error('unavailable'));
+		mocks.getFileNameTemplateMock.mockReturnValue('creator - A caption.mp4');
+		const videoData = { user: 'creator' };
+		const result = await resolveDownloadAttempt({
+			videoData, attrs: { filename: 'fallback.mp4', apiId: '123', url: null, pageUrl: null },
+			env: { chromium: true }, nameTemplate: '{uploader} - {desc}',
+			candidates: { domVideoUrl: 'https://cdn.example.com/video.mp4', previewCachedUrl: null, previewWaitedUrl: null, previewWaitAttempted: false }
+		});
+		expect(result.source).toBe('dom');
+		expect(mocks.getFileNameTemplateMock).toHaveBeenCalledWith(videoData, metadata, '{uploader} - {desc}');
+		expect(result.filename).toBe('creator - A caption.mp4');
+	});
+
 	it('skips malformed API URL candidates and uses a later valid URL', async () => {
 		mocks.getWebApiDataMock.mockResolvedValue({ video: { playAddr: ['', 'https://cdn.example.com/valid.mp4'] } });
 		const result = await resolveDownloadAttempt({

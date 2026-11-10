@@ -1,16 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TTDB } from '@/content/core/state';
-import { setupObjectUtils } from '@/content/utils/data/object';
+import { describe, expect, it } from 'vitest';
 import { getFileNameTemplate } from '@/content/download/filename';
 
 describe('getFileNameTemplate', () => {
-	beforeEach(() => {
-		setupObjectUtils();
-		TTDB.LOG = {
-			info: vi.fn()
-		};
-	});
-
 	it('replaces repeated tokens and appends .mp4 when needed', () => {
 		const filename = getFileNameTemplate(
 			{ user: 'creator', description: 'clip', videoApiId: '123' },
@@ -59,5 +50,27 @@ describe('getFileNameTemplate', () => {
 
 	it('returns null when unresolved placeholders leave no usable filename', () => {
 		expect(getFileNameTemplate({}, {}, '{missing}')).toBeNull();
+		expect(getFileNameTemplate({}, {}, '{uploader} - {id}')).toBeNull();
+		expect(getFileNameTemplate({}, {}, '???')).toBeNull();
+	});
+
+	it('uses the post URL for the username and ID when API metadata is missing', () => {
+		const data = { user: 'Display name', pageUrl: 'https://www.tiktok.com/@creator/video/7234567890123456789' };
+		expect(getFileNameTemplate(data, {}, '{uploader} - {id}')).toBe('creator - 7234567890123456789.mp4');
+	});
+
+	it('keeps available metadata when another placeholder is missing', () => {
+		const data = { user: 'creator', videoApiId: '123' };
+		expect(getFileNameTemplate(data, {}, '{uploader} - {desc} - {id}')).toBe('creator - 123.mp4');
+		expect(getFileNameTemplate(data, {}, '{uploader} - {uploaded}')).toBe('creator.mp4');
+	});
+
+	it('keeps an existing extension regardless of case', () => {
+		expect(getFileNameTemplate({ user: 'creator' }, {}, '{uploader}.MP4')).toBe('creator.MP4');
+	});
+
+	it('ignores non-TikTok URLs when looking for post metadata', () => {
+		const data = { user: 'creator', pageUrl: 'https://example.com/@other/video/123' };
+		expect(getFileNameTemplate(data, {}, '{uploader} - {id}')).toBe('creator.mp4');
 	});
 });

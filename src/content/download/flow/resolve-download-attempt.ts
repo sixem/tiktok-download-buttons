@@ -87,6 +87,7 @@ const resolveApiSource = async ({
 	apiId: string | null;
 	pageUrl: string | null;
 }): Promise<ApiResolution> => {
+	let metadata: any = null;
 	try {
 		const webData = await getWebApiData({
 			...videoData,
@@ -95,6 +96,7 @@ const resolveApiSource = async ({
 				pageUrl
 			}
 		});
+		if (webData && typeof webData === 'object') metadata = webData;
 		const webVideoUrl = getWebVideoUrl(webData);
 		if (webVideoUrl) {
 			return {
@@ -109,9 +111,16 @@ const resolveApiSource = async ({
 	if (apiId) {
 		try {
 			const itemDetailData = await getItemDetailApiData(apiId);
+			if (itemDetailData && typeof itemDetailData === 'object') {
+				metadata = metadata ? {
+					...metadata,
+					...itemDetailData,
+					author: { ...metadata.author, ...itemDetailData.author }
+				} : itemDetailData;
+			}
 			const itemDetailUrl = getWebVideoUrl(itemDetailData);
 			if (itemDetailUrl) {
-				return { videoUrl: itemDetailUrl, source: 'item-detail-api', apiData: itemDetailData };
+				return { videoUrl: itemDetailUrl, source: 'item-detail-api', apiData: metadata };
 			}
 		} catch (_) {
 			// Fall through to unresolved result.
@@ -121,7 +130,7 @@ const resolveApiSource = async ({
 	return {
 		videoUrl: null,
 		source: null,
-		apiData: null
+		apiData: metadata
 	};
 };
 

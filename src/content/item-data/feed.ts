@@ -16,23 +16,14 @@ export const extractFeedData = (data) => {
 
 	const itemUser = selectFirst(data.container, FEED_USER_SELECTORS);
 
-	if (itemUser) {
-		videoData.user = getTextContent(itemUser);
-	} else {
-		const profileLink = data.container.querySelector(PROFILE_LINK_SELECTOR);
-		const userFromLink = getUserFromProfileLink(profileLink);
-
-		if (userFromLink) {
-			videoData.user = userFromLink;
-		}
-	}
+	const profileLink = data.container.querySelector(PROFILE_LINK_SELECTOR);
+	const userFromLink = getUserFromProfileLink(profileLink);
+	videoData.user = userFromLink || getTextContent(itemUser);
 
 	// Grab the canonical video ID when a link is available inside the feed item.
 	const shareData = findVideoUrls(data.container);
 	if (shareData) {
-		if (!videoData.user) {
-			videoData.user = shareData.username;
-		}
+		videoData.user = shareData.username;
 		videoData.videoApiId = shareData.videoId;
 		videoData.pageUrl = `https://www.tiktok.com/@${shareData.username}/video/${shareData.videoId}`;
 	}

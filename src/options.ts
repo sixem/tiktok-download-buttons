@@ -4,6 +4,8 @@
 // - The popup UI needs the same defaults for "Reset" and first-run initialization.
 // - Content scripts read settings defensively and tolerate missing values.
 
+import { DEFAULT_NAMING_TEMPLATE } from '@/content/download/filename?popup';
+
 export type TTDBOptionType = 'text' | 'toggle';
 
 export const TTDB_OPTIONS = {
@@ -15,7 +17,7 @@ export const TTDB_OPTIONS = {
 	// Default naming aims to be useful even without API data.
 	'download-naming-template': {
 		type: 'text',
-		default: '{uploader} - {id}'
+		default: DEFAULT_NAMING_TEMPLATE
 	}
 } as const satisfies Record<string, { type: TTDBOptionType; default: unknown }>;
 

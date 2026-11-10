@@ -40,7 +40,8 @@
                 <p class="help">
                     Naming template for downloaded videos. Use placeholders like <code>{uploader}</code> and <code>{id}</code>. See <a class="link" target="_blank" rel="noopener noreferrer" href="https://github.com/sixem/tiktok-download-buttons/blob/main/TEMPLATE.md">templating</a>.
                 </p>
-                <input type="text" spellcheck="false" id="download-naming-template" placeholder="{uploader} - {id}">
+                <input type="text" spellcheck="false" id="download-naming-template" placeholder="{uploader} - {id}" aria-label="Filename template" aria-describedby="naming-preview">
+                <div class="filenamePreview"><span>Example:</span> <output id="naming-preview" aria-live="polite"></output></div>
             </section>
 
             <section class="card card--support">

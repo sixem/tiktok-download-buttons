@@ -16,6 +16,11 @@ describe('setupStringUtils', () => {
 		expect(UTIL.sanitizeFilename('..bad:/\\\\name?.mp4')).toBe('badname.mp4');
 	});
 
+	it('avoids reserved device names and trailing dots', () => {
+		expect(UTIL.sanitizeFilename('CON.mp4')).toBe('_CON.mp4');
+		expect(UTIL.sanitizeFilename('video...')).toBe('video');
+	});
+
 	it('collapses repeated whitespace in filenames', () => {
 		expect(UTIL.sanitizeFilename('video    name   here.mp4')).toBe('video name here.mp4');
 	});

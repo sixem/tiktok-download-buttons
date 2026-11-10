@@ -33,6 +33,23 @@ import { TTDB } from '@/content/core/state';
 import { createDownloadClickHandler } from '@/content/download/flow/download-click-handler';
 
 describe('download click handling', () => {
+	it('uses the default naming template before settings have been initialized', async () => {
+		mocks.getStoredSetting.mockResolvedValue(null);
+		mocks.resolveDownloadAttempt.mockResolvedValue({
+			videoUrl: 'https://cdn.example.com/video.mp4',
+			filename: 'creator - 123.mp4',
+			source: 'dom',
+			needsPreviewWait: false,
+			blockedReason: null
+		});
+		TTDB.LOG = { ns: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }) } as any;
+		const button = document.createElement('a');
+		button.setAttribute('video-id', '123');
+		button.setAttribute('filename', 'creator - 123.mp4');
+		await createDownloadClickHandler(button, { id: '123', user: 'creator', url: null, videoApiId: '123' })(new MouseEvent('click'));
+		expect(mocks.resolveDownloadAttempt).toHaveBeenLastCalledWith(expect.objectContaining({ nameTemplate: '{uploader} - {id}' }));
+	});
+
 	it('uses the clicked video after the viewer navigates while settings load', async () => {
 		let resume: (value: string) => void = () => {};
 		mocks.getStoredSetting.mockReturnValue(new Promise<string>((resolve) => { resume = resolve; }));

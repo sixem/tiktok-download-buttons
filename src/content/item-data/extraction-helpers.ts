@@ -30,15 +30,7 @@ export const getTextContent = (element, { trim = true } = {}) => {
 
 export const getUserFromHref = (href) => {
 	if (!href) return null;
-	const parts = href.split('/@');
-	if (parts.length < 2) return null;
-
-	let user = parts[1];
-	if (user.includes('?')) {
-		user = user.split('?')[0];
-	}
-
-	return user || null;
+	return /\/@([^/?#]+)/.exec(href)?.[1] || null;
 };
 
 export const getUserFromProfileLink = (element) => {

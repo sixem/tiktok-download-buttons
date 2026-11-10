@@ -14,6 +14,7 @@ import {
 	startButtonLoading
 } from '@/content/utils';
 import { DOWNLOAD_HOOK } from '@/content/download/constants';
+import { DEFAULT_NAMING_TEMPLATE } from '@/content/download/filename';
 import {
 	downloadViaApi,
 	downloadViaBlob,
@@ -37,11 +38,8 @@ import type { ItemVideoData } from '@/types';
 const getNameTemplate = async () => {
 	const nameTemplate = await getStoredSetting('download-naming-template');
 
-	if (!(typeof nameTemplate === 'string' || nameTemplate instanceof String) || nameTemplate.length < 1) {
-		return false;
-	}
-
-	return nameTemplate.trim();
+	if (!(typeof nameTemplate === 'string' || nameTemplate instanceof String)) return DEFAULT_NAMING_TEMPLATE;
+	return nameTemplate.trim() || DEFAULT_NAMING_TEMPLATE;
 };
 
 const readButtonDownloadAttrs = (button: HTMLElement, videoData: ItemVideoData): DownloadAttemptAttrs => {

@@ -1,6 +1,7 @@
 // Popup UI logic for extension settings.
 import './popup.scss';
 import { storageGet, storageSet } from '@/popup-utils';
+import { getFilenamePreview } from '@/popup-preview';
 import { TTDB_OPTIONS } from '@/options';
 import type { TTDBOptionKey } from '@/types';
 
@@ -103,6 +104,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 		}
 	}
 
+	const namingInput = getInputElement('download-naming-template');
+	const namingPreview = document.querySelector<HTMLOutputElement>('#naming-preview');
+	const updateNamingPreview = () => {
+		if (namingInput && namingPreview) namingPreview.textContent = getFilenamePreview(namingInput.value);
+	};
+	namingInput?.addEventListener('input', updateNamingPreview);
+	updateNamingPreview();
+
 	buttonSave?.addEventListener('click', async () => {
 		const subfolderEl = getInputElement('download-subfolder-path');
 		const namingEl = getInputElement('download-naming-template');
@@ -132,6 +141,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 				input.value = String(TTDB_OPTIONS[key].default ?? '');
 			}
 		}
+		updateNamingPreview();
 
 		await storageSet(resetPayload);
 

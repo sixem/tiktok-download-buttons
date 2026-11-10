@@ -4,7 +4,7 @@
 ## Usage
 You can edit the naming template in the options menu of the addon (*pin it, then click on it*).
 
-This only works when utilizing the API because the available data from non-API requests isn't sufficient enough to cover templating.
+Some placeholders require metadata from the API.
 
 Example usage:
 

@@ -2,6 +2,7 @@
 import { TTDB, EXPR } from '@/content/core/state';
 import { pipe } from '@/content/core/logging';
 import { findVideoUrls } from '@/content/extractors/share';
+import { getTikTokPostDetails } from '@/content/download/filename';
 import {
 	extractDescriptionId,
 	extractDescriptionText,
@@ -50,7 +51,7 @@ export const extractBrowserData = (data) => {
 			if (parseInt(xgId, 10) > 0) {
 				videoData.videoApiId = xgId;
 
-				if (spanUniqueId) {
+				if (!videoData.user && spanUniqueId) {
 					videoData.user = getTextContent(spanUniqueId);
 				}
 
@@ -100,6 +101,13 @@ export const extractBrowserData = (data) => {
 		if (itemUser) {
 			videoData.user = getTextContent(itemUser);
 		}
+	}
+
+	const currentPost = getTikTokPostDetails(window.location.pathname);
+	if (currentPost && (!videoData.videoApiId || videoData.videoApiId === currentPost.id)) {
+		videoData.user = currentPost.user;
+		videoData.videoApiId = currentPost.id;
+		videoData.pageUrl = currentPost.pageUrl;
 	}
 
 	const descriptionIdentifier = extractDescriptionId(data.container, data.env);
